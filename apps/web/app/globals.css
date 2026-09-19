@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* IBM Plex earns its place here rather than being a house style: this
+   interface is read by someone cross-checking GSTINs and invoice numbers
+   character by character, and Plex Mono's disambiguated 0/O and 1/l/I are
+   the difference between catching a transposed digit and not. Plex Sans
+   carries the prose. A local fallback stack keeps the page legible when the
+   font request does not resolve. */
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap");
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body {
+  background: theme("colors.paper");
+  color: theme("colors.ink");
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Every figure in this product is compared against the figure above it.
+   Proportional digits make a column of rupees unreadable. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* A hairline, not a shadow. Working papers are ruled, not floated. */
+.ruled {
+  border-bottom: 1px solid theme("colors.rule");
+}
+
+:focus-visible {
+  outline: 2px solid theme("colors.ink");
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* The one piece of motion in the interface: the evidence panel arriving in
+   answer to a click. Nothing animates on its own. */
+@keyframes panel-in {
+  from {
+    transform: translateX(12px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.panel-in {
+  animation: panel-in 140ms ease-out;
+}

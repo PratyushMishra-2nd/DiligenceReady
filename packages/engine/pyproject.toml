@@ -1,0 +1,23 @@
+[project]
+name = "diligence-engine"
+version = "0.1.0"
+description = "Deterministic reconciliation engine. Code decides; the model never produces a number."
+requires-python = ">=3.12"
+dependencies = [
+    "psycopg[binary]>=3.2",
+    "sqlalchemy>=2.0",
+    "pandas>=2.2",
+    "rapidfuzz>=3.10",
+    "python-dotenv>=1.0",
+    "click>=8.1",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/diligence_engine"]
+
+[project.scripts]
+diligence = "diligence_engine.cli:cli"

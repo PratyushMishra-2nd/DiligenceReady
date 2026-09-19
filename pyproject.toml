@@ -1,0 +1,53 @@
+[project]
+name = "diligenceready"
+version = "0.1.0"
+description = "Continuous tri-source reconciliation for Indian SMEs, built for CA firms."
+requires-python = ">=3.12"
+dependencies = [
+    "diligence-engine",
+    "diligence-api",
+]
+
+[tool.uv.workspace]
+members = ["packages/engine", "apps/api"]
+
+[tool.uv.sources]
+diligence-engine = { workspace = true }
+diligence-api = { workspace = true }
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "ruff>=0.8",
+    # Starlette's TestClient is built on httpx. It exercises the real app
+    # object in-process, so the API is testable without a running server.
+    "httpx>=0.28",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["packages/engine/tests", "apps/api/tests"]
+addopts = "-q"
+
+[tool.ruff.lint.isort]
+known-first-party = ["diligence_engine", "diligence_api"]
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI's documented idiom is a call in the argument default; that is how
+# dependencies, headers and form fields are declared. B008 exists for mutable
+# defaults, which these are not.
+extend-immutable-calls = [
+    "fastapi.Body",
+    "fastapi.Depends",
+    "fastapi.File",
+    "fastapi.Form",
+    "fastapi.Header",
+    "fastapi.Path",
+    "fastapi.Query",
+]

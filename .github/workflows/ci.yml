@@ -1,0 +1,159 @@
+# The checks that have to pass before a change lands.
+#
+# The engine job runs a real Postgres and a real pipeline rather than mocking
+# one. Most of what this system gets wrong is a SQL or a data-shape mistake,
+# and neither shows up against a fake — the schema-drift, rule-toggle and
+# firm-scoping tests all need a database to mean anything, and they skip
+# silently without one, which would make a green tick a lie.
+#
+# It also asserts the evaluation result. A refactor that quietly drops recall
+# from 1.00 is exactly the regression worth failing a build over.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  engine:
+    name: engine, API and pipeline
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: diligence
+          POSTGRES_PASSWORD: diligence
+          POSTGRES_DB: diligence
+        ports:
+          - 5544:5432
+        options: >-
+          --health-cmd "pg_isready -U diligence -d diligence"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      DATABASE_URL: postgresql+psycopg://diligence:diligence@localhost:5544/diligence
+      STORAGE_BACKEND: local
+      STORAGE_LOCAL_PATH: ./storage
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - run: uv sync --frozen
+
+      - name: Lint
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+
+      - name: Run the whole pipeline
+        run: uv run diligence pipeline
+
+      - name: The evaluation must still be clean
+        # A build that goes green while recall silently drops is worse than
+        # no build at all, so the numbers are asserted rather than printed.
+        run: |
+          uv run python - <<'PY'
+          import json, pathlib, sys
+
+          reports = sorted(pathlib.Path("seed").glob("*/answers/evaluation.json"))
+          if not reports:
+              # An empty glob iterates zero times and exits 0. A build that
+              # goes green because it found nothing to check is the failure
+              # this step exists to prevent.
+              print("no evaluation reports found; the pipeline did not run", file=sys.stderr)
+              sys.exit(1)
+
+          failures = []
+          for report in reports:
+              data = json.loads(report.read_text(encoding="utf-8"))
+              company = data["company"]
+              if data["recall"] != 1.0:
+                  failures.append(f"{company}: recall {data['recall']}, expected 1.0")
+              row = data["row_level"]
+              if row["precision"] != 1.0:
+                  failures.append(f"{company}: row precision {row['precision']}, expected 1.0")
+              if row["false_positives"]:
+                  failures.append(f"{company}: {len(row['false_positives'])} false positives")
+              if data["missed_detail"]:
+                  failures.append(f"{company}: {len(data['missed_detail'])} defects missed")
+              print(f"{company}: {data['detected']}/{data['planted']} detected")
+
+          if failures:
+              print("\n".join(failures), file=sys.stderr)
+              sys.exit(1)
+          PY
+
+      - name: Tests
+        run: uv run pytest
+
+      - name: The IMS domain must also hold when switched on
+        # This used to run `evaluate` and assert nothing, while overwriting
+        # the report the step above had already checked — two ways to be
+        # green without having verified anything.
+        run: |
+          uv run diligence rule enable R9 R10 R11 R13 R4b
+          uv run diligence rules
+          uv run diligence evaluate
+          uv run python - <<'PY'
+          import json, pathlib, sys
+
+          reports = sorted(pathlib.Path("seed").glob("*/answers/evaluation.json"))
+          if not reports:
+              print("no evaluation reports found", file=sys.stderr)
+              sys.exit(1)
+
+          failures = []
+          for report in reports:
+              data = json.loads(report.read_text(encoding="utf-8"))
+              extended = data.get("extended") or {}
+              company = data["company"]
+              if not extended.get("scored_planted"):
+                  failures.append(f"{company}: IMS rules enabled but nothing was scored")
+                  continue
+              if extended["detected"] != extended["scored_planted"]:
+                  failures.append(
+                      f"{company}: extended {extended['detected']}/{extended['scored_planted']}"
+                  )
+              if extended.get("false_positives"):
+                  failures.append(f"{company}: {len(extended['false_positives'])} extended FPs")
+              print(f"{company}: extended {extended['detected']}/{extended['scored_planted']}")
+
+          if failures:
+              print("\n".join(failures), file=sys.stderr)
+              sys.exit(1)
+          PY
+          uv run diligence rule disable R9 R10 R11 R13 R4b
+
+  web:
+    name: web
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npm run build
