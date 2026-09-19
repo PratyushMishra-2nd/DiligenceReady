@@ -1,11 +1,11 @@
-# Demo script — four minutes
+# Demo script — the full walkthrough
 
-Every figure below was read off the running system on 19 September 2026, not
-copied from the blueprint. Re-run `uv run diligence pipeline` and they reproduce
+Every figure below was read off the running system on 20 September 2026, not
+copied from a plan. Re-run `uv run diligence pipeline` and they reproduce
 exactly; the generator is seeded.
 
-Blueprint §13 sketched this demo with illustrative numbers. Where the real ones
-differ, the real ones are here and the beat is unchanged.
+This is the long version, for walking someone through the product. It runs
+about four minutes and covers every screen.
 
 ---
 
@@ -14,12 +14,19 @@ differ, the real ones are here and the beat is unchanged.
 ```bash
 docker compose -f infra/docker-compose.yml up -d
 uv run diligence pipeline
-uv run uvicorn diligence_api.main:app --port 8077
+uv run uvicorn diligence_api.main:app --host :: --port 8077
 cd apps/web && npm run dev
 ```
 
+`--host ::` matters. Node resolves `localhost` to `::1` first and does not fall
+back to IPv4, so an API bound only to `127.0.0.1` is reachable from the browser
+and not from Next's server components — sign-in works and every page then says
+the engine is not answering.
+
 Open `http://localhost:3000`. Do not open a company first — the firm screen is
 the point.
+
+Against the deployed stack, skip all of the above and open the Amplify URL.
 
 ---
 
@@ -199,6 +206,55 @@ uv run diligence rule enable R9 R10 R11 R13 R4b
 
 Turn it back off before the next rehearsal:
 `uv run diligence rule disable R9 R10 R11 R13 R4b`
+
+---
+
+## 3:20 — Ask the ledger, and watch it refuse
+
+Scroll to the **Ask the ledger** panel and click a suggested question.
+
+> "This is a Strands agent — AWS's open-source agent SDK — on Bedrock. It chose
+> which queries to run. It did not compute anything. Every figure in that
+> sentence came out of one of the queries listed underneath it."
+
+Now type the question that matters:
+
+```
+what is the combined total of the ITC at risk and the bank variance?
+```
+
+The panel refuses, and says why.
+
+> "That sum is correct arithmetic, and it is still refused — because no query
+> returned it, so I cannot trace it to a document. The model explains, the
+> engine computes, and when the model strays the answer does not reach the
+> accountant at all."
+
+The same guard governs **Explain**. It is one module, `numeric_guard.py`, and
+both paths obey it.
+
+---
+
+## 3:25 — Where AWS fits
+
+Open the Step Functions console on a succeeded execution.
+
+> "It reconciles every night at one in the morning: four Lambda stages under
+> Step Functions, on an EventBridge schedule. It finds things not because new
+> files arrived, but because the government's copy changed — a supplier files
+> GSTR-1 late and the invoice lands in next month's 2B. On this dataset twelve
+> invoices per company match only that way."
+
+> "The API is App Runner, so it holds a Postgres connection pool. The nightly
+> job is Lambda, so it scales to zero. Same container image, two entry points —
+> so the overnight run and the dashboard cannot disagree about a rounding rule."
+
+Cedar is worth thirty seconds if the audience is technical:
+
+> "Authorisation is not Python scattered through the handlers. It is twenty
+> lines of Cedar policy, AWS's open-source policy language, evaluated on every
+> request and deny-by-default. A route added without a policy is refused, not
+> allowed. The whole role-by-tenant matrix is tested without a database."
 
 ---
 

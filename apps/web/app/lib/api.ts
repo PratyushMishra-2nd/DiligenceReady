@@ -96,6 +96,15 @@ export type OtherItcSummary = {
   period: string;
   groups: OtherItcGroup[];
   net_note_adjustment: string;
+  /**
+   * What these sections do to the claim, taken together and signed: credit
+   * notes reduce it, debit notes increase it, everything else adds.
+   *
+   * The engine computes it. Summing `groups[].tax` here instead is off by
+   * twice the credit-note tax, in the direction that overstates available
+   * credit.
+   */
+  claimable_tax: string;
 };
 
 export type ImsSummary = {
@@ -223,6 +232,8 @@ export const api = {
       { status, note: note ?? null },
     ),
   riskDetail: (riskId: string) => get<RiskDetail>(`/api/risks/${riskId}`),
+  ask: (companyId: string, question: string) =>
+    post<LedgerAnswer>(`/api/companies/${companyId}/ask`, { question }),
   evidenceSource: (evidenceId: string) =>
     get<SourceLine>(`/api/evidence/${evidenceId}/source`),
   explain: async (riskId: string) => {
@@ -238,6 +249,22 @@ export const api = {
       rejected_reason: string | null;
     }>;
   },
+};
+
+/**
+ * What the Strands agent returned, and whether it was allowed through.
+ *
+ * `refused` is not an error state. It means the agent produced a figure no
+ * query returned - usually a total it computed itself - and the API stopped
+ * it. The interface shows that as prominently as an answer, because the
+ * reader needs to know the guard exists and fired.
+ */
+export type LedgerAnswer = {
+  answer: string;
+  source: "agent" | "refused" | "unavailable";
+  model: string | null;
+  tools_called: string[];
+  rejected_reason: string | null;
 };
 
 export type SessionUser = {

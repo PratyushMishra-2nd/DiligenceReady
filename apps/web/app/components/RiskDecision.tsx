@@ -36,11 +36,14 @@ export function RiskDecision({
   ruleCode,
   status,
   canWrite,
+  onChange,
 }: {
   riskId: string;
   ruleCode: string;
   status: string;
   canWrite: boolean;
+  /** Reported to the list so the row shows it and the undo stack can take it back. */
+  onChange?: (status: string, previous: string) => void;
 }) {
   const [current, setCurrent] = useState(status);
   const [busy, setBusy] = useState<string | null>(null);
@@ -58,6 +61,7 @@ export function RiskDecision({
     try {
       const result = await api.setRiskStatus(riskId, target);
       setCurrent(result.status);
+      onChange?.(result.status, result.previous);
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : "Could not record that.");
     } finally {
@@ -67,7 +71,7 @@ export function RiskDecision({
 
   if (!canWrite) {
     return (
-      <p className="text-[13px] text-ink-soft">
+      <p className="text-data text-ink-soft">
         Recorded as <span className="font-medium text-ink">{current}</span>. This account
         has read-only access.
       </p>

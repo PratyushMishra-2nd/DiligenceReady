@@ -1,64 +1,132 @@
 # DiligenceReady
 
-Continuous reconciliation of books, GST and bank data for Indian SMEs, built for the
-CA firms who do the work.
+**Continuous reconciliation of books, GST and bank data for Indian SMEs — built for the CA firms who do the work.**
+
+[![CI](https://github.com/PratyushMishra-2nd/DiligenceReady/actions/workflows/ci.yml/badge.svg)](../../actions/workflows/ci.yml)
+&nbsp;![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-1B2A2F)
+&nbsp;![Next.js 14](https://img.shields.io/badge/next.js-14-1B2A2F)
+&nbsp;![AWS](https://img.shields.io/badge/AWS-App%20Runner%20%C2%B7%20Lambda%20%C2%B7%20Bedrock-FF9900)
+&nbsp;![License MIT](https://img.shields.io/badge/license-MIT-1B2A2F)
+
+---
 
 An SME's financial truth lives in three systems that never agree: the books (Tally),
 the government's record (GSTR-2B), and the money (the bank). Reconciling them is
-manual, monthly, done in Excel, and abandoned when it gets hard. This keeps them
-agreeing, and keeps the evidence.
+manual, monthly, done in Excel, and abandoned when it gets hard.
+
+The consequence is a number. On the two seeded companies in this repository,
+**₹16,25,635.64** of input tax credit has been paid to suppliers and cannot yet be
+claimed, because the supplier's filing and the client's books disagree.
+**₹5,17,412.74** of it sits on invoices whose Section 16(4) window closes on
+30 November. After that date it stops being a receivable and becomes a cost.
+
+DiligenceReady keeps the three sources agreeing, keeps the evidence, and puts a
+deadline on the money.
 
 ## The one architectural rule
 
-**Deterministic code decides. The model only extracts and explains.**
+> **Deterministic code decides. The model only extracts and explains.**
 
 Every rupee on screen is a SQL aggregate over the `matches` table. The model is
-handed a finished risk object and writes the sentence explaining it; it never sees a
-document, and it cannot produce a number. The boundary is structural rather than
-conventional — `diligence_engine` imports no model client at all, and the one place
-that calls Claude (`apps/api/.../explain.py`) checks every numeric token in the
-generated prose against the numbers that went in, and rejects the prose if it
-invented one.
+handed a finished risk object and writes the sentence explaining it; it never sees
+a document and it cannot produce a number.
 
-## Running it
+The boundary is structural rather than conventional, and it is enforced three ways:
 
-Requires Docker, Python 3.12+ with [uv](https://docs.astral.sh/uv/), and Node 20+.
+| Enforcement | How |
+| --- | --- |
+| **Structural** | `diligence_engine` imports no model client at all. No rule, matcher or aggregate can reach one, even by accident. |
+| **By input** | The model receives the finished finding — the figures the engine already computed. It has nothing to count. |
+| **By output** | Every numeric token in generated prose is checked against the numbers that went in. A figure the model invented, or rounded differently, is rejected and the deterministic sentence is shown instead. |
 
-```bash
-docker compose -f infra/docker-compose.yml up -d   # Postgres on 5544
-cp .env.example .env
-uv sync
+That last check is [`numeric_guard.py`](apps/api/src/diligence_api/numeric_guard.py),
+and it has no waiver. "About 4.8 lakh" for ₹4,82,000 fails. A total of two supplied
+figures fails — because a sum nobody computed in SQL is a sum the accountant cannot
+trace to a document.
 
-uv run diligence pipeline      # migrate, generate, ingest, reconcile, run rules, evaluate
-uv run diligence user create --email you@firm.example --name "Your Name" --role owner
+## Who it is for
 
-uv run uvicorn diligence_api.main:app --port 8077
-cd apps/web && npm install && npm run dev          # http://localhost:3000
+A CA firm, not an SME. An SME owner does not reconcile anything; their chartered
+accountant does, monthly, and is already paid for it. One firm carries thirty to
+eighty companies. The first screen is therefore the **firm's**, not a company's.
+
+## Where AWS fits
+
+Deployed on the **Ship It** stack. Every service below is load-bearing — nothing is
+here to be counted.
+
+```
+  Amplify Hosting              App Runner                     RDS Postgres 17
+  ┌────────────────┐          ┌──────────────────┐           ┌──────────────┐
+  │  Next.js 14    │ ───────► │  FastAPI         │ ────────► │  private     │
+  │  dashboard     │   HTTPS  │  + Cedar policy  │           │  subnets     │
+  └────────────────┘          └────────┬─────────┘           └──────▲───────┘
+                                       │                            │
+                        ┌──────────────┼───────────────┐            │
+                        ▼              ▼               ▼            │
+                  S3 (documents)  Bedrock        Secrets Manager    │
+                  gateway VPCe    Claude         (DB password)      │
+                                  + Strands agent                   │
+                                                                    │
+  EventBridge ──► Step Functions ──► Lambda × 4 ────────────────────┘
+   Scheduler       migrate → reconcile → ims → rules
+   01:00 IST       (the same container image App Runner runs)
 ```
 
-Sign in with the account you just created. There is no self-service signup,
-because there is no self-service client data — a firm owner creates accounts with
-`diligence user create`.
+| Service | What it does here | Why this one |
+| --- | --- | --- |
+| **App Runner** | Serves the FastAPI engine | Long-lived process keeps a Postgres connection pool; no cold start mid-demo; one Dockerfile, no adapter |
+| **Lambda** (container) | The four nightly pipeline stages | Runs minutes a night and scales to zero between — the opposite workload to the API, and the same image |
+| **Step Functions** | Orchestrates the stages | Stages fail for different reasons; a retry should redo the failed stage, not the month. The execution history is the run log |
+| **EventBridge Scheduler** | Fires it at 01:00 IST | The word "continuous" in the first sentence |
+| **Amazon Bedrock** | Claude, for explanations and the agent | The only model path. No second provider |
+| **Strands Agents SDK** | "Ask the ledger" | AWS's open-source agent SDK, over read-only engine tools |
+| **Cedar** | The tenant boundary | AWS's open-source policy language. See below |
+| **RDS Postgres 17** | Every figure | The product's claim is that each rupee is a SQL aggregate. DynamoDB cannot make that claim |
+| **S3** | Content-addressed documents | Evidence drill-down needs the original bytes, forever |
+| **Secrets Manager** | The database password | Generated and rotated by RDS; it appears in no template and no environment variable |
+| **ECR** | The image | One image, two entry points |
+| **CloudWatch** | Logs for both surfaces | Lambda and state-machine execution data |
 
-`diligence pipeline` is idempotent. Run it as often as you like; documents are keyed
-by content hash and risks by a deterministic key, so nothing duplicates.
+### Why the nightly run finds anything
 
-### The commands individually
+This is the part that justifies the schedule, and it is not "new files arrived".
+The government's copy changes underneath you:
 
-| Command | What it does |
-| --- | --- |
-| `diligence migrate` | Apply pending SQL migrations |
-| `diligence tables` | Every table with its row count |
-| `diligence seed` | Generate two synthetic companies, their feeds, and the answer key |
-| `diligence ingest` | Load the feeds into typed tables with provenance |
-| `diligence reconcile` | Recompute every match |
-| `diligence ims` | Compute the recommended accept / reject / pending for every IMS record |
-| `diligence rule list / enable / disable` | Read or change the rule registry |
-| `diligence rules` | Run every enabled rule over every period |
-| `diligence evaluate` | Score the engine against the planted answer key |
-| `diligence tally probe / export` | Read a live Tally company over its XML gateway |
-| `diligence user create / list` | Manage the people who can sign in |
-| `diligence audit` | The audit trail, newest first |
+- A supplier files GSTR-1 on the 13th for an invoice dated the 2nd. It appears in
+  next month's GSTR-2B, and an invoice that was unmatched yesterday is matched
+  today. **On the seeded set, 12 invoices per company match only this way.**
+- GSTN recomputes Rule 37A reversals as suppliers file — or fail to file — GSTR-3B.
+- An IMS record nobody actioned moves one day closer to being deemed accepted.
+
+A monthly reconciliation cannot see any of that until it is too late to act on it.
+
+### Two AWS open-source projects, used for real
+
+**Cedar** owns authorisation. [`policies.cedar`](packages/engine/src/diligence_engine/authz/policies.cedar)
+is not documentation of a rule that lives elsewhere in Python — it *is* the rule,
+evaluated on every request:
+
+```cedar
+permit (principal, action in [DR::Action::"ViewCompany", ...], resource)
+when { resource has firm && resource.firm == principal.firm };
+```
+
+Deny-by-default, so a route added without a policy is refused rather than allowed.
+The whole role × tenant matrix is
+[tested](packages/engine/tests/test_authz_cedar.py) against the real evaluator with
+no database and no HTTP. The API refuses to start if the policy fails to load.
+
+**Strands Agents** powers *Ask the ledger*. A CA types a question; the agent chooses
+which of the engine's read-only aggregates to call; the engine answers them. Then the
+same numeric guard runs over the reply. Three things hold the line, none of them a
+sentence in a prompt:
+
+1. The company is a **closure, not a parameter** — no tool accepts a company id, so
+   no prompt reaches another firm's books.
+2. Tools return the **engine's own aggregates**, the same ones the dashboard shows.
+3. Every number in the answer must appear in a tool result, or the answer is
+   **refused and shown as refused**.
 
 ## What it found
 
@@ -68,234 +136,177 @@ On the seeded evaluation set, both companies:
 planted               41
 detected              41
 recall              1.00
-row-level rules    precision 1.00  (35/35 findings keyed, 0 false positives)
+row-level rules    precision 1.00   (35/35 findings keyed, 0 false positives)
 period-level rules  6/6 planted found
 ```
 
 Synthetic and seeded, and disclosed as such. Ground truth lets the engine be
-measured instead of asserted — these figures describe a dataset we designed, and
-they are not a production accuracy claim.
+*measured* instead of asserted — these figures describe a dataset we designed, and
+they are not a production accuracy claim. CI fails the build if recall drops.
 
 Precision is measured on row-level rules only, where a finding is a property of one
-record and the key is therefore complete by construction. Period-level rules compare
-a month's aggregate against a threshold, which baseline data can cross without any
-defect being injected, so recall is measured for them and every firing is listed
-rather than scored. `seed/<company>/answers/evaluation.json` has the full report.
+record and the key is complete by construction. Period-level rules compare a month
+against a threshold, so a firing the key does not list is a judgement call, not a
+false positive; every firing is printed instead.
+
+### Why synthetic data is the point, not a shortcut
+
+Nobody hands a weekend project a real firm's ledgers. So the data is generated — and
+because it is generated, **every defect in it is known in advance**: 41 per company,
+planted deliberately, each with a type, a period and an expected rupee value.
+
+That turns "does the engine work?" from an opinion into a number. It also caught real
+bugs. One planted bank-timing gap was not detected, and the investigation found the
+rule was right and the answer key was wrong — the plant was immaterial against a
+₹9 crore month. The fix was to size the plant against the same base the rule uses,
+not to lower the rule's threshold to make a test pass.
+
+## The domain, taken seriously
+
+| | |
+| --- | --- |
+| **GSTR-2B is sixteen tables, not one** | Modelling it as a flat invoice list flags legitimate amendments as duplicates and drops ISD, imports and e-commerce supplies entirely. The [reading order](packages/engine/src/diligence_engine/ingest/gstr2b_shape.py) lives in one place, walked by both the ingester and the drill-down |
+| **Matching has seven parameters** | GSTIN, document type, number, date, taxable value and the four tax heads — with a per-head tolerance of 0 to 10 |
+| **IMS went live in October 2024** | Inaction is now an action: an untouched record is *deemed accepted* when GSTR-3B is filed. The dashboard reports what that is worth in rupees — **₹3.03 Cr** on one seeded company |
+| **Rejecting a credit note is a commercial act** | It raises the supplier's liability, and the supplier can see who did it. Any recommendation to reject carries that warning |
+| **Never recommend what the portal refuses** | Pending is barred for original credit notes. A database CHECK enforces it, so an impossible recommendation cannot be stored |
+| **Section 16(4)** | Credit lapses on 30 November following the financial year. The clock runs from the invoice date, not the month you noticed |
+| **Money is `Decimal`, always** | `ROUND_HALF_UP`, never a float, and amounts cross the API as strings so JavaScript cannot round them |
+
+## Running it locally
+
+No AWS account required. Without Bedrock configured, explanations fall back to the
+deterministic template — correct, just plainer — and the interface says which it is
+showing.
+
+Requires Docker, Python 3.12+ with [uv](https://docs.astral.sh/uv/), and Node 20+.
+
+```bash
+docker compose -f infra/docker-compose.yml up -d    # Postgres on 5544
+cp .env.example .env
+uv sync
+
+uv run diligence pipeline      # migrate, generate, ingest, reconcile, rules, evaluate
+uv run diligence user create --email you@firm.example --name "Your Name" --role owner
+
+uv run uvicorn diligence_api.main:app --host :: --port 8077
+cd apps/web && npm install && npm run dev           # http://localhost:3000
+```
+
+> `--host ::` is not optional. Node resolves `localhost` to `::1` first and does not
+> fall back to IPv4, so an API bound only to `127.0.0.1` is reachable from the browser
+> and **not** from Next's server components: sign-in works and every page then reports
+> that the engine is not answering.
+
+There is no self-service signup, because there is no self-service client data — a
+firm owner creates accounts with `diligence user create`.
+
+`diligence pipeline` is idempotent. Run it as often as you like; documents are keyed
+by content hash and risks by a deterministic key, so nothing duplicates.
+
+### The commands
+
+| Command | What it does |
+| --- | --- |
+| `diligence migrate` | Apply pending SQL migrations (hash-checked) |
+| `diligence tables` | Every table with its row count |
+| `diligence seed` | Generate two synthetic companies, their feeds, and the answer key |
+| `diligence ingest` | Load the feeds into typed tables with provenance |
+| `diligence reconcile` | Recompute every match |
+| `diligence ims` | Compute the recommended accept / reject / pending for every IMS record |
+| `diligence rule list / enable / disable` | Read or change the rule registry |
+| `diligence rules` | Run every enabled rule over every period |
+| `diligence evaluate` | Score the engine against the planted answer key |
+| `diligence doctor` | Check every dependency a deployment needs, and say which is wrong |
+| `diligence bedrock models` | List the Bedrock models this AWS account can invoke |
+| `diligence tally probe / export` | Read a live Tally company over its XML gateway |
+| `diligence user create / list` | Manage the people who can sign in |
+| `diligence audit` | The audit trail, newest first |
+| `diligence pipeline` | The whole thing, in order |
+
+## Deploying to AWS
+
+```bash
+aws configure                 # or: aws sso login
+./infra/aws/deploy.sh         # ~15 minutes on a cold account
+./infra/aws/teardown.sh       # deletes everything, including the NAT gateway
+```
+
+The script is idempotent: run it again after a code change and it rebuilds, pushes
+and waits for the rollout. It discovers a Bedrock model id by asking the account
+rather than hard-coding one, because the id differs by region and a wrong guess
+fails at the worst possible moment.
+
+Postgres has no route in from outside the VPC. That is the right call for other
+people's books, and it also means there is no psql session from a laptop — so the
+demo bootstrap runs *inside* the VPC, in the same container image, as a one-off
+Lambda invoke.
+
+Roughly **$2–3/day** while it is up. The two line items that bill whether or not
+anyone visits are the NAT gateway and the RDS instance; `teardown.sh` removes both.
 
 ## Layout
 
 ```
-packages/engine/           the whole pipeline; no model client anywhere in it
-  normalise/               invoice numbers, party names, GSTINs, amounts, dates
-  seedgen/                 one ground-truth ledger -> three divergent feeds + answer key
-  ingest/                  column resolution, parsers, party resolution, storage
-  matching/                GSTN's seven parameters and six categories
-  rules/                   R1-R8 across GST, bank and commercial
-  eval/                    measurement against the answer key
-  reporting.py             every figure the interface shows
-  integrations/            Tally XML gateway, read-only
-apps/api/                  FastAPI; the only place a model is called
-apps/web/                  Next.js dashboard, evidence drill-down, landing page
-migrations/sql/            the schema, applied in order and hash-tracked
+packages/engine/     the reconciliation engine. Imports no model client, by design
+  normalise/         GSTIN, invoice number and party-name normalisation
+  ingest/            typed loaders with row-level provenance; S3 or local disk
+  matching/          GST, bank and IMS matchers; the scoring function
+  rules/             the rule registry — R1..R13, each toggleable
+  authz/             Cedar policy. The tenant boundary, as policy
+  eval/              scores the engine against the planted answer key
+  seedgen/           the synthetic firm, and the ground truth
+  aws_lambda.py      the pipeline as Step Functions stages
+apps/api/            FastAPI. The only place a model is called
+  explain.py         one finding, through Bedrock
+  agent.py           "Ask the ledger", on Strands
+  numeric_guard.py   the rule both of them obey
+apps/web/            Next.js 14 dashboard, server components
+migrations/sql/      hash-tracked schema migrations
+infra/aws/           CloudFormation, deploy and teardown
 ```
 
-## Design decisions worth knowing before reading the code
+~12,200 lines of Python, ~2,400 of TypeScript, ~730 of SQL, **228 tests**.
 
-**Typed financial tables, no EAV.** An entity-attribute-value store turns every rupee
-into a string and makes each query a self-join — unacceptable in a system whose
-entire output is arithmetic.
+## Security
 
-**Provenance on every row.** Every financial record carries `source_document_id` and
-`source_row`; every risk carries evidence rows. Click a figure, land on the line of
-the original file that produced it. That is not a feature, it is the product.
+- **scrypt** password hashing (stdlib), session tokens stored as sha256 only
+- Cedar-enforced firm scoping on every endpoint, deny-by-default
+- A company in another firm returns **404, not 403** — a 403 confirms the company
+  exists, which is enough to enumerate a competitor's client list one guess at a time
+- Append-only audit log: who read which client's raw documents, and when. It stores
+  no tokens, no passwords and no document contents, and its action list is an
+  allow-list a [test](packages/engine/tests/test_audit_actions.py) keeps honest
+- Failed logins are recorded, and recorded on their own connection so the refusal's
+  rollback cannot discard them
+- Login is constant-time against unknown addresses (measured 1.01×, previously ~40×)
+- S3: TLS enforced by bucket policy, SSE-AES256, public access blocked
+- Encryption at rest is a deployment property. RDS and S3 are encrypted by the
+  templates here; the application does not claim to provide it
 
-**Matching looks across periods.** An invoice missing from August's 2B often appears
-in September's — the supplier filed late. A matcher confined to one period reports
-every late filing as lost credit, and a CA who sees that once stops trusting the
-tool. The seed data contains late-filed invoices deliberately, and they are
-deliberately absent from the answer key: a matcher that cannot see across periods
-will report them and the harness will show it as lost precision.
+## Contributors
 
-**GSTR-2B is sixteen tables, not one.** B2B, its amendments, credit and debit
-notes, ISD credit, imports keyed on a bill of entry with no supplier at all, and
-Sec 9(5) e-commerce supplies are each read with their own shape. Only B2B and B2BA
-are matched against the purchase register — a credit note corrects an earlier
-document rather than being one, and ISD credit never matches an invoice — and an
-amendment supersedes the original it corrects, so neither becomes a phantom orphan.
-The rest is reported separately as *other credit in this 2B*, because a credit note
-that reduces the claim and is silently dropped makes the system overstate credit,
-which is the one direction of error that costs a client money rather than time.
+- **Dhruv Sharma** — [@Spiritsfuse](https://github.com/Spiritsfuse)
+- **Anushika Chauhan** — [@Anushika06](https://github.com/Anushika06)
+- **Pratyush Mishra** — [@PratyushMishra-2nd](https://github.com/PratyushMishra-2nd)
 
-**Rule 37A is read, not inferred.** GSTR-2B carries a reversal amount GSTN computes
-from the periods a supplier has not filed for. A heuristic that disagrees with the
-government's own figure is a bug, not a feature.
+Built for the [WeMakeDevs × AWS First Commit](https://www.wemakedevs.org/aws) hackathon.
 
-**Severity ages.** One period unmatched is a watch item; two means chase the vendor;
-three or more, or approaching the Sec 16(4) cut-off, is genuinely at risk. Severity
-is never taken from a single month's snapshot.
+## Contributing
 
-**Money never touches a float**, in Python or in TypeScript. Amounts cross the API as
-strings and the interface formats them without parsing them back.
-
-**Column resolution, not per-vendor parsers.** A parser asks for a logical field and
-`ingest/columns.py` finds it: `Voucher No`, `Bill No`, `Invoice Number` and
-`invoice_no` are one column. Exact match first, then a case- and
-punctuation-insensitive match, then failure — there is no fuzzy fallback, because
-deciding that `Amount` means the taxable value rather than the invoice value is
-exactly the silent wrong number this product exists to avoid. A header the layer does
-not recognise raises an error naming the field it wanted, the spellings it tried, the
-file's actual headers, and the file to add a synonym to.
-
-That is what makes §09's "adapter, not rewrite" checkable. Tally, Busy, Marg, Zoho
-and Vyapar purchase-register shapes, and HDFC, ICICI, SBI, Axis and Kotak statement
-shapes, are covered by tests — as plausible reconstructions, not a verified
-compatibility matrix. Week one is running real exports from three friendly CA firms
-through it, and every layout that fails adds a name to a tuple and a case to the
-suite.
-
-## Access control
-
-§14 week two, and the blueprint calls it non-negotiable: this is client financial
-data. A firm sees its own clients and nothing else.
-
-- **Sessions** are random tokens; only their sha256 is stored, so a database dump is
-  a set of useless hashes rather than working credentials. Passwords are scrypt from
-  the standard library, with cost parameters stored beside each digest so they can be
-  raised later without a forced reset.
-- **Firm scoping is a parameter, not a convention.** `reporting.firm_dashboard` takes
-  a `firm_id` and every company lookup goes through `company_or_404`. A handler that
-  forgets does not compile.
-- **Another firm's company returns 404, not 403.** A 403 confirms the company exists,
-  which is enough to enumerate a competitor's client list one guess at a time.
-- **Login says one thing.** The same message for an unknown address, a wrong password
-  and a disabled account, so the endpoint is not an account-existence oracle.
-- **Roles**: owner, member, readonly. Reads are open to all three; uploads, decisions
-  and explanations require write access.
-- **The audit log is append-only** and records who did what to which company: sign in
-  and out, uploads, decisions, generated explanations, and every time someone opens a
-  client's raw document. It never stores a token, a password or document contents — a
-  trail that leaks what it audits is worse than none.
-
-Twelve tests cover this against the real app, including a second firm with its own
-company so that "scoped correctly" can be distinguished from "not scoped at all".
-Breaking the scope makes them fail; that was checked by breaking it.
-
-**Not done, and not implied:** rate limiting on login, multi-factor, password reset,
-and encryption at rest. The last is a deployment property — an encrypted volume or a
-managed Postgres with encryption on — and the local object store writes plaintext
-files to disk in development.
-
-## Getting data in
-
-```
-POST /api/companies/{id}/documents     multipart: kind + file
-```
-
-Or from the company page in the app. Six kinds: purchase register, sales register,
-receipts and payments, bank statement, GSTR-2B, IMS dashboard.
-
-Periods are created from the file's own dates rather than assumed, because a row
-silently dropped for belonging to an undeclared period is the kind of quiet data loss
-that makes a figure wrong without making it look wrong. Re-uploading the same export
-is a no-op: documents are content-addressed.
-
-When a file cannot be read, the error names the column that was missing, the
-spellings that were tried, the headers the file actually has, and the file to add a
-synonym to. That message is the product surface for anyone whose export is unusual,
-so it is passed through to the interface verbatim rather than replaced with "upload
-failed".
-
-## Continuous integration
-
-`.github/workflows/ci.yml` runs lint, the full pipeline against a real Postgres, the
-test suite, and the IMS domain switched on. It **asserts** the evaluation result
-rather than printing it: a build that goes green while recall quietly drops from 1.00
-is worse than no build at all.
-
-## The IMS domain
-
-The Invoice Management System went live on the GST portal in October 2024, and the
-thing that matters about it is that **inaction is acceptance**. Whatever a supplier
-files flows into the client's return unreviewed unless someone looks. For one company
-with thirty invoices that is fine; for a firm carrying fifty clients it is the entire
-problem, on a portal that displays a thousand rows at a time.
-
-So the output is not a list of mismatches:
-
-```
-1806 records on the dashboard
-  recommend accept    1715
-  recommend reject       6
-  recommend pending      8
-  no recommendation     77  (supplier has not filed)
-1590 would be deemed accepted if left alone
-```
-
-Four constraints from GSTN's advisory are enforced in the engine rather than left to
-the interface: pending is barred on original credit notes and on certain amendments,
-so it is never recommended; rejecting a credit note raises the supplier's liability
-visibly and that warning travels with the recommendation; a record that is saved but
-not filed is not yet actionable; and a credit note is resolved through the document
-it corrects, never against a register row of its own — a recommender that expects one
-would reject every legitimate purchase return in the file.
-
-**The IMS rules ship disabled.** §15 names a practising CA reviewing the GST rule set
-as the one outstanding dependency this project has, and IMS is where the statutory
-detail is thickest. The code is written, tested and switched off:
+`docs/demo-script.md` walks the product end to end. Before opening a pull request:
 
 ```bash
-uv run diligence rule list
-uv run diligence rule enable R9 R10 R11 R13 R4b
-uv run diligence rules
-```
-
-With them on, the extended answer key scores 13/13 at precision 1.00. That key is
-kept separate from the forty-one on purpose — a number quoted on a slide should not
-move when a domain is toggled.
-
-R12 (filing chain blocked) stays silent on the seeded data, deliberately: its trigger
-is a period whose prior GSTR-3B is unfiled, and the generator produces a complete
-filing chain. Faking the flag to make a rule fire would be a lie told to a demo.
-
-## Reading Tally directly
-
-```bash
-uv run diligence tally probe
-uv run diligence tally export --company "Acme Industries" --from 2026-08-01 --to 2026-08-31
-```
-
-Read-only, over the XML gateway on port 9000 that Tally Prime exposes when "Act as
-Server" is enabled. Describe it that way: there is no first-party Tally MCP server,
-and calling it one gets caught. Output is shaped to match the purchase-register CSV
-the ingester already reads, so a firm that connects Tally and a firm that uploads an
-export go down the same normalisation, matching and evidence path.
-
-The parser is covered by fixture tests, so it is verifiable with no Tally installed.
-It has not been run against a live gateway here — there is no Tally on this machine,
-and that is stated rather than implied.
-
-## Scope
-
-Eight rules run by default: R1–R4 (GST), R5–R6 (bank), R7–R8 (commercial). Six more
-are implemented and disabled — the IMS domain (R9–R13) and the Rule 37A reclaim
-(R4b), covered above.
-
-Deliberately not built: vector database, knowledge graph, agent framework, generic
-chatbot, contract analysis, MCA scraping, live GST API dependency, mobile app,
-model-reported "confidence".
-
-## Tests
-
-```bash
-uv run pytest        # 160 tests
 uv run ruff check . && uv run ruff format --check .
+uv run pytest
 cd apps/web && npx tsc --noEmit && npm run build
 ```
 
-Some are integration tests that need an ingested database and skip without one; run
-`uv run diligence pipeline` first to exercise them.
+CI runs all of it against a real Postgres, plus the full pipeline, and fails if the
+evaluation's recall drops below 1.00. Tests that need a database skip silently
+without one, which is precisely why CI provides one — a green tick that skipped the
+tests that matter is worse than no CI at all.
 
-The normaliser suite is the load-bearing one: 40 cases pinning `norm_invoice_no`
-against the spellings a Tally voucher series and a GSTR-2B use for the same document,
-plus the traps — a genuine invoice number that looks like a financial year, and a
-credit note that must never normalise into the invoice of the same number.
+## Licence
+
+MIT. See [LICENSE](LICENSE).

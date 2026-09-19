@@ -12,7 +12,6 @@ from __future__ import annotations
 import uuid
 from dataclasses import dataclass, field
 from decimal import Decimal
-from pathlib import Path
 
 from sqlalchemy import text
 from sqlalchemy.engine import Connection
@@ -47,7 +46,26 @@ def firm_dashboard(conn: Connection, firm_id: uuid.UUID) -> list[dict]:
         text(
             """
             select c.id, c.name, c.gstin, f.name as firm_name,
-                   (select max(period) from periods p where p.company_id = c.id) as latest
+                   -- The latest period a firm can actually reconcile, which
+                   -- is not the same as the latest period that exists.
+                   --
+                   -- GSTR-2B for month M is generated on the 14th of M+1, so
+                   -- on 20 September a CA is working on August. A period row
+                   -- appears as soon as any feed carries a date in it - two
+                   -- bank value-dates spilling into September are enough -
+                   -- and headlining that month showed 0.0% coverage and zero
+                   -- exposure on the firm's landing screen, which reads as a
+                   -- broken product rather than as a month that has not
+                   -- started.
+                   --
+                   -- Falls back to the newest period for a client whose books
+                   -- are loaded but whose first 2B has not arrived.
+                   coalesce(
+                       (select max(period) from periods p
+                         where p.company_id = c.id
+                           and p.gstr2b_generated_at is not null),
+                       (select max(period) from periods p where p.company_id = c.id)
+                   ) as latest
             from companies c
             join firms f on f.id = c.firm_id
             where c.firm_id = :firm_id
@@ -440,21 +458,24 @@ def evidence_source(conn: Connection, evidence_id: uuid.UUID, context: int = 2) 
     if row is None or row.source_row is None:
         return None
 
-    path: Path = storage.resolve(row.storage_key)
-    if not path.exists():
+    # Text, not a path: the deployed object store is S3 and has no local
+    # path to stat. `exists` is asked separately so a document that has gone
+    # missing reads as exactly that, rather than as a stack trace.
+    if not storage.exists(row.storage_key):
         return {
             "filename": row.filename,
             "source_row": row.source_row,
             "error": "stored document is missing from the object store",
         }
+    body = storage.read_text(row.storage_key)
 
     if row.kind in ("gstr2b", "ims"):
-        return _json_entry(path, row, context)
-    return _csv_line(path, row, context)
+        return _json_entry(body, row, context)
+    return _csv_line(body, row, context)
 
 
-def _csv_line(path: Path, row, context: int) -> dict:
-    lines = path.read_text(encoding="utf-8").splitlines()
+def _csv_line(body: str, row, context: int) -> dict:
+    lines = body.splitlines()
     index = row.source_row - 1
     start = max(0, index - context)
     end = min(len(lines), index + context + 1)
@@ -472,7 +493,7 @@ def _csv_line(path: Path, row, context: int) -> dict:
     }
 
 
-def _json_entry(path: Path, row, context: int) -> dict:
+def _json_entry(body: str, row, context: int) -> dict:
     """The 2B or IMS entry a piece of evidence points at.
 
     `source_row` is a position in the statement's canonical reading order, so
@@ -483,7 +504,7 @@ def _json_entry(path: Path, row, context: int) -> dict:
     """
     import json
 
-    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload = json.loads(body)
 
     if row.kind == "ims":
         # The IMS export is a flat list of records, numbered in file order.
@@ -521,4 +542,187 @@ def _json_entry(path: Path, row, context: int) -> dict:
             {"row": number + 1, "text": json.dumps(entries[number]), "is_target": number == index}
             for number in range(start, end)
         ],
+    }
+
+
+# ── the 2B sections the purchase register was never going to match ──────────
+
+#: What each non-B2B section of GSTR-2B actually is, in the words a CA uses.
+#: B2B and B2BA are absent on purpose: those are the sections the purchase
+#: register is reconciled against, and they are reported as coverage, not as
+#: a residue.
+OTHER_ITC_LABELS: dict[str, str] = {
+    "CDNR": "Credit and debit notes",
+    "CDNRA": "Credit and debit notes, amended",
+    "ISD": "Input service distributor",
+    "ISDA": "Input service distributor, amended",
+    "IMPG": "Imports of goods",
+    "IMPGSEZ": "Imports from an SEZ unit",
+    "ECO": "Supplies through an e-commerce operator",
+    "ECOA": "E-commerce supplies, amended",
+    "ITC_REVERSED": "Credit reversed",
+    # Comma-separated so `_other_itc_label` can keep the qualifier when it
+    # replaces the head with the note's direction.
+    "B2B_DNR": "Notes, supplier not registered",
+}
+
+
+#: A note section splits into two rows, one per direction, and they are not
+#: the same fact. "Credit and debit notes" printed on both of them left two
+#: visually identical rows whose only difference was an amount — and the
+#: summary total now subtracts one of them and adds the other, which a reader
+#: cannot verify against rows that do not say which is which.
+_NOTE_LABELS = {"C": "Credit notes", "D": "Debit notes"}
+
+
+def _other_itc_label(section: str, note_type: str | None) -> str:
+    base = OTHER_ITC_LABELS.get(section, section)
+    if note_type is None:
+        return base
+    direction = _NOTE_LABELS.get(note_type)
+    if direction is None:
+        return base
+    # Amendments keep their qualifier: "Credit notes, amended".
+    suffix = base.split(",", 1)[1] if "," in base else ""
+    return f"{direction},{suffix}" if suffix else direction
+
+
+def other_itc(conn: Connection, company_id: uuid.UUID, period: str) -> dict:
+    """The parts of GSTR-2B a purchase-register match will never explain.
+
+    Modelling 2B as one flat list of invoices is the mistake this function
+    exists to make visible. A CA who reconciles only the B2B table and then
+    wonders why their claimable credit disagrees with the portal is looking
+    at a credit note, an ISD distribution or a bill of entry that the
+    register never contained and never could.
+
+    Credit notes reduce claimable credit and debit notes increase it, so the
+    net adjustment is signed. The stored values stay positive and match the
+    file — the drill-down shows the figure beside the line it came from, and
+    the two have to agree — so the sign is applied here, once, where the
+    aggregate is taken.
+    """
+    rows = conn.execute(
+        text(
+            """
+            select section,
+                   note_type,
+                   count(*)                                as documents,
+                   sum(taxable_value)                      as taxable,
+                   sum(cgst + sgst + igst + cess)          as tax
+            from gstr2b_lines
+            where company_id = :cid
+              and period = :period
+              and section not in ('B2B', 'B2BA')
+            group by section, note_type
+            order by section, note_type
+            """
+        ),
+        {"cid": company_id, "period": period},
+    ).all()
+
+    groups = [
+        {
+            "section": row.section,
+            "label": _other_itc_label(row.section, row.note_type),
+            "note_type": row.note_type,
+            "documents": row.documents,
+            "taxable": row.taxable or Decimal("0.00"),
+            "tax": row.tax or Decimal("0.00"),
+        }
+        for row in rows
+    ]
+
+    # One pass, two totals, and the sign applied in exactly one place.
+    #
+    # `claimable_tax` is what these sections do to the claim taken together:
+    # a credit note reduces it, a debit note increases it, everything else
+    # adds. It is computed here rather than by whatever is displaying it,
+    # because an unsigned sum of the same rows OVERSTATES the credit
+    # available — and overstating credit is the one direction of error that
+    # costs a client money at assessment rather than only time.
+    #
+    # The interface used to sum the group rows itself and got exactly that
+    # wrong: on the seeded August it showed Rs 3.18 L where the answer is
+    # Rs 3.15 L, over by twice the credit-note tax. The fix is not a
+    # better sum in the view; it is that the view does not sum.
+    net = Decimal("0.00")
+    claimable = Decimal("0.00")
+    for group in groups:
+        if group["note_type"] == "C":
+            net -= group["tax"]
+            claimable -= group["tax"]
+        elif group["note_type"] == "D":
+            net += group["tax"]
+            claimable += group["tax"]
+        else:
+            claimable += group["tax"]
+
+    return {
+        "period": period,
+        "groups": groups,
+        "net_note_adjustment": net,
+        "claimable_tax": claimable,
+    }
+
+
+# ── IMS ─────────────────────────────────────────────────────────────────────
+
+
+def ims_summary(conn: Connection, company_id: uuid.UUID, period: str) -> dict | None:
+    """The Invoice Management System dashboard, reduced to the decision.
+
+    IMS went live in October 2024 and changed the default: a record nobody
+    touches is *deemed accepted* when GSTR-3B is filed. Inaction is now an
+    action, which is why `deemed_accepted_value` is on this summary at all —
+    it is the rupee value a firm is about to accept by doing nothing.
+
+    Returns None when the period has no IMS records, which is an ordinary
+    state (the feed predates October 2024, or the domain is switched off)
+    rather than an error.
+
+    Counted in one pass with filtered aggregates rather than by joining the
+    table to itself once per bucket: the counts have to add up to `total`,
+    and separate queries against a table that changes underneath them do not
+    have to.
+    """
+    row = conn.execute(
+        text(
+            """
+            select count(*)                                                as total,
+                   count(*) filter (where recommended_action = 'accept')   as accept,
+                   count(*) filter (where recommended_action = 'reject')   as reject,
+                   count(*) filter (where recommended_action = 'pending')  as pending,
+                   count(*) filter (where recommended_action is null)      as decide,
+                   count(*) filter (where not supplier_filed)              as not_filed,
+                   count(*) filter (where deemed_accepted)                 as deemed_accepted,
+                   coalesce(sum(total_value) filter (where deemed_accepted), 0)
+                                                                  as deemed_accepted_value,
+                   count(*) filter (
+                       where recommended_action = 'reject'
+                         and reject_raises_supplier_liability
+                   )                                                as reject_raises_liability,
+                   count(*) filter (where not pending_allowed)      as pending_barred
+            from ims_records
+            where company_id = :cid and period = :period
+            """
+        ),
+        {"cid": company_id, "period": period},
+    ).one()
+
+    if row.total == 0:
+        return None
+
+    return {
+        "period": period,
+        "total": row.total,
+        "accept": row.accept,
+        "reject": row.reject,
+        "pending": row.pending,
+        "decide": row.decide,
+        "not_filed": row.not_filed,
+        "deemed_accepted": row.deemed_accepted,
+        "deemed_accepted_value": row.deemed_accepted_value,
+        "reject_raises_liability": row.reject_raises_liability,
+        "pending_barred": row.pending_barred,
     }

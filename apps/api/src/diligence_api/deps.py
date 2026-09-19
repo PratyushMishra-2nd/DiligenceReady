@@ -5,10 +5,17 @@ company lookup goes through `company_or_404`. The scoping is therefore a
 parameter the handler cannot forget rather than a rule it has to remember —
 and when it is wrong, it fails closed.
 
-One deliberate choice: asking for a company in another firm returns the same
-404 as asking for one that does not exist. A 403 would confirm the company
-is real, which is enough to enumerate a competitor's client list one guess
-at a time.
+Two deliberate choices.
+
+Asking for a company in another firm returns the same 404 as asking for one
+that does not exist. A 403 would confirm the company is real, which is
+enough to enumerate a competitor's client list one guess at a time.
+
+A read-only account inside the right firm gets 403, not 404, because it is
+allowed to know the company exists — it is looking at it. The two-step here
+mirrors that: `company_or_404` settles the tenant question, then
+`require_action` settles the role question, and both answers come from the
+same Cedar policy rather than from two different pieces of Python.
 """
 
 from __future__ import annotations
@@ -58,10 +65,23 @@ def current_principal(token: str = Depends(bearer_token)) -> auth.Principal:
             raise HTTPException(status_code=401, detail=str(error)) from error
 
 
-def require_writer(principal: auth.Principal = Depends(current_principal)) -> auth.Principal:
-    if not principal.can_write:
-        raise HTTPException(status_code=403, detail="This account has read-only access.")
-    return principal
+def require_action(
+    conn: Connection,
+    principal: auth.Principal,
+    action: str,
+    company_id: uuid.UUID,
+) -> None:
+    """Refuse an action Cedar does not permit on a company the caller can see.
+
+    Call this AFTER `company_or_404`, never instead of it. By then the tenant
+    question is settled, so a refusal here is about the caller's role and
+    saying so is safe.
+    """
+    if not auth.may(conn, principal, action, company_id):
+        raise HTTPException(
+            status_code=403,
+            detail="This account is not permitted to take that action.",
+        )
 
 
 def parse_uuid(value: str, label: str) -> uuid.UUID:
@@ -72,7 +92,11 @@ def parse_uuid(value: str, label: str) -> uuid.UUID:
 
 
 def company_or_404(conn: Connection, principal: auth.Principal, company_id: str) -> uuid.UUID:
-    """Resolve a company id the caller is actually allowed to see."""
+    """Resolve a company id the caller is actually allowed to see.
+
+    The decision is Cedar's; `auth.company_in_firm` is a thin wrapper over
+    `authz.decide(ViewCompany, ...)`.
+    """
     identifier = parse_uuid(company_id, "company_id")
     if not auth.company_in_firm(conn, principal, identifier):
         # Same answer as a company that does not exist. See the module note.

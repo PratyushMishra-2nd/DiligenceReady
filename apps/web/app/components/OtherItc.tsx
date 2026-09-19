@@ -1,5 +1,6 @@
 import type { OtherItcSummary } from "../lib/api";
-import { inr, inrShort } from "../lib/format";
+import { inr, inrExact, inrShort } from "../lib/format";
+import { Disclosure } from "./Disclosure";
 
 /**
  * The GSTR-2B sections the purchase register was never going to match.
@@ -14,6 +15,17 @@ import { inr, inrShort } from "../lib/format";
  * reconciliation screen that silently dropped it would overstate the credit
  * available — which is the one direction of error that costs a client money
  * at assessment rather than just time.
+ *
+ * It is context rather than work, so it is collapsed by default — with its
+ * total in the summary, because a section that closes to a title alone hides
+ * the one figure someone would have opened it to check.
+ *
+ * That summary figure is `claimable_tax` from the engine, and it is signed: a
+ * credit note subtracts. This component used to sum `groups[].tax` itself,
+ * which added credit notes as though they were credit and overstated the
+ * total by twice their tax — the exact error the paragraph above says the
+ * section exists to prevent, reintroduced in the one line most readers see,
+ * because the section is closed by default.
  */
 export function OtherItc({ other }: { other: OtherItcSummary }) {
   if (other.groups.length === 0) return null;
@@ -21,9 +33,16 @@ export function OtherItc({ other }: { other: OtherItcSummary }) {
   const adjustment = Number(other.net_note_adjustment);
 
   return (
-    <section className="border-b border-rule py-8">
-      <h2 className="text-sm font-semibold">Other credit in this 2B</h2>
-      <p className="mt-2 max-w-[70ch] text-sm leading-relaxed text-ink-soft">
+    <Disclosure
+      title="Other credit in this 2B"
+      headline={
+        <p className="tabular text-micro text-ink-soft">
+          {other.groups.length} section{other.groups.length === 1 ? "" : "s"} ·{" "}
+          <span className="font-medium text-ink">{inrShort(other.claimable_tax)}</span>
+        </p>
+      }
+    >
+      <p className="max-w-[70ch] text-body leading-relaxed text-ink-soft">
         Sections of the statement that carry credit without carrying a document the
         purchase register would hold. They are excluded from the match figures above
         deliberately, and shown here so nothing in the statement goes unaccounted for.
@@ -33,18 +52,23 @@ export function OtherItc({ other }: { other: OtherItcSummary }) {
         {other.groups.map((group) => (
           <div
             key={`${group.section}-${group.note_type ?? ""}`}
-            className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 border-b border-rule/60 pb-2 last:border-0"
+            className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 border-b border-rule-hair pb-2 last:border-0"
           >
-            <dt className="text-sm">
+            <dt className="text-body">
               <span className="font-mono text-micro text-ink-faint">{group.section}</span>
               <span className="ml-3">{group.label}</span>
             </dt>
-            <dd className="tabular flex shrink-0 items-baseline gap-6 text-sm">
+            <dd className="tabular flex shrink-0 items-baseline gap-6 text-data">
               <span className="text-ink-faint">
                 {group.documents} doc{group.documents === 1 ? "" : "s"}
               </span>
-              <span className="w-28 text-right font-medium" title={inr(group.tax)}>
-                {inrShort(group.tax)}
+              <span className="w-32 text-right">
+                <span className="block font-medium">{inrShort(group.tax)}</span>
+                {inrExact(group.tax) && (
+                  <span className="block text-micro text-ink-faint">
+                    {inrExact(group.tax)}
+                  </span>
+                )}
               </span>
             </dd>
           </div>
@@ -52,7 +76,7 @@ export function OtherItc({ other }: { other: OtherItcSummary }) {
       </dl>
 
       {adjustment !== 0 && (
-        <p className="tabular mt-4 text-sm">
+        <p className="tabular mt-4 text-body">
           Net effect of notes on the claim:{" "}
           <span className={adjustment < 0 ? "font-medium text-exposure" : "font-medium"}>
             {inr(other.net_note_adjustment)}
@@ -64,6 +88,6 @@ export function OtherItc({ other }: { other: OtherItcSummary }) {
           </span>
         </p>
       )}
-    </section>
+    </Disclosure>
   );
 }

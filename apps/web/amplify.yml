@@ -1,0 +1,35 @@
+# Amplify Hosting build spec for the dashboard.
+#
+# Amplify's own Next.js detection works, but this file makes two things
+# explicit that are easy to get wrong and hard to diagnose afterwards.
+#
+# 1. `NEXT_PUBLIC_API_BASE` is substituted at BUILD time, not read at
+#    runtime. Setting it in the Amplify console after a build has already
+#    run changes nothing: the bundle still holds the old value, and every
+#    browser call goes to whatever was baked in. The echo below puts the
+#    value in the build log so a wrong one is visible in thirty seconds
+#    rather than after an afternoon of debugging CORS.
+#
+# 2. `appRoot` is apps/web. This is a monorepo and the Python engine lives
+#    beside the web app; without it Amplify tries to build the repository
+#    root and fails on a pyproject.toml it has no idea what to do with.
+version: 1
+applications:
+  - appRoot: apps/web
+    frontend:
+      phases:
+        preBuild:
+          commands:
+            - npm ci
+        build:
+          commands:
+            - 'echo "Building against API: ${NEXT_PUBLIC_API_BASE}"'
+            - npm run build
+      artifacts:
+        baseDirectory: .next
+        files:
+          - '**/*'
+      cache:
+        paths:
+          - node_modules/**/*
+          - .next/cache/**/*

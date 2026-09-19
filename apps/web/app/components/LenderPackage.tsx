@@ -1,4 +1,5 @@
 import { periodLabel } from "../lib/format";
+import { Disclosure } from "./Disclosure";
 
 /**
  * The month-eighteen payoff, shown as what it is: not built yet.
@@ -12,6 +13,9 @@ import { periodLabel } from "../lib/format";
  *
  * It is also the strongest thing on the screen for the moat argument: a
  * competitor can copy the engine and cannot copy the history.
+ *
+ * It sits last on the page and closed, because a control that by design never
+ * works should not stand between a CA and the findings they came for.
  */
 export function LenderPackage({
   periodsReconciled,
@@ -23,24 +27,29 @@ export function LenderPackage({
   latest: string;
 }) {
   return (
-    <section className="border-b border-rule py-8">
+    <Disclosure
+      title="Lender-ready package"
+      headline={
+        <p className="tabular text-micro text-ink-soft">
+          <span className="font-medium text-ink">{periodsReconciled} months</span> of
+          reconciled history · not built yet
+        </p>
+      }
+    >
       <div className="flex flex-wrap items-start justify-between gap-x-8 gap-y-4">
-        <div className="max-w-[60ch]">
-          <h2 className="text-sm font-semibold">Lender-ready package</h2>
-          <p className="mt-2 text-sm leading-relaxed text-ink-soft">
-            <span className="tabular font-medium text-ink">{periodsReconciled} months</span>{" "}
-            of reconciled history so far, {periodLabel(earliest)} to {periodLabel(latest)},
-            every figure linked to the file line behind it. At eighteen months this
-            becomes a diligence pack a lender can take as read — generated from history
-            that already exists rather than assembled in six weeks of scrambling.
-          </p>
-        </div>
+        <p className="max-w-[60ch] text-body leading-relaxed text-ink-soft">
+          <span className="tabular font-medium text-ink">{periodsReconciled} months</span>{" "}
+          of reconciled history so far, {periodLabel(earliest)} to {periodLabel(latest)},
+          every figure linked to the file line behind it. At eighteen months this becomes a
+          diligence pack a lender can take as read — generated from history that already
+          exists rather than assembled in six weeks of scrambling.
+        </p>
 
         <button
           type="button"
           disabled
           title="Not built yet. Shown because the history it would be generated from is real."
-          className="shrink-0 cursor-not-allowed border border-rule bg-paper px-4 py-2 text-sm text-ink-faint"
+          className="no-print shrink-0 cursor-not-allowed border border-rule bg-paper px-4 py-2 text-data text-ink-faint"
         >
           Generate lender-ready package
         </button>
@@ -50,6 +59,6 @@ export function LenderPackage({
         Deliberately inactive. The reconciled history behind it is real; the export is not
         written, and a button that produced an unverified pack would be worse than none.
       </p>
-    </section>
+    </Disclosure>
   );
 }

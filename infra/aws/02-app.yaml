@@ -1,0 +1,523 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: >-
+  DiligenceReady application: the API on App Runner, the nightly
+  reconciliation as Lambda stages under Step Functions, and the schedule that
+  fires it. Depends on the foundation stack's exports.
+
+# The shape, and why it is this shape.
+#
+# The API is a container on App Runner rather than Lambda behind API Gateway.
+# Three reasons, in order of how much they matter:
+#
+#   1. Connection pooling. The engine is SQLAlchemy over psycopg and every
+#      figure on screen is a SQL aggregate. A long-lived process keeps a pool;
+#      a Lambda per request opens a connection per request and needs RDS Proxy
+#      to survive it.
+#   2. Cold starts. The judging is a recorded demo. A three-second spinner on
+#      the first click is a worse outcome than a container that costs a dollar
+#      a day to keep warm.
+#   3. It is one Dockerfile. No adapter, no packaging layer, no divergence
+#      between what runs locally and what runs deployed.
+#
+# The nightly pipeline IS Lambda, because that workload is the opposite: it
+# runs four times a night, for minutes, and scaling to zero in between is
+# exactly right. Same image, different entry point — see the Dockerfile.
+#
+# Step Functions sits over the Lambdas rather than one function calling the
+# next, because the stages fail for different reasons and a retry should redo
+# the failed stage, not the month. The execution history is also the run log:
+# "why does this client's August look wrong" is answerable by opening it.
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: diligenceready
+
+  ImageTag:
+    Type: String
+    Default: latest
+    Description: >-
+      The tag pushed to ECR. `latest` with AutoDeployments on means a push
+      redeploys the service, which is what the deploy script relies on.
+
+  BedrockModelId:
+    Type: String
+    Default: ""
+    Description: >-
+      Left empty deliberately. The model id is not guessable and differs by
+      region, so `diligence bedrock models` discovers it against the account
+      and the deploy script passes the answer in. Empty is a working
+      deployment whose explanations are the deterministic template.
+
+  BedrockRegion:
+    Type: String
+    Default: ""
+    Description: Defaults to the stack's own region.
+
+  CorsOrigins:
+    Type: String
+    Default: ""
+    Description: >-
+      The Amplify URL, comma separated if more than one. Set after the web
+      app is first deployed, because the domain does not exist until then.
+
+  ScheduleExpression:
+    Type: String
+    Default: "cron(30 19 * * ? *)"
+    Description: >-
+      19:30 UTC is 01:00 IST. The portal's data settles overnight and a CA
+      firm wants yesterday's answer when they open their laptop, not a job
+      competing with their working day.
+
+  ScheduleEnabled:
+    Type: String
+    Default: "ENABLED"
+    AllowedValues: ["ENABLED", "DISABLED"]
+
+Conditions:
+  HasBedrockRegion: !Not [!Equals [!Ref BedrockRegion, ""]]
+
+Resources:
+  # ── how the application reaches Postgres ──────────────────────────────────
+
+  AppSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: App Runner and the pipeline Lambdas.
+      VpcId:
+        Fn::ImportValue: !Sub "${ProjectName}-VpcId"
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+          Description: Postgres in-VPC, S3 by gateway endpoint, Bedrock via NAT.
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-app"
+
+  # The database's only ingress rule, and it names a security group rather
+  # than a CIDR: membership is the credential, so nothing can reach Postgres
+  # by being at the right address.
+  DatabaseIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId:
+        Fn::ImportValue: !Sub "${ProjectName}-DbSecurityGroupId"
+      IpProtocol: tcp
+      FromPort: 5432
+      ToPort: 5432
+      SourceSecurityGroupId: !Ref AppSecurityGroup
+      Description: !Sub "${ProjectName} application"
+
+  # ── what the application is allowed to do ─────────────────────────────────
+
+  # Split from the instance role on purpose: pulling the image and running
+  # the application are different jobs with different blast radii. App Runner
+  # assumes this one only to authenticate to ECR.
+  AppRunnerAccessRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: build.apprunner.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSAppRunnerServicePolicyForECRAccess
+
+  ApplicationPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: What the API and the pipeline may touch. Nothing else.
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          # Documents. Scoped to this bucket: content-addressed keys mean the
+          # application never needs to list or delete, only put and get.
+          - Sid: Documents
+            Effect: Allow
+            Action:
+              - s3:GetObject
+              - s3:PutObject
+              - s3:ListBucket
+            Resource:
+              - !Sub
+                - "arn:aws:s3:::${Bucket}"
+                - Bucket: !ImportValue
+                    Fn::Sub: "${ProjectName}-DocumentBucketName"
+              - !Sub
+                - "arn:aws:s3:::${Bucket}/*"
+                - Bucket: !ImportValue
+                    Fn::Sub: "${ProjectName}-DocumentBucketName"
+          # The database password, which no template and no environment
+          # variable ever contains.
+          - Sid: DatabaseCredentials
+            Effect: Allow
+            Action: secretsmanager:GetSecretValue
+            Resource:
+              Fn::ImportValue: !Sub "${ProjectName}-DbSecretArn"
+          # Bedrock. InvokeModel only — the application has no business
+          # listing models or changing model access at runtime, and the
+          # cross-region inference profile needs the foundation-model ARNs
+          # in the regions it can route to.
+          - Sid: Explanations
+            Effect: Allow
+            Action:
+              - bedrock:InvokeModel
+              - bedrock:InvokeModelWithResponseStream
+            Resource:
+              - "arn:aws:bedrock:*::foundation-model/*"
+              - !Sub "arn:aws:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/*"
+
+  AppRunnerInstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: tasks.apprunner.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - !Ref ApplicationPolicy
+
+  PipelineLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+        - !Ref ApplicationPolicy
+
+  # ── the API ───────────────────────────────────────────────────────────────
+
+  VpcConnector:
+    Type: AWS::AppRunner::VpcConnector
+    Properties:
+      VpcConnectorName: !Sub "${ProjectName}-connector"
+      Subnets: !Split
+        - ","
+        - Fn::ImportValue: !Sub "${ProjectName}-PrivateSubnetIds"
+      SecurityGroups:
+        - !Ref AppSecurityGroup
+
+  ApiService:
+    Type: AWS::AppRunner::Service
+    Properties:
+      ServiceName: !Sub "${ProjectName}-api"
+      SourceConfiguration:
+        AuthenticationConfiguration:
+          AccessRoleArn: !GetAtt AppRunnerAccessRole.Arn
+        # A push to the tag redeploys. The deploy script builds, pushes and
+        # then waits for the service to go back to RUNNING.
+        AutoDeploymentsEnabled: true
+        ImageRepository:
+          ImageIdentifier: !Sub
+            - "${Repo}:${ImageTag}"
+            - Repo: !ImportValue
+                Fn::Sub: "${ProjectName}-ImageRepositoryUri"
+          ImageRepositoryType: ECR
+          ImageConfiguration:
+            Port: "8080"
+            RuntimeEnvironmentVariables:
+              - Name: STORAGE_BACKEND
+                Value: s3
+              - Name: S3_BUCKET
+                Value:
+                  Fn::ImportValue: !Sub "${ProjectName}-DocumentBucketName"
+              - Name: S3_PREFIX
+                Value: documents
+              - Name: DB_HOST
+                Value:
+                  Fn::ImportValue: !Sub "${ProjectName}-DbEndpoint"
+              - Name: DB_PORT
+                Value:
+                  Fn::ImportValue: !Sub "${ProjectName}-DbPort"
+              - Name: DB_NAME
+                Value: diligence
+              - Name: DB_USER
+                Value: diligence
+              - Name: DB_SECRET_ARN
+                Value:
+                  Fn::ImportValue: !Sub "${ProjectName}-DbSecretArn"
+              - Name: BEDROCK_MODEL_ID
+                Value: !Ref BedrockModelId
+              - Name: BEDROCK_REGION
+                Value: !If [HasBedrockRegion, !Ref BedrockRegion, !Ref "AWS::Region"]
+              - Name: CORS_ORIGINS
+                Value: !Ref CorsOrigins
+      InstanceConfiguration:
+        # 2 GB because pandas, SQLAlchemy and the Strands SDK are resident
+        # together. 0.5 GB is App Runner's smallest and this does not fit in
+        # it; discovering that as an OOM restart loop mid-demo is avoidable.
+        Cpu: "1 vCPU"
+        Memory: "2 GB"
+        InstanceRoleArn: !GetAtt AppRunnerInstanceRole.Arn
+      # The health check is the deep one: it opens a database connection and
+      # runs the Cedar self-test. A deployment that cannot reach Postgres, or
+      # whose policy engine failed to load, never receives traffic — App
+      # Runner holds the previous version instead.
+      HealthCheckConfiguration:
+        Protocol: HTTP
+        Path: /api/health
+        Interval: 10
+        Timeout: 5
+        HealthyThreshold: 1
+        UnhealthyThreshold: 5
+      NetworkConfiguration:
+        EgressConfiguration:
+          EgressType: VPC
+          VpcConnectorArn: !GetAtt VpcConnector.VpcConnectorArn
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-api"
+
+  # ── the nightly reconciliation ────────────────────────────────────────────
+
+  PipelineFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${ProjectName}-pipeline"
+      PackageType: Image
+      Code:
+        ImageUri: !Sub
+          - "${Repo}:${ImageTag}"
+          - Repo: !ImportValue
+              Fn::Sub: "${ProjectName}-ImageRepositoryUri"
+      # The same image App Runner runs, entered differently. The Dockerfile's
+      # CMD starts uvicorn; here the Lambda runtime interface client takes
+      # over and calls the handler instead.
+      ImageConfig:
+        EntryPoint: ["/app/.venv/bin/python", "-m", "awslambdaric"]
+        Command: ["diligence_engine.aws_lambda.handler"]
+        WorkingDirectory: /app
+      Role: !GetAtt PipelineLambdaRole.Arn
+      # Reconciling every period of every company is minutes, not seconds,
+      # and the ceiling applies per stage because the stages are separate
+      # invocations.
+      Timeout: 900
+      MemorySize: 2048
+      Environment:
+        Variables:
+          STORAGE_BACKEND: s3
+          S3_BUCKET:
+            Fn::ImportValue: !Sub "${ProjectName}-DocumentBucketName"
+          S3_PREFIX: documents
+          DB_HOST:
+            Fn::ImportValue: !Sub "${ProjectName}-DbEndpoint"
+          DB_PORT:
+            Fn::ImportValue: !Sub "${ProjectName}-DbPort"
+          DB_NAME: diligence
+          DB_USER: diligence
+          DB_SECRET_ARN:
+            Fn::ImportValue: !Sub "${ProjectName}-DbSecretArn"
+      VpcConfig:
+        SubnetIds: !Split
+          - ","
+          - Fn::ImportValue: !Sub "${ProjectName}-PrivateSubnetIds"
+        SecurityGroupIds:
+          - !Ref AppSecurityGroup
+
+  PipelineLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${ProjectName}-pipeline"
+      RetentionInDays: 14
+
+  StateMachineLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    Properties:
+      LogGroupName: !Sub "/aws/vendedlogs/states/${ProjectName}-pipeline"
+      RetentionInDays: 14
+
+  StateMachineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: states.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: invoke-and-log
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: lambda:InvokeFunction
+                Resource: !GetAtt PipelineFunction.Arn
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogDelivery
+                  - logs:GetLogDelivery
+                  - logs:UpdateLogDelivery
+                  - logs:DeleteLogDelivery
+                  - logs:ListLogDeliveries
+                  - logs:PutResourcePolicy
+                  - logs:DescribeResourcePolicies
+                  - logs:DescribeLogGroups
+                Resource: "*"
+
+  PipelineStateMachine:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      StateMachineName: !Sub "${ProjectName}-pipeline"
+      RoleArn: !GetAtt StateMachineRole.Arn
+      LoggingConfiguration:
+        Level: ALL
+        IncludeExecutionData: true
+        Destinations:
+          - CloudWatchLogsLogGroup:
+              LogGroupArn: !GetAtt StateMachineLogGroup.Arn
+      DefinitionString: !Sub |
+        {
+          "Comment": "Nightly reconciliation. Ingestion is not a stage: documents arrive when a CA uploads them. This re-reads what is already there, because the portal's copy changes underneath it - late GSTR-1 filings, recomputed Rule 37A reversals, and IMS records one day closer to deemed acceptance.",
+          "StartAt": "Migrate",
+          "States": {
+            "Migrate": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::lambda:invoke",
+              "Parameters": {
+                "FunctionName": "${PipelineFunction.Arn}",
+                "Payload": { "stage": "migrate" }
+              },
+              "ResultSelector": { "migrate.$": "$.Payload" },
+              "ResultPath": "$.migrate",
+              "Retry": [
+                {
+                  "ErrorEquals": ["Lambda.ServiceException", "Lambda.AWSLambdaException", "Lambda.SdkClientException", "Lambda.TooManyRequestsException"],
+                  "IntervalSeconds": 5,
+                  "MaxAttempts": 3,
+                  "BackoffRate": 2
+                }
+              ],
+              "Next": "Reconcile"
+            },
+            "Reconcile": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::lambda:invoke",
+              "Parameters": {
+                "FunctionName": "${PipelineFunction.Arn}",
+                "Payload": { "stage": "reconcile" }
+              },
+              "ResultSelector": { "reconcile.$": "$.Payload" },
+              "ResultPath": "$.reconcile",
+              "Retry": [
+                {
+                  "ErrorEquals": ["States.TaskFailed"],
+                  "IntervalSeconds": 10,
+                  "MaxAttempts": 2,
+                  "BackoffRate": 2
+                }
+              ],
+              "Next": "Ims"
+            },
+            "Ims": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::lambda:invoke",
+              "Parameters": {
+                "FunctionName": "${PipelineFunction.Arn}",
+                "Payload": { "stage": "ims" }
+              },
+              "ResultSelector": { "ims.$": "$.Payload" },
+              "ResultPath": "$.ims",
+              "Retry": [
+                {
+                  "ErrorEquals": ["States.TaskFailed"],
+                  "IntervalSeconds": 10,
+                  "MaxAttempts": 2,
+                  "BackoffRate": 2
+                }
+              ],
+              "Next": "Rules"
+            },
+            "Rules": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::lambda:invoke",
+              "Parameters": {
+                "FunctionName": "${PipelineFunction.Arn}",
+                "Payload": { "stage": "rules" }
+              },
+              "ResultSelector": { "rules.$": "$.Payload" },
+              "ResultPath": "$.rules",
+              "Retry": [
+                {
+                  "ErrorEquals": ["States.TaskFailed"],
+                  "IntervalSeconds": 10,
+                  "MaxAttempts": 2,
+                  "BackoffRate": 2
+                }
+              ],
+              "End": true
+            }
+          }
+        }
+
+  SchedulerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: scheduler.amazonaws.com
+            Action: sts:AssumeRole
+            Condition:
+              StringEquals:
+                "aws:SourceAccount": !Ref "AWS::AccountId"
+      Policies:
+        - PolicyName: start-the-pipeline
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: states:StartExecution
+                Resource: !Ref PipelineStateMachine
+
+  NightlySchedule:
+    Type: AWS::Scheduler::Schedule
+    Properties:
+      Name: !Sub "${ProjectName}-nightly"
+      Description: The word "continuous" in the product's first sentence.
+      State: !Ref ScheduleEnabled
+      FlexibleTimeWindow:
+        # Fifteen minutes of slack. Nothing downstream cares whether the run
+        # starts at 01:00 or 01:12, and off-peak flexibility is free capacity.
+        Mode: FLEXIBLE
+        MaximumWindowInMinutes: 15
+      ScheduleExpression: !Ref ScheduleExpression
+      ScheduleExpressionTimezone: Asia/Kolkata
+      Target:
+        Arn: !Ref PipelineStateMachine
+        RoleArn: !GetAtt SchedulerRole.Arn
+        Input: "{}"
+        RetryPolicy:
+          MaximumRetryAttempts: 2
+
+Outputs:
+  ApiUrl:
+    Description: The API's HTTPS endpoint. NEXT_PUBLIC_API_BASE points here.
+    Value: !Sub "https://${ApiService.ServiceUrl}"
+
+  HealthUrl:
+    Value: !Sub "https://${ApiService.ServiceUrl}/api/health"
+
+  StateMachineArn:
+    Value: !Ref PipelineStateMachine
+
+  PipelineFunctionName:
+    Value: !Ref PipelineFunction

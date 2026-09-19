@@ -2,13 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
-/* IBM Plex earns its place here rather than being a house style: this
-   interface is read by someone cross-checking GSTINs and invoice numbers
-   character by character, and Plex Mono's disambiguated 0/O and 1/l/I are
-   the difference between catching a transposed digit and not. Plex Sans
-   carries the prose. A local fallback stack keeps the page legible when the
-   font request does not resolve. */
-@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap");
+/* The typefaces load through `next/font` in app/layout.tsx, not an @import
+   here. The reason is in that file: an import inside a stylesheet is a
+   third-wave request, and a fallback with different digit metrics reflows a
+   column of rupee figures on every cold load. */
 
 :root {
   color-scheme: light;
@@ -38,6 +35,16 @@ body {
   outline-offset: 2px;
 }
 
+/* The disclosure sections are ruled rows, not widgets. The marker is drawn as
+   a chevron in the summary itself so it can sit where the eye already is. */
+summary {
+  list-style: none;
+}
+
+summary::-webkit-details-marker {
+  display: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -62,4 +69,82 @@ body {
 
 .panel-in {
   animation: panel-in 140ms ease-out;
+}
+
+/* The second piece of motion, and the last: on the landing page, the two
+   closing rules under the ledger column draw themselves left to right, once,
+   on load. That is footing a column — the act the product performs — and it is
+   the only thing on that page that moves. Not a reveal, not a scroll effect:
+   it happens once, in 240ms, and then the page is a document at rest. */
+@keyframes foot-rule {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.foot-rule {
+  transform-origin: left;
+  animation: foot-rule 240ms ease-out both;
+}
+
+.foot-rule-final {
+  animation-delay: 60ms;
+}
+
+/* Same document, different sheet. Three lines, no JavaScript, and nothing at
+   all in a browser that does not implement it. */
+@view-transition {
+  navigation: auto;
+}
+
+/* What this product is for is a document someone files. The screen is where
+   it is worked on; paper is where it is defended. Every collapsed section is
+   forced open by the beforeprint handler in components/PrintExpander.tsx —
+   the attribute, not a display rule, because reverting `display` on a
+   `summary` reprints its disclosure triangle. */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  body {
+    background: #fff;
+    font-size: 10pt;
+  }
+
+  main {
+    max-width: none;
+  }
+
+  /* Sticky anything is meaningless on paper and repeats the header on every
+     sheet if left in place. */
+  .sticky {
+    position: static !important;
+  }
+
+  aside[aria-label^="Evidence"] {
+    position: static;
+    max-height: none;
+    overflow: visible;
+    border-left: 0;
+    border-top: 1px solid theme("colors.rule-strong");
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tr {
+    break-inside: avoid;
+  }
+
+  /* A link is a destination in a filed document, not a click target. */
+  a[href^="/"]::after {
+    content: " (" attr(href) ")";
+    font-size: 9pt;
+    color: theme("colors.ink-faint");
+  }
 }

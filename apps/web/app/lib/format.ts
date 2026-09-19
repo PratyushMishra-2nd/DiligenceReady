@@ -41,6 +41,19 @@ export function inrShort(amount: string | null | undefined): string {
 }
 
 /**
+ * The exact rupee, where the figure on screen is a rounded one.
+ *
+ * `inrShort` only abbreviates past a lakh, so under that the two strings are
+ * identical and printing both says the same thing twice. This returns null in
+ * that case, and the caller renders nothing.
+ */
+export function inrExact(amount: string | null | undefined): string | null {
+  if (!amount) return null;
+  const exact = inr(amount);
+  return inrShort(amount) === exact ? null : exact;
+}
+
+/**
  * Add decimal strings without going through a float. Paise as BigInt, back to
  * a string. The one place the interface does arithmetic, and it is exact.
  */
@@ -80,12 +93,69 @@ export function severityTone(severity: string): string {
     case "high":
       return "bg-exposure-wash text-exposure border-exposure/30";
     case "medium":
-      return "bg-[#FBF3E2] text-[#8A5A16] border-[#8A5A16]/25";
+      return "bg-caution-wash text-caution border-caution/25";
     case "low":
       return "bg-paper text-ink-soft border-rule-strong";
     default:
       return "bg-paper text-ink-faint border-rule";
   }
+}
+
+/**
+ * Severity in the findings list, as a rule down the left edge of the row.
+ *
+ * A washed chip per row spends sixty rows' worth of horizontal budget
+ * restating an order the list is already sorted in, and that budget belongs to
+ * the document number. A ragged vermillion edge says "start here" without
+ * costing a column.
+ *
+ * It encodes on two channels, width and hue, because #9E2B25 collapses toward
+ * ink under protanopia and a hue-only rule would say nothing to that reader.
+ * The severity word itself stays in the row, visually hidden, so nothing
+ * depends on seeing the mark at all.
+ */
+export function severityBar(severity: string): string {
+  switch (severity) {
+    case "high":
+      return "w-[3px] bg-exposure";
+    case "medium":
+      return "w-[3px] bg-caution";
+    case "low":
+      return "w-px bg-rule-strong";
+    default:
+      return "w-px bg-rule";
+  }
+}
+
+/** The rule codes whose findings are about one document from one supplier. */
+const DOCUMENT_RULES = new Set(["R1", "R2", "R3", "R4", "R4b", "R10", "R13"]);
+
+/**
+ * The supplier a document-level finding is against, on its own.
+ *
+ * `subject()` joins the supplier and the document into one string, which the
+ * findings row then truncated — and truncation clips the tail, so the document
+ * number was the first thing to go. On rule R3, "same supplier and document
+ * booked more than once", the document number is the only thing distinguishing
+ * one row from the one under it. The two fields are separated here so the row
+ * can truncate the name and never the number.
+ */
+export function supplierOf(risk: {
+  rule_code: string;
+  metrics: Record<string, unknown>;
+  rule_text: string;
+}): string {
+  if (!DOCUMENT_RULES.has(risk.rule_code)) return subject(risk);
+  return (risk.metrics?.supplier_name as string) || subject(risk);
+}
+
+/** The document number, for the rules that have one. Never truncated. */
+export function docOf(risk: {
+  rule_code: string;
+  metrics: Record<string, unknown>;
+}): string | null {
+  if (!DOCUMENT_RULES.has(risk.rule_code)) return null;
+  return (risk.metrics?.invoice_no as string) || null;
 }
 
 /**

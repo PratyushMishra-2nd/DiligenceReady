@@ -35,3 +35,9 @@ Thumbs.db
 # browser-automation scratch from development
 .playwright-mcp/
 shot-*.png
+
+# Hackathon working artefacts. Not part of the public repository: the AWS
+# runbook narrates one account's deploy, the writeup and video script are
+# submission material for the form rather than documentation, and the
+# product explainer duplicates the README for a different audience.
+private/

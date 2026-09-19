@@ -23,28 +23,35 @@ ways rather than asserted:
     rounded differently, fails the check and the explanation is rejected
     rather than shown.
 
-When no API key is configured the deterministic fallback is used and the
-result is labelled `template`, never passed off as model prose.
+The model is reached through **Amazon Bedrock**, using the Converse API. There
+is no second provider. When Bedrock is not configured or the call fails, the
+deterministic fallback is used and the result is labelled `template` — never
+passed off as model prose. That fallback is what makes the repository runnable
+by someone who clones it without an AWS account: the product works, the
+sentences are plainer, and the interface says which it is showing.
 """
 
 from __future__ import annotations
 
-import os
-import re
 from dataclasses import dataclass
-from decimal import Decimal, InvalidOperation
 
-MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-opus-5")
+from diligence_api.numeric_guard import check
+from diligence_engine.config import settings
 
-# Thinking is on by default on this model and its tokens count against
-# max_tokens, so a budget sized for the prose alone gets spent before any
-# text is produced. Three sentences need very little; the headroom is for
-# the reasoning in front of them.
-MAX_TOKENS = 8000
+# Generous enough for three sentences with room to spare, small enough that a
+# runaway generation is cheap. The guard below rejects long prose anyway.
+MAX_TOKENS = 1024
 
-# The SDK default is ten minutes, and timeouts are retried. An explanation
-# nobody is waiting for any more is worth less than a free connection.
-TIMEOUT_SECONDS = 30.0
+# Deterministic-ish. This is a formatting task over supplied facts, not a
+# creative one, and a lower temperature means fewer rejected generations —
+# every rejection costs a call and shows the reader the plainer text.
+TEMPERATURE = 0.2
+
+# The Bedrock SDK's default socket timeout is 60s and it retries. An
+# explanation nobody is waiting for any more is worth less than a free
+# connection back to the pool.
+TIMEOUT_SECONDS = 30
+MAX_ATTEMPTS = 2
 
 SYSTEM_PROMPT = """You explain financial reconciliation findings to a chartered \
 accountant in practice in India.
@@ -75,9 +82,8 @@ class Explanation:
     rejected_reason: str | None = None
 
 
-# Any run of digits with optional separators and decimals.
-_NUMERIC = re.compile(r"\d[\d,]*(?:\.\d+)?")
-
+# The numeric guard lives in `numeric_guard`, shared with the Strands agent.
+#
 # There is no waiver.
 #
 # There used to be one — any value at or below 31 was skipped as "ordinary
@@ -88,34 +94,13 @@ _NUMERIC = re.compile(r"\d[\d,]*(?:\.\d+)?")
 # and it was shown as verified prose.
 #
 # Any number in the sentence must appear in the finding. The cost is that a
-# model writing "one supplier" in digits gets rejected when 1 is not in the
-# metrics — and that cost is paid in the right direction: a rejection falls
-# back to the deterministic text, which is correct but plainer. A wrong
-# number shown as checked is not recoverable.
-
-
-def _numbers_in(text: str) -> set[Decimal]:
-    found = set()
-    for raw in _NUMERIC.findall(text):
-        try:
-            found.add(Decimal(raw.replace(",", "")))
-        except InvalidOperation:
-            continue
-    return found
+# rejection falls back to the deterministic text, which is correct but
+# plainer. A wrong number shown as checked is not recoverable.
 
 
 def check_no_invented_numbers(generated: str, source_facts: str) -> str | None:
-    """Return a reason string when the prose contains a number the facts do not.
-
-    A model that rounds 4,82,000 to "4.8 lakh" fails this check. That is the
-    intended strictness: a figure a reader cannot find in the evidence is
-    exactly the thing this product exists not to produce.
-    """
-    allowed = _numbers_in(source_facts)
-    for value in _numbers_in(generated):
-        if value not in allowed:
-            return f"generated prose contains {value}, which is not in the finding"
-    return None
+    """Return a reason string when the prose contains a number the facts do not."""
+    return check(generated, source_facts)
 
 
 def render_facts(risk: dict) -> str:
@@ -141,46 +126,73 @@ def deterministic_explanation(risk: dict) -> str:
     )
 
 
+# ── Bedrock ─────────────────────────────────────────────────────────────────
+
+
+def bedrock_client():
+    """A Bedrock runtime client with this module's timeouts.
+
+    Not cached: the client is cheap next to a model call, and caching it
+    across a config change during a deploy is a debugging session nobody
+    needs. Credentials come from the App Runner instance role.
+    """
+    import boto3
+    from botocore.config import Config
+
+    return boto3.client(
+        "bedrock-runtime",
+        region_name=settings().bedrock_region or None,
+        config=Config(
+            read_timeout=TIMEOUT_SECONDS,
+            connect_timeout=5,
+            retries={"max_attempts": MAX_ATTEMPTS, "mode": "standard"},
+        ),
+    )
+
+
+def _text_of(message: dict) -> str:
+    """Join the text blocks of a Converse reply, ignoring everything else.
+
+    A reasoning-capable model returns `reasoningContent` blocks alongside the
+    answer. Those are the model's working, not its output, and concatenating
+    them into the shown prose would put unchecked numbers on a CA's screen.
+    """
+    parts = [block["text"] for block in message.get("content", []) if "text" in block]
+    return "".join(parts).strip()
+
+
 def explain(risk: dict) -> Explanation:
     """Write the explanation for one finished risk."""
     facts = render_facts(risk)
+    model_id = settings().bedrock_model_id
 
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
-    if not api_key:
+    if not model_id:
         return Explanation(
             text=deterministic_explanation(risk),
             source="template",
-            rejected_reason="no ANTHROPIC_API_KEY configured",
+            rejected_reason=(
+                "no BEDROCK_MODEL_ID configured; run `diligence bedrock models` "
+                "to see what this account can call"
+            ),
         )
 
     try:
-        import anthropic
-    except ImportError:
-        return Explanation(
-            text=deterministic_explanation(risk),
-            source="template",
-            rejected_reason="anthropic SDK is not installed",
-        )
-
-    client = anthropic.Anthropic(timeout=TIMEOUT_SECONDS, max_retries=1)
-    try:
-        response = client.messages.create(
-            model=MODEL,
-            max_tokens=MAX_TOKENS,
-            system=SYSTEM_PROMPT,
-            # Simple, high-volume, latency-sensitive prose. Thinking stays on
-            # by default; effort is dropped because depth buys nothing here.
-            output_config={"effort": "low"},
-            messages=[{"role": "user", "content": facts}],
+        response = bedrock_client().converse(
+            modelId=model_id,
+            system=[{"text": SYSTEM_PROMPT}],
+            messages=[{"role": "user", "content": [{"text": facts}]}],
+            inferenceConfig={"maxTokens": MAX_TOKENS, "temperature": TEMPERATURE},
         )
     except Exception as error:  # noqa: BLE001 - the UI must degrade, not 500
         return Explanation(
             text=deterministic_explanation(risk),
             source="template",
-            rejected_reason=f"model call failed: {type(error).__name__}",
+            rejected_reason=f"Bedrock call failed: {type(error).__name__}",
         )
 
-    if response.stop_reason == "max_tokens":
+    stop_reason = response.get("stopReason")
+
+    if stop_reason == "max_tokens":
         # Truncated mid-sentence. Shipping half a paragraph under a model
         # attribution is worse than shipping the plain version.
         return Explanation(
@@ -189,14 +201,14 @@ def explain(risk: dict) -> Explanation:
             rejected_reason="model response hit the token limit and was cut off",
         )
 
-    if response.stop_reason == "refusal":
+    if stop_reason in ("content_filtered", "guardrail_intervened"):
         return Explanation(
             text=deterministic_explanation(risk),
             source="template",
-            rejected_reason="model declined the request",
+            rejected_reason=f"Bedrock stopped the response ({stop_reason})",
         )
 
-    generated = "".join(block.text for block in response.content if block.type == "text").strip()
+    generated = _text_of(response.get("output", {}).get("message", {}))
 
     if not generated:
         return Explanation(
@@ -213,4 +225,4 @@ def explain(risk: dict) -> Explanation:
             rejected_reason=problem,
         )
 
-    return Explanation(text=generated, source="model", model=MODEL)
+    return Explanation(text=generated, source="model", model=model_id)

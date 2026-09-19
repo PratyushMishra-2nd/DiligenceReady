@@ -43,6 +43,7 @@ from functools import lru_cache
 from sqlalchemy import text
 from sqlalchemy.engine import Connection
 
+from diligence_engine import authz
 from diligence_engine.ingest.documents import stable_id
 
 # scrypt cost. n is the memory/CPU knob; these land around a tenth of a
@@ -73,6 +74,11 @@ class Principal:
     email: str
     display_name: str
     role: str
+
+    # These two are what the interface greys out a button with. They are
+    # NOT the enforcement — `auth.may()` is, and it asks Cedar. A property on
+    # a dataclass cannot see which company is being written to, and the
+    # tenant half of the rule is the half that matters.
 
     @property
     def can_write(self) -> bool:
@@ -338,13 +344,52 @@ def purge_expired_sessions(conn: Connection) -> int:
 # ── firm scoping ────────────────────────────────────────────────────────────
 
 
+def firm_of_company(conn: Connection, company_id: uuid.UUID) -> uuid.UUID | None:
+    """Which firm owns this company. A fact, read from the database.
+
+    The split matters: the database answers facts, Cedar answers decisions.
+    This function does not know what the caller is allowed to do, and the
+    policy does not know how to run SQL.
+    """
+    return conn.execute(
+        text("select firm_id from companies where id = :id"), {"id": company_id}
+    ).scalar()
+
+
+def may(conn: Connection, principal: Principal, action: str, company_id: uuid.UUID) -> bool:
+    """Whether the caller may take this action on this company. Cedar decides.
+
+    Every firm-scoping decision in the product funnels through here, and from
+    here into `authz/policies.cedar`. There is deliberately no second
+    implementation of the rule to drift from the first.
+    """
+    return authz.decide(
+        action=action,
+        user_id=principal.user_id,
+        user_firm_id=principal.firm_id,
+        role=principal.role,
+        resource_kind="Company",
+        resource_id=company_id,
+        resource_firm_id=firm_of_company(conn, company_id),
+    )
+
+
+def may_manage_users(principal: Principal) -> bool:
+    """Account administration is scoped to the caller's own practice."""
+    return authz.decide(
+        action=authz.MANAGE_USERS,
+        user_id=principal.user_id,
+        user_firm_id=principal.firm_id,
+        role=principal.role,
+        resource_kind="Firm",
+        resource_id=principal.firm_id,
+        resource_firm_id=None,
+    )
+
+
 def company_in_firm(conn: Connection, principal: Principal, company_id: uuid.UUID) -> bool:
     """A company belongs to the caller's firm, or it does not exist to them."""
-    found = conn.execute(
-        text("select 1 from companies where id = :id and firm_id = :firm_id"),
-        {"id": company_id, "firm_id": principal.firm_id},
-    ).first()
-    return found is not None
+    return may(conn, principal, authz.VIEW_COMPANY, company_id)
 
 
 def require_company(conn: Connection, principal: Principal, company_id: uuid.UUID) -> None:

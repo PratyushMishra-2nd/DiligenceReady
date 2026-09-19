@@ -10,6 +10,8 @@ diligence rule        enable or disable a rule in the registry
 diligence rules       run every enabled rule over every period
 diligence evaluate    score the engine against the planted answer key
 diligence tally       read a live Tally company over its XML gateway
+diligence bedrock     list the Bedrock models this account can invoke
+diligence doctor      check every dependency a deployment needs
 diligence pipeline    the whole thing, in order
 """
 
@@ -537,6 +539,166 @@ def _company_id(conn: Connection, slug: str) -> uuid.UUID:
             f"Company {slug!r} has not been ingested yet. Run `diligence ingest` first."
         )
     return row.id
+
+
+# ── AWS ─────────────────────────────────────────────────────────────────────
+
+
+@cli.group("bedrock")
+def bedrock_group() -> None:
+    """Amazon Bedrock: what this account can actually call."""
+
+
+@bedrock_group.command("models")
+@click.option("--region", default=None, help="Defaults to BEDROCK_REGION, then AWS_REGION.")
+@click.option("--all", "show_all", is_flag=True, help="Every provider, not just Anthropic.")
+def bedrock_models(region: str | None, show_all: bool) -> None:
+    """List the models and inference profiles this account can invoke.
+
+    The model id is not guessable and it is not stable across regions: the
+    same model is `anthropic.claude-...` in one region, `apac.anthropic....`
+    through an APAC inference profile, and simply absent in a third. Hard
+    coding one into the application is how a deploy discovers, in front of an
+    audience, that the region it landed in does not have it.
+
+    So the deploy asks the account instead, and writes the answer into
+    BEDROCK_MODEL_ID. Cross-region inference profiles are listed first
+    because they are what a production deployment should use — they fail over
+    to another region under load instead of throttling.
+    """
+    import boto3
+    from botocore.exceptions import ClientError, NoCredentialsError
+
+    where = region or settings().bedrock_region or settings().aws_region
+    if not where:
+        raise click.ClickException("No region. Pass --region, or set BEDROCK_REGION or AWS_REGION.")
+
+    client = boto3.client("bedrock", region_name=where)
+    click.echo(f"region {where}")
+
+    try:
+        profiles = client.list_inference_profiles().get("inferenceProfileSummaries", [])
+    except (ClientError, NoCredentialsError) as error:
+        raise click.ClickException(
+            f"Bedrock refused the request: {error}. Check credentials, the region, "
+            "and that model access has been granted in the Bedrock console."
+        ) from error
+
+    click.echo("\ncross-region inference profiles (prefer these):")
+    found = False
+    for profile in profiles:
+        identifier = profile.get("inferenceProfileId", "")
+        if not show_all and "anthropic" not in identifier:
+            continue
+        found = True
+        click.echo(f"  {identifier:60} {profile.get('status', '')}")
+    if not found:
+        click.echo("  (none)")
+
+    models = client.list_foundation_models().get("modelSummaries", [])
+    click.echo("\non-demand foundation models:")
+    found = False
+    for model in models:
+        identifier = model.get("modelId", "")
+        if not show_all and not identifier.startswith("anthropic."):
+            continue
+        if "ON_DEMAND" not in (model.get("inferenceTypesSupported") or []):
+            continue
+        found = True
+        click.echo(f"  {identifier:60} {model.get('modelLifecycle', {}).get('status', '')}")
+    if not found:
+        click.echo("  (none — grant model access in the Bedrock console first)")
+
+    click.echo("\nSet the chosen id as BEDROCK_MODEL_ID. Nothing else in the app needs to change.")
+
+
+@cli.command("doctor")
+def doctor_cmd() -> None:
+    """Check every dependency this deployment needs, and say which is wrong.
+
+    Written for the five minutes after a deploy, when something returns 503
+    and the question is which of six things it is. Each line is independent:
+    a failure does not stop the next check, because "the database is down
+    AND the bucket is missing" is more useful than the first of the two.
+    """
+    failures = 0
+
+    def report(name: str, ok: bool, detail: str) -> None:
+        nonlocal failures
+        if not ok:
+            failures += 1
+        click.echo(f"  {'ok  ' if ok else 'FAIL'}  {name:22} {detail}")
+
+    config = settings()
+    click.echo("configuration")
+    click.echo(f"  storage backend       {config.storage_backend}")
+    click.echo(f"  region                {config.aws_region or '(unset)'}")
+    click.echo(f"  bedrock region        {config.bedrock_region or '(unset)'}")
+    click.echo(f"  bedrock model         {config.bedrock_model_id or '(unset)'}")
+    click.echo(f"  s3 bucket             {config.s3_bucket or '(unset)'}")
+
+    click.echo("\nchecks")
+
+    try:
+        with connect() as conn:
+            tables = conn.execute(
+                text("select count(*) from information_schema.tables where table_schema = 'public'")
+            ).scalar()
+            companies = conn.execute(text("select count(*) from companies")).scalar()
+        report("database", True, f"{tables} tables, {companies} companies")
+    except Exception as error:  # noqa: BLE001 - the message is the output
+        report("database", False, f"{type(error).__name__}: {error}")
+
+    try:
+        from diligence_engine import authz
+
+        authz.self_test()
+        report("cedar policy", True, f"{len(authz.ACTIONS)} actions, self-test passed")
+    except Exception as error:  # noqa: BLE001
+        report("cedar policy", False, f"{type(error).__name__}: {error}")
+
+    if config.storage_backend == "s3":
+        try:
+            import boto3
+
+            boto3.client("s3", region_name=config.aws_region or None).head_bucket(
+                Bucket=config.s3_bucket
+            )
+            report("s3 bucket", True, f"{config.s3_bucket} reachable")
+        except Exception as error:  # noqa: BLE001
+            report("s3 bucket", False, f"{type(error).__name__}: {error}")
+    else:
+        report("object store", True, f"local disk at {config.storage_local_path}")
+
+    if config.bedrock_model_id:
+        try:
+            import boto3
+
+            boto3.client("bedrock-runtime", region_name=config.bedrock_region or None).converse(
+                modelId=config.bedrock_model_id,
+                messages=[{"role": "user", "content": [{"text": "Reply with the word ok."}]}],
+                inferenceConfig={"maxTokens": 16, "temperature": 0},
+            )
+            report("bedrock", True, f"{config.bedrock_model_id} answered")
+        except Exception as error:  # noqa: BLE001
+            report("bedrock", False, f"{type(error).__name__}: {error}")
+    else:
+        report(
+            "bedrock",
+            False,
+            "BEDROCK_MODEL_ID unset - explanations fall back to the template (fine locally)",
+        )
+
+    try:
+        import strands  # noqa: F401
+
+        report("strands agents", True, "installed")
+    except ImportError:
+        report("strands agents", False, "not installed; /ask is unavailable")
+
+    if failures:
+        raise click.ClickException(f"{failures} check(s) failed")
+    click.echo("\neverything this deployment needs is reachable")
 
 
 if __name__ == "__main__":

@@ -94,21 +94,21 @@ export function UploadPanel({ companyId }: { companyId: string }) {
   }
 
   return (
-    <section className="border-b border-rule py-8">
-      <h2 className="text-sm font-semibold">Add a document</h2>
-      <p className="mt-2 max-w-[70ch] text-sm leading-relaxed text-ink-soft">
+    <section className="border-b border-rule-strong py-8">
+      <h2 className="text-data font-semibold">Add a document</h2>
+      <p className="mt-2 max-w-[70ch] text-body leading-relaxed text-ink-soft">
         A register from Tally, Busy, Marg, Zoho or Vyapar, a GSTR-2B download, or a bank
         statement. Column names differ between packages and are resolved on the way in;
         if one cannot be, the error says which and what the file calls it instead.
       </p>
 
       <div className="mt-4 flex flex-wrap items-center gap-3">
-        <label className="text-sm">
+        <label className="text-body">
           <span className="sr-only">Document type</span>
           <select
             value={kind}
             onChange={(event) => setKind(event.target.value)}
-            className="border border-rule-strong bg-sheet px-3 py-2 text-sm focus:border-ink focus:outline-none"
+            className="border border-rule-strong bg-sheet px-3 py-2 text-body focus:border-ink focus:outline-none"
           >
             {KINDS.map((entry) => (
               <option key={entry.value} value={entry.value}>
@@ -127,7 +127,7 @@ export function UploadPanel({ companyId }: { companyId: string }) {
             const file = event.target.files?.[0];
             if (file) void send(file);
           }}
-          className="text-sm file:mr-3 file:cursor-pointer file:border file:border-ink file:bg-transparent file:px-3 file:py-1.5 file:text-sm file:font-medium hover:file:bg-ink hover:file:text-paper"
+          className="text-body file:mr-3 file:cursor-pointer file:border file:border-ink file:bg-transparent file:px-3 file:py-1.5 file:text-body file:font-medium hover:file:bg-ink hover:file:text-paper"
         />
 
         {busy && <span className="text-micro text-ink-soft">Reading…</span>}
@@ -136,7 +136,7 @@ export function UploadPanel({ companyId }: { companyId: string }) {
       {outcome && (
         <div
           role="status"
-          className={`mt-4 border px-4 py-3 text-[13px] leading-relaxed ${
+          className={`mt-4 border px-4 py-3 text-data leading-relaxed ${
             outcome.ok
               ? "border-reconciled/30 bg-reconciled-wash text-ink"
               : "border-exposure/30 bg-exposure-wash text-ink"

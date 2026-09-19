@@ -21,7 +21,7 @@ export function SignOut({ name, role }: { name: string; role: string }) {
   }
 
   return (
-    <span className="flex items-baseline gap-3 text-micro text-ink-soft">
+    <span className="no-print flex items-baseline gap-3 text-micro text-ink-soft">
       <span>
         {name}
         {role !== "member" && <span className="ml-1.5 text-ink-faint">({role})</span>}

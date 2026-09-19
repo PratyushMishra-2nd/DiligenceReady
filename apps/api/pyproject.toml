@@ -7,7 +7,13 @@ dependencies = [
     "diligence-engine",
     "fastapi>=0.115",
     "uvicorn[standard]>=0.32",
-    "anthropic>=0.69",
+    # The model is reached through Amazon Bedrock. There is no second
+    # provider: the no-key path is the deterministic template, not another
+    # vendor.
+    "boto3>=1.35",
+    # AWS's open-source agent SDK. "Ask the ledger" runs on it, over
+    # read-only engine tools.
+    "strands-agents>=1.0",
     "python-multipart>=0.0.20",
 ]
 

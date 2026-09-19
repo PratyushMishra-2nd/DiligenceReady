@@ -10,6 +10,11 @@ dependencies = [
     "rapidfuzz>=3.10",
     "python-dotenv>=1.0",
     "click>=8.1",
+    # S3 is the deployed object store; the local-disk backend is the dev path.
+    "boto3>=1.35",
+    # Cedar is AWS's open-source authorization language. The firm boundary is
+    # expressed as policy in authz/*.cedar rather than as scattered Python.
+    "cedarpy>=4.0",
 ]
 
 [build-system]

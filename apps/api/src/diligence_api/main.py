@@ -17,8 +17,12 @@ writes a line to the audit log.
 from __future__ import annotations
 
 import json
+import os
 import tempfile
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from decimal import Decimal
+from functools import lru_cache
 from pathlib import Path
 from typing import Annotated, Any
 
@@ -27,33 +31,62 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from sqlalchemy import text
 
+from diligence_api.agent import ask
 from diligence_api.deps import (
     bearer_token,
     client_ip,
     company_or_404,
     current_principal,
     parse_uuid,
-    require_writer,
+    require_action,
 )
 from diligence_api.explain import explain
-from diligence_engine import auth, reporting
+from diligence_engine import auth, authz, reporting
+from diligence_engine.config import settings
 from diligence_engine.db import connect
 from diligence_engine.ingest.columns import UnreadableExport
 from diligence_engine.ingest.upload import UPLOADABLE, UnsupportedUpload, ingest_upload
 from diligence_engine.normalise import ParseError
 
+
+@asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    """Refuse to serve traffic if Cedar cannot evaluate the tenant boundary.
+
+    A deployment where the policy engine failed to load is a deployment with
+    no tenant boundary. Finding that out on the first cross-firm request is
+    too late; App Runner marking the deployment unhealthy and rolling it back
+    is exactly the right outcome.
+    """
+    authz.self_test()
+    yield
+
+
 app = FastAPI(
+    lifespan=lifespan,
     title="DiligenceReady",
     description="Continuous reconciliation of books, GST and bank data for Indian SMEs.",
     version="0.2.0",
 )
 
-# The dashboard runs on a different port in development. Credentials are
-# allowed because the session travels as a cookie; the origin list stays
-# explicit rather than a wildcard, which is what makes that safe.
+# The dashboard runs on a different origin: a different port in development,
+# an Amplify domain in the deployed stack. Credentials are allowed because
+# the session travels as a cookie, and that is only safe because the origin
+# list is explicit — `allow_origins=["*"]` with `allow_credentials=True` is
+# the combination that hands any website a signed-in session, and Starlette
+# will not even honour it.
+#
+# The deployment adds its own origin through CORS_ORIGINS rather than
+# replacing these, so a developer running the web app locally against the
+# deployed API still works.
+_DEV_ORIGINS = ["http://localhost:3000", "http://127.0.0.1:3000"]
+_EXTRA_ORIGINS = [
+    origin.strip() for origin in os.environ.get("CORS_ORIGINS", "").split(",") if origin.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=_DEV_ORIGINS + _EXTRA_ORIGINS,
     allow_credentials=True,
     allow_methods=["GET", "POST"],
     allow_headers=["Authorization", "Content-Type"],
@@ -85,10 +118,48 @@ class Credentials(BaseModel):
 
 @app.get("/api/health")
 def health() -> dict:
-    """Unauthenticated on purpose: a load balancer has no session."""
-    with connect() as conn:
-        conn.execute(text("select 1"))
-    return {"status": "ok"}
+    """Unauthenticated on purpose: a load balancer has no session.
+
+    Deep rather than shallow: a 200 from a process that cannot reach its
+    database is how a deployment stays green while every request 500s. The
+    body names each dependency so a failing deploy can be diagnosed from the
+    health check alone, and it names no secret — the model id and region are
+    configuration, the connection string and credentials are not.
+    """
+    detail: dict[str, object] = {
+        "status": "ok",
+        "storage_backend": settings().storage_backend,
+        "region": settings().aws_region or None,
+        "model": settings().bedrock_model_id or None,
+        "agent": "strands" if _strands_available() else None,
+    }
+    try:
+        with connect() as conn:
+            conn.execute(text("select 1"))
+        detail["database"] = "ok"
+    except Exception as error:  # noqa: BLE001 - the body is the diagnosis
+        detail["status"] = "degraded"
+        detail["database"] = type(error).__name__
+    try:
+        authz.self_test()
+        detail["policy"] = "ok"
+    except Exception as error:  # noqa: BLE001 - see above
+        detail["status"] = "degraded"
+        detail["policy"] = type(error).__name__
+
+    if detail["status"] != "ok":
+        # A load balancer reads the status code, not the body.
+        raise HTTPException(status_code=503, detail=detail)
+    return detail
+
+
+@lru_cache(maxsize=1)
+def _strands_available() -> bool:
+    try:
+        import strands  # noqa: F401
+    except ImportError:
+        return False
+    return True
 
 
 @app.post("/api/session")
@@ -264,7 +335,8 @@ def evidence_source(
         ).scalar()
         if owner is None:
             raise HTTPException(status_code=404, detail="No such evidence.")
-        company_or_404(conn, principal, str(owner))
+        company = company_or_404(conn, principal, str(owner))
+        require_action(conn, principal, authz.VIEW_EVIDENCE, company)
 
         source = reporting.evidence_source(conn, identifier)
         if source is None:
@@ -295,7 +367,7 @@ async def upload_document(
     request: Request,
     kind: Annotated[str, Form()],
     file: Annotated[UploadFile, File()],
-    principal: auth.Principal = Depends(require_writer),
+    principal: auth.Principal = Depends(current_principal),
 ) -> dict:
     """Upload one export and read it into the typed tables.
 
@@ -325,6 +397,7 @@ async def upload_document(
 
         with connect() as conn:
             identifier = company_or_404(conn, principal, company_id)
+            require_action(conn, principal, authz.UPLOAD_DOCUMENT, identifier)
             company_name = conn.execute(
                 text("select name from companies where id = :id"), {"id": identifier}
             ).scalar()
@@ -414,7 +487,7 @@ def set_risk_status(
     risk_id: str,
     change: StatusChange,
     request: Request,
-    principal: auth.Principal = Depends(require_writer),
+    principal: auth.Principal = Depends(current_principal),
 ) -> dict:
     """Record what the CA decided about a finding.
 
@@ -434,7 +507,8 @@ def set_risk_status(
         ).scalar()
         if owner is None:
             raise HTTPException(status_code=404, detail="No such finding.")
-        company_or_404(conn, principal, str(owner))
+        company = company_or_404(conn, principal, str(owner))
+        require_action(conn, principal, authz.DECIDE_RISK, company)
 
         previous = conn.execute(
             text("select status from risks where id = :id"), {"id": identifier}
@@ -461,7 +535,7 @@ def set_risk_status(
 def explain_risk(
     risk_id: str,
     request: Request,
-    principal: auth.Principal = Depends(require_writer),
+    principal: auth.Principal = Depends(current_principal),
 ) -> dict:
     """Generate the prose for a finished finding, and store it if it passes the check."""
     identifier = parse_uuid(risk_id, "risk_id")
@@ -479,7 +553,8 @@ def explain_risk(
         detail = reporting.risk_detail(conn, identifier)
         if detail is None:
             raise HTTPException(status_code=404, detail="No such finding.")
-        company_or_404(conn, principal, detail.risk["company_id"])
+        company = company_or_404(conn, principal, detail.risk["company_id"])
+        require_action(conn, principal, authz.EXPLAIN, company)
 
     result = explain(detail.risk)
 
@@ -508,3 +583,60 @@ def explain_risk(
             "rejected_reason": result.rejected_reason,
         }
     )
+
+
+class LedgerQuestion(BaseModel):
+    question: str = Field(max_length=500)
+
+
+@app.post("/api/companies/{company_id}/ask")
+def ask_ledger(
+    company_id: str,
+    query: LedgerQuestion,
+    request: Request,
+    principal: auth.Principal = Depends(current_principal),
+) -> dict:
+    """Ask a question about one company's reconciled books.
+
+    A Strands agent on Bedrock chooses which of the engine's read-only
+    aggregates to call; the engine answers them. The reply is then checked
+    the same way `/explain` is: a number that no tool returned means the
+    answer is refused rather than shown.
+
+    The company is resolved and authorised here, before the agent exists, and
+    the agent's tools are built around it. There is no tool that takes a
+    company id, so nothing the user types can move the agent to another
+    firm's books.
+    """
+    with connect() as conn:
+        identifier = company_or_404(conn, principal, company_id)
+        require_action(conn, principal, authz.ASK_LEDGER, identifier)
+
+    # The model call is outside the transaction. A connection held across a
+    # multi-turn agent run is a connection the pool does not have.
+    answer = ask(str(identifier), query.question)
+
+    with connect() as conn:
+        auth.record(
+            conn,
+            action="ledger_question",
+            principal=principal,
+            company_id=identifier,
+            object_type="company",
+            object_id=str(identifier),
+            detail={
+                "question": query.question,
+                "source": answer.source,
+                "tools": answer.tools_called,
+                "rejected_reason": answer.rejected_reason,
+            },
+            ip=client_ip(request),
+        )
+
+    return {
+        "answer": answer.text,
+        "source": answer.source,
+        "model": answer.model,
+        "tools_called": answer.tools_called,
+        "rejected_reason": answer.rejected_reason,
+    }

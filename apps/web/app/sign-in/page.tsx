@@ -39,8 +39,8 @@ export default function SignIn() {
 
   return (
     <main className="mx-auto max-w-[27rem] px-6 py-24">
-      <h1 className="text-lg font-semibold tracking-tight">DiligenceReady</h1>
-      <p className="mt-1 text-sm text-ink-soft">Sign in to your firm&rsquo;s workspace.</p>
+      <h1 className="text-lede font-semibold tracking-tight">DiligenceReady</h1>
+      <p className="mt-1 text-body text-ink-soft">Sign in to your firm&rsquo;s workspace.</p>
 
       <form onSubmit={submit} className="mt-8 space-y-5">
         <Field
@@ -59,7 +59,7 @@ export default function SignIn() {
         />
 
         {error && (
-          <p role="alert" className="border border-exposure/30 bg-exposure-wash px-3 py-2 text-[13px] text-exposure">
+          <p role="alert" className="border border-exposure/30 bg-exposure-wash px-3 py-2 text-data text-exposure">
             {error}
           </p>
         )}
@@ -67,7 +67,7 @@ export default function SignIn() {
         <button
           type="submit"
           disabled={busy || !email || !password}
-          className="w-full border border-ink bg-ink px-4 py-2.5 text-sm font-medium text-paper hover:bg-transparent hover:text-ink disabled:opacity-40 disabled:hover:bg-ink disabled:hover:text-paper"
+          className="w-full border border-ink bg-ink px-4 py-2.5 text-body font-medium text-paper hover:bg-transparent hover:text-ink disabled:opacity-40 disabled:hover:bg-ink disabled:hover:text-paper"
         >
           {busy ? "Signing in…" : "Sign in"}
         </button>
@@ -103,7 +103,7 @@ function Field({
         value={value}
         autoComplete={autoComplete}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-1.5 w-full border border-rule-strong bg-sheet px-3 py-2 text-sm focus:border-ink focus:outline-none"
+        className="mt-1.5 w-full border border-rule-strong bg-sheet px-3 py-2 text-body focus:border-ink focus:outline-none"
       />
     </label>
   );

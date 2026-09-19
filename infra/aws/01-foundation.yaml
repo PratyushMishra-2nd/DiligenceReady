@@ -1,0 +1,371 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: >-
+  DiligenceReady foundation: network, Postgres, the document store and the
+  image registry. Deployed once and left alone; the application stack on top
+  of it is the one that changes.
+
+# Why a VPC at all, when a hackathon could put Postgres on a public endpoint
+# and be done in ten minutes:
+#
+# This product's entire proposition is that a CA firm can hand it another
+# business's books. A database reachable from the internet, however strong
+# the password, is the first thing a prospective client's IT person asks
+# about — and the honest answer would be a bad one. Postgres sits in private
+# subnets with no route in. Nothing outside the VPC can open a socket to it.
+#
+# The cost of that decision is one NAT gateway, about a dollar a day, and it
+# buys the outbound path App Runner and Lambda need for Bedrock. S3 traffic
+# skips it entirely through a gateway endpoint, which is free — documents are
+# the bulk of the bytes and there is no reason to pay per gigabyte to move
+# them.
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: diligenceready
+    Description: Prefix for every resource name, so a teardown is unambiguous.
+
+  DbInstanceClass:
+    Type: String
+    Default: db.t4g.micro
+    Description: >-
+      db.t4g.micro is the smallest Graviton instance and is enough for a
+      demo firm: the workload is a few hundred thousand rows and the queries
+      are indexed aggregates.
+
+  DbAllocatedStorage:
+    Type: Number
+    Default: 20
+    MinValue: 20
+
+Resources:
+  # ── network ───────────────────────────────────────────────────────────────
+
+  Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.20.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-vpc"
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-igw"
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref Vpc
+      InternetGatewayId: !Ref InternetGateway
+
+  # Two availability zones because RDS requires a subnet group spanning at
+  # least two, not because this demo needs the redundancy.
+  PublicSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: 10.20.0.0/24
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-public-a"
+
+  PublicSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: 10.20.1.0/24
+      AvailabilityZone: !Select [1, !GetAZs ""]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-public-b"
+
+  PrivateSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: 10.20.10.0/24
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-private-a"
+
+  PrivateSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: 10.20.11.0/24
+      AvailabilityZone: !Select [1, !GetAZs ""]
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-private-b"
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-public"
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnetARouteAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnetA
+      RouteTableId: !Ref PublicRouteTable
+
+  PublicSubnetBRouteAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnetB
+      RouteTableId: !Ref PublicRouteTable
+
+  # One NAT, not one per zone. A second would double the standing cost to
+  # protect a demo against the loss of an availability zone, which is not
+  # the risk worth spending on here. The teardown script deletes it, because
+  # a forgotten NAT gateway is the classic way a free-credit balance
+  # evaporates.
+  NatEip:
+    Type: AWS::EC2::EIP
+    DependsOn: AttachGateway
+    Properties:
+      Domain: vpc
+
+  NatGateway:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NatEip.AllocationId
+      SubnetId: !Ref PublicSubnetA
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-nat"
+
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-private"
+
+  PrivateRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway
+
+  PrivateSubnetARouteAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnetA
+      RouteTableId: !Ref PrivateRouteTable
+
+  PrivateSubnetBRouteAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnetB
+      RouteTableId: !Ref PrivateRouteTable
+
+  # Documents are the heaviest traffic this system moves. A gateway endpoint
+  # keeps them on the AWS network: no NAT data charge, and no path over the
+  # public internet for a client's purchase register.
+  S3Endpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref Vpc
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.s3"
+      VpcEndpointType: Gateway
+      RouteTableIds:
+        - !Ref PrivateRouteTable
+
+  # ── Postgres ──────────────────────────────────────────────────────────────
+
+  DbSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Postgres. Ingress is added by the application stack.
+      VpcId: !Ref Vpc
+      # No ingress rules here on purpose. The application stack adds exactly
+      # one, from its own security group. A database whose security group
+      # allows a CIDR rather than a group is a database whose access list
+      # nobody can read.
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 127.0.0.1/32
+          Description: Postgres initiates nothing.
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-db"
+
+  DbSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Private subnets only.
+      SubnetIds:
+        - !Ref PrivateSubnetA
+        - !Ref PrivateSubnetB
+
+  Database:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      DBInstanceIdentifier: !Sub "${ProjectName}-pg"
+      Engine: postgres
+      EngineVersion: "17.6"
+      DBInstanceClass: !Ref DbInstanceClass
+      AllocatedStorage: !Ref DbAllocatedStorage
+      StorageType: gp3
+      StorageEncrypted: true
+      DBName: diligence
+      MasterUsername: diligence
+      # AWS generates the password, stores it in Secrets Manager and rotates
+      # it. No password appears in this template, in a parameter, in the
+      # stack events or in anybody's shell history.
+      ManageMasterUserPassword: true
+      DBSubnetGroupName: !Ref DbSubnetGroup
+      VPCSecurityGroups:
+        - !Ref DbSecurityGroup
+      PubliclyAccessible: false
+      MultiAZ: false
+      BackupRetentionPeriod: 1
+      DeletionProtection: false
+      AutoMinorVersionUpgrade: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-pg"
+
+  # ── the document store ────────────────────────────────────────────────────
+
+  DocumentBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Sub "${ProjectName}-documents-${AWS::AccountId}-${AWS::Region}"
+      # Keys are content-addressed by sha256, so an object is immutable by
+      # construction and versioning is belt and braces. It is on anyway:
+      # the evidence drill-down's promise is that the figure on screen can
+      # always be traced to the bytes that produced it, and a delete that
+      # cannot be undone breaks that promise permanently.
+      VersioningConfiguration:
+        Status: Enabled
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+
+  # Refuse any request that is not TLS. The bucket policy says it rather than
+  # the application, so a future client that forgets cannot get it wrong.
+  DocumentBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref DocumentBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: DenyPlaintextTraffic
+            Effect: Deny
+            Principal: "*"
+            Action: "s3:*"
+            Resource:
+              - !GetAtt DocumentBucket.Arn
+              - !Sub "${DocumentBucket.Arn}/*"
+            Condition:
+              Bool:
+                "aws:SecureTransport": "false"
+
+  # ── the image registry ────────────────────────────────────────────────────
+
+  ImageRepository:
+    Type: AWS::ECR::Repository
+    DeletionPolicy: Delete
+    Properties:
+      RepositoryName: !Ref ProjectName
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      ImageTagMutability: MUTABLE
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "Keep the ten most recent images; a hackathon rebuilds often.",
+                "selection": {
+                  "tagStatus": "any",
+                  "countType": "imageCountMoreThan",
+                  "countNumber": 10
+                },
+                "action": { "type": "expire" }
+              }
+            ]
+          }
+
+Outputs:
+  VpcId:
+    Value: !Ref Vpc
+    Export:
+      Name: !Sub "${ProjectName}-VpcId"
+
+  PrivateSubnetIds:
+    Value: !Join [",", [!Ref PrivateSubnetA, !Ref PrivateSubnetB]]
+    Export:
+      Name: !Sub "${ProjectName}-PrivateSubnetIds"
+
+  DbSecurityGroupId:
+    Value: !Ref DbSecurityGroup
+    Export:
+      Name: !Sub "${ProjectName}-DbSecurityGroupId"
+
+  DbEndpoint:
+    Value: !GetAtt Database.Endpoint.Address
+    Export:
+      Name: !Sub "${ProjectName}-DbEndpoint"
+
+  DbPort:
+    Value: !GetAtt Database.Endpoint.Port
+    Export:
+      Name: !Sub "${ProjectName}-DbPort"
+
+  DbSecretArn:
+    Description: Secrets Manager secret holding the master credentials.
+    Value: !GetAtt Database.MasterUserSecret.SecretArn
+    Export:
+      Name: !Sub "${ProjectName}-DbSecretArn"
+
+  DocumentBucketName:
+    Value: !Ref DocumentBucket
+    Export:
+      Name: !Sub "${ProjectName}-DocumentBucketName"
+
+  ImageRepositoryUri:
+    Value: !GetAtt ImageRepository.RepositoryUri
+    Export:
+      Name: !Sub "${ProjectName}-ImageRepositoryUri"

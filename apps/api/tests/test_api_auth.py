@@ -29,7 +29,15 @@ from .conftest import OTHER_PASSWORD, PASSWORD, headers, needs_data, sign_in
 def test_health_needs_no_session() -> None:
     """A load balancer has no credentials."""
     with TestClient(app) as bare:
-        assert bare.get("/api/health").json() == {"status": "ok"}
+        body = bare.get("/api/health").json()
+        # Deep, not shallow: a 200 from a process that cannot reach Postgres
+        # is how a deployment stays green while every request 500s. The body
+        # names each dependency so a bad deploy is diagnosable from the
+        # health check alone.
+        assert body["status"] == "ok"
+        assert body["database"] == "ok"
+        assert body["policy"] == "ok"
+        assert "model" in body and "storage_backend" in body
 
 
 @needs_data

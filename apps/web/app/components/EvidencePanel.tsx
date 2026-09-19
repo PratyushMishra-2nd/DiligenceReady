@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { api, type Risk, type RiskDetail, type SourceLine } from "../lib/api";
 import { inr, periodLabel } from "../lib/format";
 import { RiskDecision } from "./RiskDecision";
+import { ValueDiff } from "./ValueDiff";
 
 /**
  * The evidence card (§13), and the moment the demo stops being a slide.
@@ -17,12 +18,15 @@ import { RiskDecision } from "./RiskDecision";
 export function EvidencePanel({
   risk,
   onClose,
+  onStatusChange,
   canWrite = true,
 }: {
   risk: Risk;
   onClose: () => void;
+  onStatusChange?: (status: string, previous: string) => void;
   canWrite?: boolean;
 }) {
+  const panel = useRef<HTMLElement>(null);
   const [detail, setDetail] = useState<RiskDetail | null>(null);
   const [source, setSource] = useState<SourceLine | null>(null);
   const [sourceError, setSourceError] = useState<string | null>(null);
@@ -75,10 +79,26 @@ export function EvidencePanel({
   }, [risk.risk_id, risk.explanation]);
 
   useEffect(() => {
-    const onKey = (event: KeyboardEvent) => event.key === "Escape" && onClose();
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      // Escape dismisses one thing: the top one. With the command palette
+      // open, closing the evidence underneath it as well loses the finding
+      // the reader was on for a keystroke they aimed at the palette.
+      if (document.querySelector('[role="dialog"]')) return;
+      onClose();
+    };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
+
+  // Below `lg` this panel is not beside the list, it is after it — so on a
+  // phone, tapping the thirty-seventh of sixty findings opened a panel three
+  // thousand pixels down and moved the viewport nowhere at all. Taking focus
+  // scrolls it into view, and it is also what a keyboard user needs: the
+  // evidence for the finding they just activated, rather than the next row.
+  useEffect(() => {
+    panel.current?.focus();
+  }, []);
 
   async function runExplain() {
     setExplaining(true);
@@ -96,8 +116,14 @@ export function EvidencePanel({
   }
 
   return (
+    // `self-start` is load-bearing: a grid item stretches to the row's height
+    // by default, so without it a short panel paints six hundred pixels of
+    // empty sheet under itself and the sticky box has nothing to travel in.
     <aside
-      className="panel-in sticky top-0 min-w-0 max-h-screen overflow-y-auto border-t border-rule-strong bg-sheet lg:border-l lg:border-t-0"
+      ref={panel}
+      tabIndex={-1}
+      role="region"
+      className="panel-in sticky top-0 min-w-0 max-h-screen self-start overflow-y-auto border-t border-rule-strong bg-sheet focus:outline-none lg:border-l lg:border-t-0"
       aria-label={`Evidence for ${risk.rule_code}`}
     >
       <div className="flex items-start justify-between gap-4 border-b border-rule px-6 py-4">
@@ -105,7 +131,7 @@ export function EvidencePanel({
           <p className="text-micro text-ink-soft">
             <span className="font-mono">{risk.rule_code}</span> · {risk.title}
           </p>
-          <h2 className="mt-1 text-base font-semibold leading-snug">{risk.rule_text}</h2>
+          <h2 className="mt-1 text-lede font-semibold">{risk.rule_text}</h2>
         </div>
         <button
           type="button"
@@ -116,13 +142,15 @@ export function EvidencePanel({
         </button>
       </div>
 
-      <div className="space-y-7 px-6 py-6">
+      <div className="space-y-8 px-6 py-6">
         <Block title="The arithmetic">
-          <p className="tabular font-mono text-[13px] leading-relaxed">{risk.calculation}</p>
+          <p className="tabular font-mono text-data leading-relaxed">{risk.calculation}</p>
           <p className="mt-2 text-micro text-ink-faint">
             A SQL aggregate over the match table. No model produced this figure.
           </p>
         </Block>
+
+        <ValueDiff risk={risk} />
 
         {detail?.match && <MatchBlock match={detail.match} />}
 
@@ -131,7 +159,7 @@ export function EvidencePanel({
             {Object.entries(risk.metrics ?? {})
               .filter(([, value]) => value !== null && typeof value !== "object")
               .map(([key, value]) => (
-                <div key={key} className="flex gap-4 text-[13px]">
+                <div key={key} className="flex gap-4 text-data">
                   <dt className="w-[44%] shrink-0 text-ink-soft">{key.replace(/_/g, " ")}</dt>
                   <dd className="tabular font-mono break-all">{String(value)}</dd>
                 </div>
@@ -143,7 +171,7 @@ export function EvidencePanel({
           <Block title="Evidence">
             <ul className="space-y-1.5">
               {detail.evidence.map((item) => (
-                <li key={item.evidence_id} className="text-[13px]">
+                <li key={item.evidence_id} className="text-data">
                   <span className="text-ink-soft">{item.record_type.replace(/_/g, " ")}</span>
                   {item.note && <span className="ml-2 font-mono text-ink">{item.note}</span>}
                 </li>
@@ -155,7 +183,7 @@ export function EvidencePanel({
         {source && <SourceView source={source} />}
         {sourceError && (
           <Block title="Source document">
-            <p className="text-[13px] text-exposure">
+            <p className="text-data text-exposure">
               The stored document could not be read: {sourceError}
             </p>
           </Block>
@@ -167,13 +195,14 @@ export function EvidencePanel({
             ruleCode={risk.rule_code}
             status={risk.status}
             canWrite={canWrite}
+            onChange={onStatusChange}
           />
         </Block>
 
         <Block title="Explanation">
           {explanation ? (
             <>
-              <p className="max-w-[60ch] text-[13px] leading-relaxed">{explanation.text}</p>
+              <p className="max-w-[60ch] text-data leading-relaxed">{explanation.text}</p>
               <p className="mt-2 text-micro text-ink-faint">
                 {explanation.source === "model"
                   ? `Written by ${explanation.model ?? "the model"} from the finding above. Every figure it used was checked against the finding before this was shown.`
@@ -188,7 +217,7 @@ export function EvidencePanel({
                 type="button"
                 onClick={runExplain}
                 disabled={explaining}
-                className="border border-ink px-3 py-1.5 text-[13px] font-medium hover:bg-ink hover:text-paper disabled:opacity-50"
+                className="border border-ink px-3 py-1.5 text-data font-medium hover:bg-ink hover:text-paper disabled:opacity-50"
               >
                 {explaining ? "Writing…" : "Explain this finding"}
               </button>
@@ -219,7 +248,7 @@ function MatchBlock({ match }: { match: NonNullable<RiskDetail["match"]> }) {
   if (match.status === "duplicate") {
     return (
       <Block title="Why there is no counterpart">
-        <p className="max-w-[56ch] text-[13px] leading-relaxed">
+        <p className="max-w-[56ch] text-data leading-relaxed">
           One GSTR-2B record exists for this supplier and document number, and another
           row in the register already matched it. Matching is one-to-one, so this row is
           the second booking rather than a missing document.
@@ -239,13 +268,13 @@ function MatchBlock({ match }: { match: NonNullable<RiskDetail["match"]> }) {
 
   return (
     <Block title="Match score">
-      <table className="w-full text-[13px]">
+      <table className="w-full text-data">
         <tbody>
           {Object.keys(weights).map((key) => {
             const component = Number(parts[key] ?? 0);
             const contribution = (component * weights[key]).toFixed(2);
             return (
-              <tr key={key} className="border-b border-rule/60 last:border-0">
+              <tr key={key} className="border-b border-rule-hair last:border-0">
                 <td className="py-1 text-ink-soft">{labels[key]}</td>
                 <td className="tabular py-1 text-right font-mono">
                   {component === 1 ? "exact" : component === 0 ? "no candidate" : component.toFixed(2)}
@@ -277,7 +306,7 @@ function SourceView({ source }: { source: SourceLine }) {
   return (
     <section>
       <h3 className="mb-2 text-micro font-semibold text-ink-soft">Source document</h3>
-      <p className="text-[13px]">
+      <p className="text-data">
         <span className="font-mono">{source.filename}</span>
         <span className="text-ink-soft"> · row </span>
         <span className="tabular font-mono">{source.source_row}</span>
@@ -317,7 +346,7 @@ export function PanelPlaceholder({ period }: { period: string }) {
   return (
     <aside className="hidden border-l border-rule-strong bg-sheet lg:block">
       <div className="px-6 py-10">
-        <p className="max-w-[34ch] text-sm leading-relaxed text-ink-soft">
+        <p className="max-w-[34ch] text-body leading-relaxed text-ink-soft">
           Select a finding to see the arithmetic behind it, the records it came from, and
           the line of the original file that produced the figure.
         </p>

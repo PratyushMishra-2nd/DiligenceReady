@@ -1,12 +1,19 @@
 import type { Readiness } from "../lib/api";
-import { inr, inrShort, pct } from "../lib/format";
+import { inrExact, inrShort, pct } from "../lib/format";
 
 /**
  * Coverage and exposure are kept in separate columns with different type
  * treatments, deliberately (§13). They have opposite polarity — 96% reconciled
  * is good news, ₹24 lakh unexplained is not — and putting them on one visual
- * scale invites exactly the misreading a CA cannot afford. Coverage is quiet
- * and grey; exposure is the only place vermillion appears.
+ * scale invites exactly the misreading a CA cannot afford.
+ *
+ * That intent used to be carried by hue alone: the two figures were the same
+ * size and the same weight, and only one of them was vermillion. Under
+ * protanopia #9E2B25 collapses toward ink, so for that reader the distinction
+ * did not exist. It is now carried by form as well — coverage is light,
+ * grey and proportional, with a rule under it showing the fraction; exposure
+ * is semibold, vermillion, and sits behind a bar. Either channel alone is
+ * enough to tell them apart, and both survive a monochrome print.
  */
 export function ReadinessCard({ readiness }: { readiness: Readiness }) {
   return (
@@ -68,29 +75,46 @@ function CoverageRow({
   percent: string;
   detail: string;
 }) {
+  const number = Number(percent);
+  const width = Number.isFinite(number) ? Math.max(0, Math.min(100, number)) : 0;
   return (
     <div className="flex items-baseline justify-between gap-6">
       <div className="max-w-[34ch]">
-        <dt className="text-sm">{label}</dt>
+        <dt className="text-body">{label}</dt>
         <dd className="tabular mt-0.5 text-micro text-ink-faint">{detail}</dd>
       </div>
-      <dd className="tabular shrink-0 text-2xl font-medium tracking-tight">
-        {percent}
-        <span className="text-base text-ink-faint">%</span>
+      <dd className="shrink-0 text-right">
+        <span className="tabular text-figure font-normal text-ink-soft">
+          {percent}
+          <span className="text-body text-ink-faint">%</span>
+        </span>
+        {/* Proportional, so a column of them is comparable without reading the
+            digits. Drawn in ink: coverage is progress, and the vermillion in
+            this product means money at statutory risk and nothing else. */}
+        <span aria-hidden className="mt-1.5 block h-[3px] w-14 bg-rule">
+          <span className="block h-[3px] bg-reconciled" style={{ width: `${width}%` }} />
+        </span>
       </dd>
     </div>
   );
 }
 
 function ExposureRow({ label, amount }: { label: string; amount: string }) {
+  // The rounded figure is the derived one. Keeping the exact rupee in a
+  // `title` attribute put the source of truth somewhere a touch user and a
+  // screen reader could not reach it — and where the figure is already exact,
+  // there is nothing to print underneath it.
+  const exact = inrExact(amount);
   return (
-    <div className="flex items-baseline justify-between gap-6">
-      <dt className="max-w-[34ch] text-sm">{label}</dt>
-      <dd
-        className="tabular shrink-0 text-2xl font-medium tracking-tight text-exposure"
-        title={inr(amount)}
-      >
-        {inrShort(amount)}
+    <div className="flex items-baseline justify-between gap-6 border-l-2 border-exposure pl-3">
+      <dt className="max-w-[34ch] text-body">{label}</dt>
+      <dd className="shrink-0 text-right">
+        <span className="tabular block text-figure font-semibold text-exposure">
+          {inrShort(amount)}
+        </span>
+        {exact && (
+          <span className="tabular mt-0.5 block text-micro text-ink-faint">{exact}</span>
+        )}
       </dd>
     </div>
   );
@@ -98,9 +122,9 @@ function ExposureRow({ label, amount }: { label: string; amount: string }) {
 
 function PercentRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-baseline justify-between gap-6">
-      <dt className="max-w-[34ch] text-sm">{label}</dt>
-      <dd className="tabular shrink-0 text-2xl font-medium tracking-tight text-exposure">
+    <div className="flex items-baseline justify-between gap-6 border-l-2 border-exposure pl-3">
+      <dt className="max-w-[34ch] text-body">{label}</dt>
+      <dd className="tabular shrink-0 text-figure font-semibold text-exposure">
         {pct(value)}
       </dd>
     </div>
