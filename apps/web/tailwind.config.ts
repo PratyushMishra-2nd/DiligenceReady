@@ -15,6 +15,41 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // ── The editorial press palette ───────────────────────────────
+        // Two inks and a paper, and a third colour that is not picked.
+        //
+        // The landing page is printed in two inks: one for what the books
+        // say, one for what the statute says. Where the two records agree
+        // the impressions land on each other and multiply; `agreed` is that
+        // multiply, computed channel by channel from `books` x `statute`,
+        // not chosen. Agreement in this design is a printed state rather
+        // than a hue someone liked.
+        //
+        // Indigo is not an arbitrary blue: it was India's export dye and the
+        // English word is the country's name. Vermillion is the product's
+        // existing statutory colour pushed one step brighter so it survives
+        // being overprinted.
+        //
+        // There is no third hue. No semantic green, no amber. A thing is
+        // agreed, or it is at risk, and there is no other state.
+        //
+        // Ratios against `stock`, computed: books 10.84, statute 5.05,
+        // statute-deep 6.70, agreed 17.33, graphite 8.41. On `plate`:
+        // stock 16.81, stock-soft 10.79, stock-faint 5.38. The inverted
+        // sections are plates, not a dark mode, which is the opposite of
+        // the washed-out dark theme this project is audited against.
+        stock: "#F4F1E8",
+        books: "#1D3461",
+        statute: "#C4291B",
+        // `statute` set below 18px drops under 4.5:1, so small type uses this.
+        "statute-deep": "#A32014",
+        agreed: "#16080A",
+        graphite: "#4A453D",
+        hairline: "#D6D0C0",
+        plate: "#12100E",
+        "stock-soft": "#C9C3B2",
+        "stock-faint": "#8E887A",
+
         paper: "#F4F6F5",
         sheet: "#FFFFFF",
         ink: "#1B2A2F",
@@ -38,6 +73,15 @@ const config: Config = {
       fontFamily: {
         sans: ["var(--font-plex-sans)", "system-ui", "-apple-system", "Segoe UI", "sans-serif"],
         mono: ["var(--font-plex-mono)", "ui-monospace", "SFMono-Regular", "Consolas", "monospace"],
+        // Provenance by typeface, and it is enforced rather than suggested.
+        // `news` is what the language model wrote and may not contain a
+        // digit; `anek` is a magnitude that came out of SQL; `mono` is an
+        // identifier, a thing that points at a row rather than measures one.
+        // A reader can tell by letterform alone which engine produced any
+        // character on the page.
+        anek: ["Anek Latin", "var(--font-plex-sans)", "system-ui", "sans-serif"],
+        anekdev: ["Anek Devanagari", "Anek Latin", "system-ui", "sans-serif"],
+        news: ["Newsreader", "Georgia", "Times New Roman", "serif"],
       },
       // Six steps, assigned by role rather than by size. `micro` and `data` are
       // one point apart on purpose and are not interchangeable: 12px carries
@@ -67,6 +111,21 @@ const config: Config = {
         // which is why it is a large-screen treatment and steps down twice
         // below it rather than being clipped at the gutter.
         display: ["5rem", { lineHeight: "0.88", letterSpacing: "-0.03em" }],
+        // ── The editorial ramp ────────────────────────────────────────
+        // Eight steps, eight roles, built outward from the 17px the prose
+        // is actually set at rather than from a notional 16. Two display
+        // steps sit outside the ramp because each is used exactly once per
+        // page. The gap between `amount` and `opener` is deliberate and
+        // large: there is no medium heading here, because a section either
+        // opens at architectural scale or it does not open.
+        register: ["clamp(96px, 17.5vw, 268px)", { lineHeight: "0.82", letterSpacing: "-0.045em" }],
+        opener: ["clamp(56px, 8vw, 116px)", { lineHeight: "0.88", letterSpacing: "-0.035em" }],
+        deck: ["2.5rem", { lineHeight: "2.75rem", letterSpacing: "-0.01em" }],
+        intro: ["1.5rem", { lineHeight: "2rem" }],
+        prose: ["1.0625rem", { lineHeight: "1.6875rem" }],
+        amount: ["1.875rem", { lineHeight: "2rem", letterSpacing: "-0.02em" }],
+        ident: ["0.875rem", { lineHeight: "1.1875rem", letterSpacing: "0.01em" }],
+        stub: ["0.75rem", { lineHeight: "0.875rem", letterSpacing: "0.12em" }],
       },
       // One grid for the whole working paper: the tick-mark gutter, the
       // measure, and the cross-reference margin. It is a token because the
