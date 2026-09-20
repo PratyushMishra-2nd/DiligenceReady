@@ -140,6 +140,7 @@ Resources:
       ManagedPolicyArns:
         - !Ref ApplicationPolicy
         - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
 
   InstanceProfile:
     Type: AWS::IAM::InstanceProfile
@@ -174,6 +175,9 @@ Resources:
       InstanceType: !Ref InstanceType
       ImageId: !Ref LatestAmiId
       IamInstanceProfile: !Ref InstanceProfile
+      MetadataOptions:
+        HttpEndpoint: enabled
+        HttpPutResponseHopLimit: 2
       SubnetId:
         Fn::Select:
           - 0
@@ -192,7 +196,9 @@ Resources:
             systemctl enable --now docker
             aws ecr get-login-password --region ${AWS::Region} | docker login --username AWS --password-stdin ${RepoHost}
             docker pull ${RepoUri}:${ImageTag}
-            docker run -d --name api --restart always -p 8080:8080 \
+            docker run -d --name api --restart always --net=host \
+              -e AWS_REGION=${AWS::Region} \
+              -e AWS_DEFAULT_REGION=${AWS::Region} \
               -e STORAGE_BACKEND=s3 \
               -e S3_BUCKET=${DocBucket} \
               -e S3_PREFIX=documents \
