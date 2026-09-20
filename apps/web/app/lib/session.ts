@@ -29,6 +29,10 @@ import { API_BASE } from "./api";
  * This is NEXT_PUBLIC_ so it is available in both server and client bundles
  * at build time. Server components read it from process.env directly.
  */
+// The localhost tail is a development convenience only. A production build
+// cannot reach it: `apiUpstream()` in next.config.mjs throws when
+// NEXT_PUBLIC_API_UPSTREAM is unset, so by the time this constant is baked
+// into a deployed bundle the variable is set.
 export const SERVER_API_BASE =
   process.env.NEXT_PUBLIC_API_UPSTREAM || API_BASE || "http://localhost:8077";
 

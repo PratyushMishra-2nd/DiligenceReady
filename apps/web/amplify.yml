@@ -7,6 +7,16 @@
 #
 #   NEXT_PUBLIC_API_BASE      = ""   (empty string — API calls go same-origin)
 #   NEXT_PUBLIC_API_UPSTREAM  = http://<ec2-public-dns>:8080
+#   NEXT_PUBLIC_SITE_URL      = https://<this-app's-own-host>
+#
+# NEXT_PUBLIC_SITE_URL is the origin this app is served from, and the only
+# one of the three a browser never exercises — so it is the one that goes
+# wrong quietly. It is what `metadataBase` resolves against, which means the
+# canonical link, the Open Graph share image, sitemap.xml and robots.txt all
+# carry it. Left unset it falls back to the Amplify host written into
+# app/lib/site.ts, so a custom domain or a second Amplify app keeps
+# advertising the first one's URL: link previews fetch an image from another
+# origin and a crawler is handed someone else's canonical.
 #
 # How the proxy works:
 #   The browser calls https://<amplify-url>/api/... (same origin, HTTPS, no
@@ -35,6 +45,7 @@ applications:
           commands:
             - 'echo "API base (should be empty): \"${NEXT_PUBLIC_API_BASE}\""'
             - 'echo "API upstream: ${NEXT_PUBLIC_API_UPSTREAM}"'
+            - 'echo "Site URL: ${NEXT_PUBLIC_SITE_URL}"'
             - npm run build
       artifacts:
         baseDirectory: .next

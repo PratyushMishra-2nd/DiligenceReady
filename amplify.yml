@@ -10,6 +10,7 @@ applications:
           commands:
             - 'echo "API base (should be empty): \"${NEXT_PUBLIC_API_BASE}\""'
             - 'echo "API upstream: ${NEXT_PUBLIC_API_UPSTREAM}"'
+            - 'echo "Site URL: ${NEXT_PUBLIC_SITE_URL}"'
             - npm run build
       artifacts:
         baseDirectory: .next

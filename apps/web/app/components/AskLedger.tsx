@@ -7,9 +7,10 @@ import { api } from "../lib/api";
 /**
  * Ask the ledger.
  *
- * A Strands agent, on Bedrock, over read-only engine tools. The interesting
- * part of this panel is not the answer — it is everything shown beside the
- * answer.
+ * A Strands agent over read-only engine tools, on Bedrock when the account
+ * is allowed to call one and on the model this deployment serves itself
+ * when it is not. The interesting part of this panel is not the answer — it
+ * is everything shown beside the answer.
  *
  * A chartered accountant signs their name under the figures they file. An
  * assistant that produces a confident paragraph they cannot check is worse
@@ -42,16 +43,24 @@ export function AskLedger({ companyId }: { companyId: string }) {
   const [question, setQuestion] = useState("");
   const [result, setResult] = useState<Answer | null>(null);
   const [busy, setBusy] = useState(false);
+  const [waited, setWaited] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
   async function send(text: string) {
     const asked = text.trim();
     if (!asked || busy) return;
     setBusy(true);
+    setWaited(0);
     setError(null);
     setResult(null);
     try {
-      setResult(await api.ask(companyId, asked));
+      // The answer arrives by polling, not by holding the request open: the
+      // model runs on the API instance and a question is several tool
+      // calls, which is longer than the proxy in front of the API will hold
+      // a connection. The elapsed count is here because a minute of nothing
+      // reads as a hang, and this is the one control on the page that is
+      // allowed to take a minute.
+      setResult(await api.ask(companyId, asked, setWaited));
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : "The agent could not be reached.");
     } finally {
@@ -89,7 +98,7 @@ export function AskLedger({ companyId }: { companyId: string }) {
             disabled={busy || question.trim().length === 0}
             className="border border-agreed bg-agreed px-4 py-2 text-ident text-stock transition-opacity disabled:opacity-40"
           >
-            {busy ? "Querying…" : "Ask"}
+            {busy ? (waited > 4 ? `Querying… ${waited}s` : "Querying…") : "Ask"}
           </button>
         </form>
 

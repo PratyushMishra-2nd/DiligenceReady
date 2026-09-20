@@ -203,6 +203,49 @@ async function post<T>(path: string, body?: unknown): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+/**
+ * Wait for a job the API started on our behalf.
+ *
+ * The model runs on the API instance now, so an explanation is tens of
+ * seconds and a ledger question is often a minute. The Amplify rewrite
+ * proxy that carries every /api call closes a request at about thirty, so
+ * the slow endpoints hand back a job id instead of an answer and this polls
+ * for it. Each hop is a few milliseconds; only the wall clock is long.
+ *
+ * `onWait` is how the panel can say how long it has been, because a minute
+ * with no feedback reads as broken.
+ */
+type Started = { job_id: string; status: string };
+
+async function settle<T>(
+  started: Started,
+  onWait?: (seconds: number) => void,
+): Promise<T> {
+  // Two seconds is the compromise: a 20-second answer is seen within 10% of
+  // when it landed, and a 3-minute one costs 90 requests, all of them a
+  // dictionary lookup on the API side.
+  const every = 2000;
+  const ceiling = 6 * 60 * 1000;
+  const began = Date.now();
+
+  for (;;) {
+    const state = await get<
+      Started & { elapsed_seconds?: number; error?: string } & Record<string, unknown>
+    >(`/api/jobs/${started.job_id}`);
+
+    if (state.status === "done") return state as unknown as T;
+    if (state.status === "failed") {
+      throw new Error(state.error ?? "The engine could not complete that.");
+    }
+    if (Date.now() - began > ceiling) {
+      throw new Error("The model is taking longer than six minutes. Ask again.");
+    }
+
+    onWait?.(Math.round((Date.now() - began) / 1000));
+    await new Promise((resume) => setTimeout(resume, every));
+  }
+}
+
 export const api = {
   base: API_BASE,
   firmDashboard: () => get<{ companies: CompanyCard[] }>("/api/firm/dashboard"),
@@ -236,22 +279,29 @@ export const api = {
       { status, note: note ?? null },
     ),
   riskDetail: (riskId: string) => get<RiskDetail>(`/api/risks/${riskId}`),
-  ask: (companyId: string, question: string) =>
-    post<LedgerAnswer>(`/api/companies/${companyId}/ask`, { question }),
+  ask: async (
+    companyId: string,
+    question: string,
+    onWait?: (seconds: number) => void,
+  ): Promise<LedgerAnswer> => {
+    const started = await post<Started>(`/api/companies/${companyId}/ask`, { question });
+    return settle<LedgerAnswer>(started, onWait);
+  },
   evidenceSource: (evidenceId: string) =>
     get<SourceLine>(`/api/evidence/${evidenceId}/source`),
-  explain: async (riskId: string) => {
+  explain: async (riskId: string, onWait?: (seconds: number) => void) => {
     const response = await fetch(`${API_BASE}/api/risks/${riskId}/explain`, {
       method: "POST",
       credentials: "include",
     });
     if (!response.ok) throw new Error(`explain returned ${response.status}`);
-    return response.json() as Promise<{
+    const started = (await response.json()) as Started;
+    return settle<{
       explanation: string;
       source: "model" | "template";
       model: string | null;
       rejected_reason: string | null;
-    }>;
+    }>(started, onWait);
   },
 };
 

@@ -7,6 +7,26 @@ import { SERVER_API_BASE } from "../lib/session";
 export const dynamic = "force-dynamic";
 
 /**
+ * A redirect to a path on whatever host the reader is actually on.
+ *
+ * `NextResponse.redirect()` needs an absolute URL, and the only origin
+ * available to build one from inside a route handler is `request.url`. On
+ * Amplify that is the origin of the *internal* request the platform makes to
+ * the Next.js server — `http://localhost:3000` — not the https host in the
+ * reader's address bar. So the demo button signed the reader in correctly and
+ * then sent their browser to localhost.
+ *
+ * A `Location` of `/app` sidesteps the whole question: a relative reference is
+ * valid in `Location` (RFC 7231 §7.1.2) and every browser resolves it against
+ * the URL it asked for, which is the deployed one. Nothing about the current
+ * host has to be known here, guessed from a forwarded header a proxy may or
+ * may not set, or written into configuration.
+ */
+function seeOther(path: string) {
+  return new NextResponse(null, { status: 303, headers: { Location: path } });
+}
+
+/**
  * One click into the demo.
  *
  * This is the route the landing page's primary call to action should always
@@ -34,13 +54,8 @@ export const dynamic = "force-dynamic";
  * changes state is a GET a link prefetch or a crawler will fire on its own.
  * `robots.txt` disallows it as well, and the links that reach it are forms.
  */
-export async function POST(request: Request) {
-  // Resolved against the incoming request rather than a configured origin, so
-  // this works on localhost, on a preview host and in deployment without any
-  // of them being written down.
-  const failed = NextResponse.redirect(new URL("/sign-in?next=/app&demo=1", request.url), {
-    status: 303,
-  });
+export async function POST() {
+  const failed = seeOther("/sign-in?next=/app&demo=1");
 
   let token: string;
   try {
@@ -74,5 +89,5 @@ export async function POST(request: Request) {
     secure: process.env.NODE_ENV === "production",
   });
 
-  return NextResponse.redirect(new URL("/app", request.url), { status: 303 });
+  return seeOther("/app");
 }

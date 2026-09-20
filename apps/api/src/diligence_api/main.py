@@ -31,7 +31,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from sqlalchemy import text
 
-from diligence_api import llm
+from diligence_api import jobs, llm
 from diligence_api.agent import ask
 from diligence_api.deps import (
     bearer_token,
@@ -92,6 +92,28 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     allow_headers=["Authorization", "Content-Type"],
 )
+
+# Whether the session cookie carries `Secure`.
+#
+# It used to be a hard `False` with a comment saying to set it on any TLS
+# deployment — which is not something a comment can do. Every deployment of
+# this API is behind TLS (App Runner terminates it; the EC2 build is reached
+# through the web app's server-side proxy, so the browser only ever sees the
+# Amplify https origin), and each one was handing out a session cookie a
+# browser would also send over plain http.
+#
+# So it is configuration now, and both CloudFormation templates set it. The
+# default stays off because the default case is a developer on
+# http://localhost, where a `Secure` cookie is simply dropped and sign-in
+# fails with nothing to see. The one setup that needs care is reaching the
+# EC2 API directly over http with this on: the cookie will not stick, which
+# is the point.
+SESSION_COOKIE_SECURE = os.environ.get("SESSION_COOKIE_SECURE", "").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
 
 # 25 MB. A twelve-month purchase register is a few hundred kilobytes; a file
 # larger than this is a mistake or an attack, and either way the answer is no.
@@ -209,9 +231,7 @@ def sign_in(credentials: Credentials, request: Request, response: Response) -> d
         httponly=True,
         samesite="lax",
         max_age=auth.SESSION_HOURS * 3600,
-        # Set this on any TLS deployment. It is off here so the cookie works
-        # over plain http on localhost, and that is not a production default.
-        secure=False,
+        secure=SESSION_COOKIE_SECURE,
         path="/",
     )
     return {
@@ -583,33 +603,42 @@ def explain_risk(
         company = company_or_404(conn, principal, detail.risk["company_id"])
         require_action(conn, principal, authz.EXPLAIN, company)
 
-    result = explain(detail.risk)
+    # Authorisation is done and the finding is in hand. The model call is a
+    # job, because since the model moved onto this instance it takes tens of
+    # seconds, and the Amplify proxy in front of this API closes a request
+    # at about thirty. See `jobs.py`.
+    address = client_ip(request)
 
-    with connect() as conn:
-        conn.execute(
-            text("update risks set explanation = :text where id = :id"),
-            {"text": result.text, "id": identifier},
-        )
-        auth.record(
-            conn,
-            action="explanation_generated",
-            principal=principal,
-            company_id=parse_uuid(detail.risk["company_id"], "company_id"),
-            object_type="risk",
-            object_id=str(identifier),
-            detail={"source": result.source, "rejected_reason": result.rejected_reason},
-            ip=client_ip(request),
+    def work() -> dict:
+        result = explain(detail.risk)
+
+        with connect() as conn:
+            conn.execute(
+                text("update risks set explanation = :text where id = :id"),
+                {"text": result.text, "id": identifier},
+            )
+            auth.record(
+                conn,
+                action="explanation_generated",
+                principal=principal,
+                company_id=parse_uuid(detail.risk["company_id"], "company_id"),
+                object_type="risk",
+                object_id=str(identifier),
+                detail={"source": result.source, "rejected_reason": result.rejected_reason},
+                ip=address,
+            )
+
+        return _jsonable(
+            {
+                "risk_id": risk_id,
+                "explanation": result.text,
+                "source": result.source,
+                "model": result.model,
+                "rejected_reason": result.rejected_reason,
+            }
         )
 
-    return _jsonable(
-        {
-            "risk_id": risk_id,
-            "explanation": result.text,
-            "source": result.source,
-            "model": result.model,
-            "rejected_reason": result.rejected_reason,
-        }
-    )
+    return jobs.start(str(principal.user_id), "explain", work).body()
 
 
 class LedgerQuestion(BaseModel):
@@ -639,31 +668,62 @@ def ask_ledger(
         identifier = company_or_404(conn, principal, company_id)
         require_action(conn, principal, authz.ASK_LEDGER, identifier)
 
-    # The model call is outside the transaction. A connection held across a
-    # multi-turn agent run is a connection the pool does not have.
-    answer = ask(str(identifier), query.question)
+    # The agent run is outside the transaction, and outside the request. A
+    # connection held across a multi-turn agent run is a connection the pool
+    # does not have, and a *request* held across one is a 504 from the
+    # Amplify proxy at thirty seconds — on this deployment an agent question
+    # is several tool-calling turns on two vCPUs and regularly a minute. The
+    # browser polls `/api/jobs/{id}` for the answer. See `jobs.py`.
+    address = client_ip(request)
 
-    with connect() as conn:
-        auth.record(
-            conn,
-            action="ledger_question",
-            principal=principal,
-            company_id=identifier,
-            object_type="company",
-            object_id=str(identifier),
-            detail={
-                "question": query.question,
-                "source": answer.source,
-                "tools": answer.tools_called,
-                "rejected_reason": answer.rejected_reason,
-            },
-            ip=client_ip(request),
-        )
+    def work() -> dict:
+        answer = ask(str(identifier), query.question)
 
-    return {
-        "answer": answer.text,
-        "source": answer.source,
-        "model": answer.model,
-        "tools_called": answer.tools_called,
-        "rejected_reason": answer.rejected_reason,
-    }
+        with connect() as conn:
+            auth.record(
+                conn,
+                action="ledger_question",
+                principal=principal,
+                company_id=identifier,
+                object_type="company",
+                object_id=str(identifier),
+                detail={
+                    "question": query.question,
+                    "source": answer.source,
+                    "tools": answer.tools_called,
+                    "rejected_reason": answer.rejected_reason,
+                },
+                ip=address,
+            )
+
+        return {
+            "answer": answer.text,
+            "source": answer.source,
+            "model": answer.model,
+            "tools_called": answer.tools_called,
+            "rejected_reason": answer.rejected_reason,
+        }
+
+    return jobs.start(str(principal.user_id), "ask", work).body()
+
+
+@app.get("/api/jobs/{job_id}")
+def job_status(
+    job_id: str,
+    principal: auth.Principal = Depends(current_principal),
+) -> dict:
+    """Poll a job started by this user.
+
+    404 rather than 403 for somebody else's job, for the same reason a
+    company in another firm is a 404: the status code must not confirm that
+    the id exists.
+
+    Authorisation for the underlying work was done when the job was created,
+    against the company or the finding it concerns. Nothing here can widen
+    it: the job's body was decided then, and this endpoint only hands back
+    what that work returned to the user who asked for it.
+    """
+    job = jobs.get(job_id, str(principal.user_id))
+    if job is None:
+        raise HTTPException(status_code=404, detail="No such job.")
+    return job.body()
