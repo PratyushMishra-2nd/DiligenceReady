@@ -270,6 +270,12 @@ Resources:
                 Value: !If [HasBedrockRegion, !Ref BedrockRegion, !Ref "AWS::Region"]
               - Name: CORS_ORIGINS
                 Value: !Ref CorsOrigins
+              # Every reader of this API arrives over https — App Runner
+              # terminates TLS, and the EC2 build is reached through the web
+              # app's server-side proxy from an https origin. A session cookie
+              # without `Secure` is one a browser will also send in clear.
+              - Name: SESSION_COOKIE_SECURE
+                Value: "true"
       InstanceConfiguration:
         # 2 GB because pandas, SQLAlchemy and the Strands SDK are resident
         # together. 0.5 GB is App Runner's smallest and this does not fit in

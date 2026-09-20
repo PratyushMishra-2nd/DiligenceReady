@@ -340,7 +340,7 @@ Resources:
               -e LLM_PROVIDER=${LlmProvider} \
               -e OLLAMA_HOST=http://127.0.0.1:11434 \
               -e OLLAMA_MODEL=${LocalModelId} \
-              -e CORS_ORIGINS=${CorsOrigins} \
+              -e CORS_ORIGINS=${CorsOrigins}               -e SESSION_COOKIE_SECURE=true \
               -e PORT=8080 \
               ${RepoUri}:${ImageTag}
           - RepoHost: !Select

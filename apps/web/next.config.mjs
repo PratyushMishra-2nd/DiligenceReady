@@ -1,3 +1,42 @@
+/**
+ * Where `/api/*` is proxied to, and a build that fails rather than a
+ * deployment that half-works.
+ *
+ * This value is read once, here, at build time — `rewrites()` runs during
+ * `next build` and its result is baked into the output. So an Amplify
+ * environment missing `NEXT_PUBLIC_API_UPSTREAM` used to produce a perfectly
+ * green build whose every API call was proxied to `http://localhost:8077` on
+ * the Amplify compute node, where nothing is listening. Nothing logged an
+ * error: the demo button signed nobody in and fell through to the sign-in
+ * form, the dashboard came up empty, and the only way to find out why was to
+ * know this line existed.
+ *
+ * The localhost default is right for `next dev` and wrong for every
+ * production build, so that is exactly where it is allowed. A production
+ * build that genuinely wants it — running the built output locally against a
+ * local API — says so with `ALLOW_LOCAL_API_UPSTREAM=1`.
+ */
+function apiUpstream() {
+  const upstream = process.env.NEXT_PUBLIC_API_UPSTREAM;
+  if (upstream) return upstream;
+
+  if (
+    process.env.NODE_ENV === "production" &&
+    !process.env.ALLOW_LOCAL_API_UPSTREAM
+  ) {
+    throw new Error(
+      "NEXT_PUBLIC_API_UPSTREAM is not set. A production build without it " +
+        "proxies /api/* to http://localhost:8077, which in a deployment is " +
+        "the web server talking to itself: the demo button silently fails " +
+        "and the dashboard is empty. Set it in the Amplify console to " +
+        "http://<ec2-public-dns>:8080 and rebuild. To build against a local " +
+        "API on purpose, set ALLOW_LOCAL_API_UPSTREAM=1.",
+    );
+  }
+
+  return "http://localhost:8077";
+}
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -50,12 +89,10 @@ const nextConfig = {
   },
 
   async rewrites() {
-    const upstream =
-      process.env.NEXT_PUBLIC_API_UPSTREAM ?? "http://localhost:8077";
     return [
       {
         source: "/api/:path*",
-        destination: `${upstream}/api/:path*`,
+        destination: `${apiUpstream()}/api/:path*`,
       },
     ];
   },
