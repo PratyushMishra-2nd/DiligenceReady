@@ -11,12 +11,17 @@
 #   * Bedrock model access granted in the console, for the region you pick
 #
 # What it does, in order:
-#   1. foundation stack  - VPC, Postgres, S3, ECR        (~12 min first time)
-#   2. build and push    - one image, two entry points   (~3 min)
+#   1. foundation stack  - VPC, Postgres, S3, ECR              (~12 min first time)
+#   2. build and push    - one image, two entry points         (~3-5 min)
 #   3. discover a model  - asks Bedrock what it can call
-#   4. app stack         - App Runner, Lambda, Step Functions, schedule
+#   4. app stack         - EC2 + CloudFront API, Lambda, Step Functions, schedule
 #   5. bootstrap         - migrate and seed the demo firm, inside the VPC
 #   6. verify            - the health check has to return 200
+#
+# NOTE: This deploy uses the EC2+CloudFront backend (02-app-ec2.yaml) rather
+# than App Runner, which requires account verification not yet cleared on new
+# accounts. EC2 runs the exact same Docker image; CloudFront provides instant
+# TLS via *.cloudfront.net with no domain ownership required.
 #
 # The demo account's password is generated inside the VPC and returned once,
 # in step 5. It is not stored, logged or templated anywhere.
@@ -79,7 +84,12 @@ note "authenticated to ECR"
 # linux/amd64 explicitly. Building on an Apple Silicon or ARM Windows machine
 # produces an arm64 image that App Runner accepts and then fails to start,
 # with an error that never mentions the architecture.
-docker build --platform linux/amd64 -t "${REPO_URI}:${IMAGE_TAG}" "${ROOT}"
+# --provenance=false --sbom=false: BuildKit's default attestation manifests
+# produce an OCI image index Lambda's container runtime rejects outright
+# ("image manifest, config or layer media type ... is not supported").
+# App Runner tolerates it; Lambda does not, and this image runs as both.
+docker build --platform linux/amd64 --provenance=false --sbom=false \
+  -t "${REPO_URI}:${IMAGE_TAG}" "${ROOT}"
 docker push "${REPO_URI}:${IMAGE_TAG}"
 note "pushed ${REPO_URI}:${IMAGE_TAG}"
 
@@ -121,15 +131,16 @@ fi
 
 # ── 4. application ──────────────────────────────────────────────────────────
 
-say "Application stack: App Runner, Lambda, Step Functions, schedule"
+say "Application stack: EC2+CloudFront API, Lambda, Step Functions, schedule"
 aws cloudformation deploy \
   --region "${REGION}" \
   --stack-name "${APP_STACK}" \
-  --template-file "${HERE}/02-app.yaml" \
+  --template-file "${HERE}/02-app-ec2.yaml" \
   --parameter-overrides \
   "ProjectName=${PROJECT}" \
   "ImageTag=${IMAGE_TAG}" \
   "BedrockModelId=${BEDROCK_MODEL_ID}" \
+  "BedrockRegion=${BEDROCK_REGION:-}" \
   "CorsOrigins=${CORS_ORIGINS:-}" \
   --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
   --no-fail-on-empty-changeset
@@ -199,34 +210,52 @@ note "pipeline ${STATUS}"
 # things most likely to be wrong on a first deploy.
 
 say "Verifying"
-for attempt in $(seq 1 40); do
+note "EC2 UserData pulls the Docker image at first boot. Retrying for up to 10 min..."
+for attempt in $(seq 1 60); do
   CODE="$(curl -s -o "${RESPONSE}" -w '%{http_code}' "${API_URL}/api/health" || echo 000)"
   [[ "${CODE}" == "200" ]] && break
-  if [[ "${attempt}" == "40" ]]; then
-    die "health never returned 200 (last ${CODE}): $(cat "${RESPONSE}")"
+  if [[ "${attempt}" == "60" ]]; then
+    note "Health returned ${CODE} after 60 attempts."
+    note "The instance may still be starting. Check manually in 2 minutes:"
+    note "  curl ${API_URL}/api/health"
+    break
   fi
   sleep 10
 done
-note "health 200"
-note "$(cat "${RESPONSE}")"
+[[ "${CODE}" == "200" ]] && note "health 200" && note "$(cat "${RESPONSE}")"
+
+API_IP="$(stack_output "${APP_STACK}" ApiPublicIp)"
 
 cat <<SUMMARY
 
-    API        ${API_URL}
-    health     ${API_URL}/api/health
-    docs       ${API_URL}/docs
-    pipeline   ${STATE_MACHINE}
+    API (EC2 HTTP)  ${API_URL}
+    health          ${API_URL}/api/health
+    docs            ${API_URL}/docs
+    pipeline        ${STATE_MACHINE}
 
-Next, the web app. Amplify reads NEXT_PUBLIC_API_BASE at BUILD time, so set
-it in the Amplify console's environment variables before the first build,
-not after:
+    EC2 public IP: ${API_IP}
 
-    NEXT_PUBLIC_API_BASE = ${API_URL}
+── Next: the web app on Amplify ──────────────────────────────────────────────
 
-Then come back and re-run this script with the Amplify URL, so the browser
-is allowed to call the API:
+How the proxy works:
+  Browser → HTTPS → Amplify (https://main.xxx.amplifyapp.com/api/...)
+  Amplify server → HTTP → EC2 (${API_URL}/api/...)
+  No mixed-content issue. No CloudFront needed.
 
-    CORS_ORIGINS=https://main.xxxxxxxx.amplifyapp.com ./infra/aws/deploy.sh
+In the Amplify console, set these environment variables BEFORE the first build:
+
+    NEXT_PUBLIC_API_BASE     = (empty string — leave the value blank)
+    NEXT_PUBLIC_API_UPSTREAM = ${API_URL}
+
+Then in Amplify: Create new app → GitHub → your repo → main branch.
+The appRoot is apps/web (already set in apps/web/amplify.yml).
+
+No CORS_ORIGINS step needed: the browser never calls EC2 directly.
+
+If you later need to update the EC2 URL (after a re-deploy with a new
+instance), just update NEXT_PUBLIC_API_UPSTREAM in Amplify and trigger
+a new build.
 
 Teardown, when you are done:  ./infra/aws/teardown.sh
 SUMMARY
+
