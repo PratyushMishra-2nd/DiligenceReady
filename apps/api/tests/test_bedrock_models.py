@@ -1,13 +1,14 @@
 """Choosing a model id, and noticing when one has died.
 
-These tests exist because of a specific outage. Bedrock retired Claude 3
-Haiku on 10 September 2026; the deployed stack had that id baked into an
-environment variable at deploy time; every Converse call began returning
-`ValidationException`; and both surfaces that use a model reported the
-failure as the string "ValidationException" and nothing else. Ten days
-passed before anyone could tell whether that meant a retired model, a model
+These tests exist because of a specific failure. Bedrock's end of life for
+Claude 3 Haiku was 10 September 2026; the stack was deployed on the 20th and
+the deploy script chose that id anyway, because a model past its end of life
+is still in `list-foundation-models` and the query had no lifecycle filter.
+Every Converse call returned `ValidationException`, and both surfaces that
+use a model reported the failure as the string "ValidationException" and
+nothing else — which is equally consistent with a retired model, a model
 this account had never been granted, a model needing an inference profile,
-or a malformed request.
+and a malformed request.
 
 Nothing here touches the network. The catalogue lookup is stubbed, because
 what is being tested is the ordering, the fall-through and the diagnosis —

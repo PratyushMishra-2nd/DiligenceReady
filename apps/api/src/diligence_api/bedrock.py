@@ -2,14 +2,19 @@
 
 The model id used to be configuration: `deploy.sh` asked the account once,
 wrote the answer into `BEDROCK_MODEL_ID`, and every call used it forever.
-That is one deploy-time question too few, and on 10 September 2026 it cost us
-the whole model layer.
+That is one deploy-time question too few, and it cost us the whole model
+layer on the day the stack went up.
 
 What happened is worth writing down, because it will happen again to whatever
-id replaces this one. Bedrock retired Claude 3 Haiku on 10 September 2026.
-Nothing about the deployment changed. `list-foundation-models` still returned
-the id, the health check still reported it, the IAM policy still allowed it —
-and every `Converse` call started coming back `ValidationException`. The
+id replaces this one. Bedrock's end of life for Claude 3 Haiku was
+10 September 2026. We deployed on the 20th. `deploy.sh` asked the account for
+an on-demand Anthropic model and took the last one it listed, with no filter
+on lifecycle — and a model past its end of life is still in that list. It was
+still allowed by IAM, and the health check still printed it as the configured
+model. It had simply stopped answering. The stack came up green with a model
+layer that had never worked once.
+
+What made it expensive was not the wrong id, it was the reporting. The
 explanation panel fell back to the deterministic template, which is correct
 and is why nothing returned a 500, and "Ask the ledger" reported itself
 unavailable. The product degraded exactly as designed and told nobody why,
@@ -127,11 +132,11 @@ def _discover() -> list[str]:
                 continue
             if "ON_DEMAND" not in (model.get("inferenceTypesSupported") or []):
                 continue
-            # LEGACY is Bedrock's word for "announced for retirement". A
-            # legacy model is still listed, and is still listed on the
-            # morning it stops working. That trapdoor is the reason this
-            # whole module exists, so it is closed here rather than hoped
-            # about.
+            # LEGACY is Bedrock's word for "announced for retirement",
+            # and the listing keeps returning an id after it has stopped
+            # answering. That trapdoor is how a dead model was chosen at
+            # deploy time in the first place, so it is closed here rather
+            # than hoped about.
             if (model.get("modelLifecycle") or {}).get("status") != "ACTIVE":
                 continue
             found.append(identifier)

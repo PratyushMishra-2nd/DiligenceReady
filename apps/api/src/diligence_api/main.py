@@ -130,8 +130,8 @@ def health() -> dict:
     # The model line reports the id the next call will *use*, which is not
     # always the id that was configured: a retired model is dropped at the
     # first failure and the next candidate takes over. Reporting the
-    # configured id instead is how this deployment spent ten days claiming a
-    # model that had stopped answering.
+    # configured id instead is how this deployment came up green while naming
+    # a model that had stopped answering ten days before it was chosen.
     available = _model_candidates()
     detail: dict[str, object] = {
         "status": "ok",

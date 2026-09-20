@@ -257,11 +257,12 @@ def ask(company_id: str, question: str) -> LedgerAnswer:
     except ValueError:
         return LedgerAnswer(text="", source="refused", rejected_reason="company_id is not a uuid")
 
-    # One attempt per candidate model, newest and cheapest first. A model id
+    # One attempt per candidate model, cheapest adequate first. A model id
     # that Bedrock has retired fails every call identically, and before this
-    # loop existed that failure was the whole feature going dark — see
-    # `bedrock.py`. The recorder is rebuilt per attempt: a half-finished run
-    # must not widen the set of numbers the next attempt is allowed to quote.
+    # loop existed that failure was the whole feature dark from the moment it
+    # deployed — see `bedrock.py`. The recorder is rebuilt per attempt: a
+    # half-finished run must not widen the set of numbers the next attempt is
+    # allowed to quote.
     result = None
     model_id = ""
     recorder: list[str] = []

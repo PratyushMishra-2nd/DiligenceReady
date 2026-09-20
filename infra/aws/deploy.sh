@@ -104,13 +104,14 @@ note "pushed ${REPO_URI}:${IMAGE_TAG}"
 #
 # And ask it the right question. This block used to take
 # `modelSummaries[-1]`, the last on-demand Anthropic model the account
-# listed, with no filter on lifecycle. On 10 September 2026 the id it had
-# picked — Claude 3 Haiku — reached its Bedrock end of life. It stayed in
-# the listing, stayed allowed by IAM, stayed in the health check, and
-# started returning ValidationException on every call. `?modelLifecycle.
-# status=='ACTIVE'` is the whole fix here; the application now also falls
-# through to the next live model at runtime, so the same retirement costs
-# one failed call rather than the model layer.
+# listed, with no filter on lifecycle. The id it picked — Claude 3 Haiku —
+# had reached its Bedrock end of life ten days before we deployed. It was
+# still in the listing, still allowed by IAM, still named by the health
+# check, and it returned ValidationException on every call, so the stack
+# came up green with a model layer that had never worked. The lifecycle
+# filter below is the whole fix here; the application now also falls through
+# to the next live model at run time, so the next retirement costs one
+# failed call rather than the model layer.
 
 say "Discovering a Bedrock model"
 BEDROCK_MODEL_ID="${BEDROCK_MODEL_ID:-}"

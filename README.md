@@ -160,8 +160,10 @@ sentence in a prompt:
 
 ### The model layer is allowed to be absent
 
-Bedrock retired the model this deployment was configured with on 10 September 2026,
-which is a thing that will happen again. The application now resolves a live model
+The first deploy of this stack chose a Bedrock model that had reached its end of
+life ten days earlier — a model past its end of life is still in the catalogue, and
+the deploy script was not filtering on lifecycle. The stack came up green with a
+model layer that had never answered once. The application now resolves a live model
 id at start-up rather than trusting one chosen at deploy time, drops a model that
 returns a permanent error and takes the next, and reports what Bedrock actually
 said rather than the class of the exception —

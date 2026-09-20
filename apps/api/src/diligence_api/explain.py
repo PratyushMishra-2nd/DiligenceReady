@@ -180,7 +180,7 @@ def explain(risk: dict) -> Explanation:
     # Try each candidate once. A model that is retired, unapproved, or only
     # reachable through an inference profile is dropped for the life of the
     # process rather than retried on every finding — see `bedrock.py` for the
-    # September 2026 outage that is the reason this is a loop.
+    # retired model id that is the reason this is a loop.
     client = bedrock_client()
     response = None
     model_id = ""
