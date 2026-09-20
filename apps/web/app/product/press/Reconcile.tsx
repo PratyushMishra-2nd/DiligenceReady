@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import aggregates from "../aggregates.json";
 import { Population } from "../Population";
 
-import { createScene, type Scene } from "./reconcile-gl";
+import { createScene, monthsOf, type Scene } from "./reconcile-gl";
 
 /**
  * The population, reconciling.
@@ -38,6 +38,20 @@ export function Reconcile() {
   const holder = useRef<HTMLDivElement | null>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);
   const [live, setLive] = useState(false);
+  const [month, setMonth] = useState(-1);
+  // The draw loop is created once and must not be torn down every time the
+  // selection changes, so the chosen month is read through a ref rather than
+  // captured in the effect's closure.
+  const chosen = useRef(-1);
+  const redraw = useRef<(() => void) | null>(null);
+
+  const months = monthsOf(ORDER.map((key) => aggregates.registers[key]));
+
+  const choose = useCallback((index: number) => {
+    chosen.current = index;
+    setMonth(index);
+    redraw.current?.();
+  }, []);
 
   useEffect(() => {
     const surface = canvas.current;
@@ -92,14 +106,18 @@ export function Reconcile() {
 
     let queued = 0;
     let last = -1;
+    // Set when the selection changes, so a redraw happens even though the
+    // scroll phase has not moved.
+    let forced = false;
     const render = () => {
       queued = 0;
       const phase = phaseNow();
       // Redrawing a still picture sixty times a second is the usual way a
       // scroll-driven canvas costs a battery for nothing.
-      if (Math.abs(phase - last) < 0.0005) return;
+      if (Math.abs(phase - last) < 0.0005 && !forced) return;
+      forced = false;
       last = phase;
-      scene?.draw(phase);
+      scene?.draw(phase, chosen.current);
     };
     const schedule = () => {
       if (queued) return;
@@ -113,7 +131,12 @@ export function Reconcile() {
       schedule();
     };
 
-    scene.draw(phaseNow());
+    scene.draw(phaseNow(), chosen.current);
+
+    redraw.current = () => {
+      forced = true;
+      schedule();
+    };
 
     // One more measure after the first frame. Fonts land late and the
     // section's height moves with them, and a canvas sized against the
@@ -129,6 +152,7 @@ export function Reconcile() {
       if (queued) cancelAnimationFrame(queued);
       window.removeEventListener("scroll", schedule);
       window.removeEventListener("resize", onResize);
+      redraw.current = null;
       scene?.destroy();
     };
   }, []);
@@ -140,10 +164,30 @@ export function Reconcile() {
   return (
     <div ref={holder} className="relative mt-10 h-[260vh]">
       <div className="sticky top-0 flex h-screen flex-col justify-center py-10">
-        <div className="flex items-baseline justify-between gap-6">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-3">
           <p className="font-mono text-stub uppercase text-graphite">
             Books · GSTR-2B · Bank
           </p>
+          {/* The month as a control rather than as something the picture
+              performs. These are real buttons: the canvas is `aria-hidden`
+              and carries no interaction of its own, so everything a reader
+              can do here is reachable from the keyboard and has a name.
+              Choosing a month recedes the rest instead of hiding it, because
+              the denominator is the argument and a filter that removes it
+              answers a different question. */}
+          {live && (
+            <nav aria-label="Period" className="flex flex-wrap gap-1">
+              <MonthButton label="All" active={month < 0} onSelect={() => choose(-1)} />
+              {months.map((name, index) => (
+                <MonthButton
+                  key={name}
+                  label={shortMonth(name)}
+                  active={month === depthFor(index, months.length)}
+                  onSelect={() => choose(depthFor(index, months.length))}
+                />
+              ))}
+            </nav>
+          )}
           <p className="tabular font-mono text-stub uppercase text-graphite">
             {read.toLocaleString("en-IN")} records
           </p>
@@ -184,4 +228,45 @@ export function Reconcile() {
       </div>
     </div>
   );
+}
+
+/** A month's position in the year, matching what the shader was handed. */
+function depthFor(index: number, count: number): number {
+  return count > 1 ? index / (count - 1) : 0;
+}
+
+/** One period in the picker, sized so a thumb can hit it. */
+function MonthButton({
+  label,
+  active,
+  onSelect,
+}: {
+  label: string;
+  active: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-pressed={active}
+      className={`tabular min-h-[44px] border px-3 font-mono text-stub uppercase ${
+        active
+          ? "border-agreed bg-agreed text-stock"
+          : "border-hairline text-graphite hover:border-agreed hover:text-agreed"
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
+
+/** "2026-08" as "Aug 26", the way the product writes a period everywhere else. */
+function shortMonth(period: string): string {
+  const names = [
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+  ];
+  const [year, month] = period.split("-");
+  return `${names[Number(month) - 1]} ${year.slice(2)}`;
 }

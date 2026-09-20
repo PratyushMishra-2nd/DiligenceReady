@@ -21,7 +21,7 @@ export type Register = {
 };
 
 export type Scene = {
-  draw: (phase: number) => void;
+  draw: (phase: number, month?: number) => void;
   resize: () => void;
   destroy: () => void;
 };
@@ -39,6 +39,7 @@ uniform vec2 uRes;
 uniform float uPhase;
 uniform float uDpr;
 uniform float uCell;
+uniform float uMonth;   // -1 for every month, else the month's index
 
 out float vMarked;
 out float vAlpha;
@@ -55,33 +56,28 @@ void main() {
   float fall = ease((uPhase - delay) / 0.18);
   float settle = smoothstep(0.58, 0.90, uPhase);
 
-  // The third axis is the month, and it is the only third axis this data
-  // has. The sheets fan apart by period and then close again, so a reader
-  // can see that the defects are not spread evenly across the year before
-  // the registers settle back into one plane.
+  // The month a record belongs to is a dimension the reader chooses, not one
+  // the picture performs. An earlier cut fanned the months apart in depth as
+  // you scrolled; a month here is about a hundred and fifty records, which
+  // is a single row at this width, so what it produced was a staircase of
+  // thin strips rather than a stack of sheets. The axis was real and the
+  // picture was not legible, which is the test that matters.
   //
-  // It is a shear, not a perspective divide: axonometric, the way an
-  // engineering drawing shows depth. There is no vanishing point, so there
-  // is no parallax and nothing for a camera to do. A cell twelve months back
-  // is the same size as a cell at the front, which is what keeps the three
-  // registers comparable by eye — the moment depth changes cell size, the
-  // density of a band stops being readable and the picture loses the one
-  // thing it is for.
-  //
-  // The fan opens after the records land and closes before they settle, so
-  // the final frame is coplanar and pixel-identical to the flat figure the
-  // no-WebGL reader is shown.
-  float fan = smoothstep(0.20, 0.44, uPhase) * (1.0 - smoothstep(0.62, 0.88, uPhase));
-  vec2 shear = vec2(0.30, -0.10) * (aPeriod - 0.5) * fan * uRes.y * 0.30;
+  // So depth is gone and the month drives selection instead: uMonth is -1
+  // for the whole year, or a month's index, and anything outside the chosen
+  // month recedes rather than disappearing — the denominator has to stay
+  // visible or the selection is a filter rather than a comparison.
+  float chosen = uMonth < 0.0 ? 1.0 : step(abs(aPeriod - uMonth), 0.001);
+  float focus = mix(0.22, 1.0, chosen);
 
   vec2 start = vec2(aFinal.x, -0.25 * uRes.y - aSeed * uRes.y * 0.9);
-  vec2 pos = mix(start, aFinal, fall) + shear * fall;
+  vec2 pos = mix(start, aFinal, fall);
 
     // 0.45, not the 0.22 this carried under alpha blending. Fading toward
   // white through a multiply is not the same curve as fading toward
   // transparent, and at 0.22 the settled field printed so faintly that the
   // denominator the picture exists to show had almost gone.
-  vAlpha = fall * mix(1.0, mix(0.45, 1.0, aMarked), settle);
+  vAlpha = fall * mix(1.0, mix(0.45, 1.0, aMarked), settle) * focus;
   vMarked = aMarked;
   gl_PointSize = uCell * uDpr * mix(1.0, mix(0.86, 1.5, aMarked), settle);
 
@@ -131,6 +127,13 @@ function compile(gl: WebGL2RenderingContext, type: number, source: string) {
  * render the static figure, and that is a complete answer rather than a
  * degraded one.
  */
+/** Every distinct month across every register, oldest first. */
+export function monthsOf(registers: Register[]): string[] {
+  return [
+    ...new Set(registers.flatMap((r) => r.period_runs.map((run) => run.period))),
+  ].sort();
+}
+
 export function createScene(
   canvas: HTMLCanvasElement,
   registers: Register[],
@@ -176,9 +179,7 @@ export function createScene(
   // depth is its position in the year rather than its position in its own
   // feed. The runs are boundaries: each says a period begins at a row, and
   // it holds until the next one does.
-  const months = [
-    ...new Set(registers.flatMap((r) => r.period_runs.map((run) => run.period))),
-  ].sort();
+  const months = monthsOf(registers);
   const depthOf = (month: string) =>
     months.length > 1 ? months.indexOf(month) / (months.length - 1) : 0;
 
@@ -295,6 +296,7 @@ export function createScene(
   const uPhase = gl.getUniformLocation(program, "uPhase");
   const uDpr = gl.getUniformLocation(program, "uDpr");
   const uCell = gl.getUniformLocation(program, "uCell");
+  const uMonth = gl.getUniformLocation(program, "uMonth");
 
   gl.enable(gl.BLEND);
   // Two impressions on paper multiply. Where records overlap, the result is
@@ -307,7 +309,7 @@ export function createScene(
   gl.blendFunc(gl.DST_COLOR, gl.ZERO);
 
   return {
-    draw(phase: number) {
+    draw(phase: number, month = -1) {
       const dpr = window.devicePixelRatio || 1;
       gl.viewport(0, 0, canvas.width, canvas.height);
       // #F4F1E8, the `stock` token, so the canvas is the same sheet as the
@@ -320,6 +322,7 @@ export function createScene(
       gl.uniform1f(uPhase, phase);
       gl.uniform1f(uDpr, dpr);
       gl.uniform1f(uCell, cell * 0.72);
+      gl.uniform1f(uMonth, month);
       gl.drawArrays(gl.POINTS, 0, total);
     },
     resize() {
