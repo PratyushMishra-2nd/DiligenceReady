@@ -171,7 +171,7 @@ export function Population() {
 
       <figcaption
         id="population-caption"
-        className="opsz-prose mt-5 max-w-[72ch] font-news text-ident leading-relaxed text-graphite"
+        className="rag-pretty opsz-prose mt-5 max-w-[72ch] font-news text-ident leading-relaxed text-graphite"
       >
         Every record of both seeded companies across twelve periods:{" "}
         <Count n={totals.purchase_register} /> purchase invoices,{" "}

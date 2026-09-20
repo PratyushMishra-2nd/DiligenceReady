@@ -98,7 +98,9 @@ export default async function CompanyPage({
 
       <header className="mt-3 flex flex-wrap items-end justify-between gap-x-10 gap-y-4">
         <div>
-          <h1 className="text-amount font-semibold">{company.name}</h1>
+          <h1 className="optical-cap wdth-tight font-anek text-[2rem] font-bold leading-none text-agreed">
+            {company.name}
+          </h1>
           <p className="mt-1 font-mono text-ident text-graphite">
             {company.gstin} · PAN {company.pan}
           </p>

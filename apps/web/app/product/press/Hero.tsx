@@ -30,17 +30,17 @@ export function Hero({ signIn }: { signIn: string }) {
             Books · GSTR-2B · Bank
           </p>
 
-          <h1 className="wdth-tight mt-5 max-w-[15ch] font-anek text-opener font-bold text-agreed">
+          <h1 className="rag-balance optical-cap wdth-tight mt-5 max-w-[15ch] font-anek text-opener font-bold text-agreed">
             Three systems. One truth.
           </h1>
 
-          <p className="opsz-deck mt-7 max-w-[46ch] font-news text-[1.4rem] sm:text-deck text-agreed">
+          <p className="rag-pretty opsz-deck mt-7 max-w-[46ch] font-news text-[1.4rem] sm:text-deck text-agreed">
             An SME&rsquo;s books, the government&rsquo;s record of them, and the money
             never agree. We keep them agreeing every month, keep the evidence, and put a
             deadline on the money.
           </p>
 
-          <p className="opsz-prose mt-6 max-w-[54ch] font-news text-prose text-graphite">
+          <p className="rag-pretty opsz-prose mt-6 max-w-[54ch] font-news text-prose text-graphite">
             Reconciling Tally against GSTR-2B against the bank is manual, monthly, done in
             Excel, and abandoned when it gets hard. Built for the chartered-accountant
             firms who already do that work, across every client they carry.
@@ -61,7 +61,7 @@ export function Hero({ signIn }: { signIn: string }) {
             </a>
           </div>
 
-          <p className="opsz-prose mt-4 font-news text-ident text-graphite">
+          <p className="rag-pretty opsz-prose mt-4 font-news text-ident text-graphite">
             No signup. A demo firm is already loaded, with two client companies and twelve
             months of books behind each.
           </p>
@@ -82,12 +82,12 @@ export function Hero({ signIn }: { signIn: string }) {
               number first and had to walk back left to find out what the
               product was. The source order was right and the optical order
               was not. It is still the largest thing in its own column. */}
-          <Overprint className="wdth-condensed font-anek text-[clamp(48px,8.5vw,104px)] font-bold leading-[0.84] tracking-[-0.04em]">
+          <Overprint className="optical-figure wdth-condensed font-anek text-[clamp(48px,8.5vw,104px)] font-bold leading-[0.84] tracking-[-0.04em]">
               <Rupee amount={headline.amount} />
             </Overprint>
           </div>
 
-          <p className="opsz-prose mt-5 max-w-[42ch] font-news text-prose text-graphite">
+          <p className="rag-pretty opsz-prose mt-5 max-w-[42ch] font-news text-prose text-graphite">
             Input tax credit already paid to suppliers and not yet claimable, because the
             supplier&rsquo;s filing and the client&rsquo;s books disagree.{" "}
             <span className="text-statute-deep">

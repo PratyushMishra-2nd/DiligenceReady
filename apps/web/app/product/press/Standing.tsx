@@ -17,18 +17,20 @@ const STANDING: { item: string; state: "built" | "scheduled" | "not built" }[] =
   { item: "Lender-ready package export", state: "not built" },
 ];
 
+import { Opener } from "./Sheet";
+
 export function Standing() {
   return (
     <section className="py-20">
       <div className="grid gap-x-14 gap-y-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div>
-          <h2 className="wdth-tight max-w-[18ch] font-anek text-opener font-bold text-agreed">
+          <Opener slip={0.1} className="optical-cap max-w-[18ch]">
             <span className="whitespace-nowrap">Where this</span> actually is
-          </h2>
-          <p className="opsz-deck mt-7 max-w-[40ch] font-news text-[1.4rem] sm:text-deck text-agreed">
+          </Opener>
+          <p className="rag-pretty opsz-deck mt-7 max-w-[40ch] font-news text-[1.4rem] sm:text-deck text-agreed">
             Working software with a measured evaluation. Not a product you can buy yet.
           </p>
-          <p className="opsz-prose mt-6 max-w-[48ch] font-news text-prose text-graphite">
+          <p className="rag-pretty opsz-prose mt-6 max-w-[48ch] font-news text-prose text-graphite">
             Pricing, when there is something to sell: an anchor of{" "}
             <span className="text-agreed">₹6,000 to ₹15,000</span> per month per firm for up
             to twenty-five companies. The firm bills the client. We are not claiming
@@ -43,7 +45,7 @@ export function Standing() {
               key={item}
               className="flex items-baseline justify-between gap-6 border-b border-hairline py-3"
             >
-              <dt className="opsz-prose font-news text-prose text-agreed">{item}</dt>
+              <dt className="rag-pretty opsz-prose font-news text-prose text-agreed">{item}</dt>
               <dd
                 className={`shrink-0 font-mono text-stub uppercase ${
                   state === "built" ? "text-agreed" : "text-statute-deep"

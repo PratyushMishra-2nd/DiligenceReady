@@ -12,6 +12,7 @@ import { Masthead } from "./press/Masthead";
 import { Screens } from "./press/Screens";
 import { Standing } from "./press/Standing";
 import { Misregister } from "./press/Misregister";
+import { Legend, Opener, Sheet } from "./press/Sheet";
 import { Trace } from "./Trace";
 
 export const metadata = {
@@ -89,57 +90,90 @@ function spell(n: number, sentenceStart = false): string {
 
 
 export default function ProductPage() {
+  const example = aggregates.example;
+
   return (
     <main className="min-h-screen overflow-x-clip bg-stock text-agreed">
       <div className="mx-auto max-w-[1280px] px-6 sm:px-10">
         <Masthead signIn={DASHBOARD} />
         <Hero signIn={DASHBOARD} />
         <Misregister slip={1} />
+
         <HowItWorks />
         <Misregister slip={0.72} />
+
         <Screens />
         <Misregister slip={0.48} />
 
-        <section id="proof" className="scroll-mt-10 py-20">
-          <h2 className="wdth-tight max-w-[20ch] font-anek text-opener font-bold text-agreed">
+        <Sheet
+          id="proof"
+          mark="computed"
+          reference={`scripts/build_landing_aggregates.py · seed/*/answers/evaluation.json · ${aggregates.totals.planted} planted, ${aggregates.totals.detected} found, ${aggregates.totals.false_positives} invented`}
+        >
+          <Opener slip={0.48} className="optical-cap max-w-[20ch]">
             Measured, not asserted
-          </h2>
-          <p className="opsz-deck mt-7 max-w-[46ch] font-news text-[1.4rem] sm:text-deck text-agreed">
+          </Opener>
+          {/* The proof, at the size of the claim.
+              `text-register` has been defined in the tailwind config since
+              the type ramp was written, with a comment explaining that it is
+              the one display step outside the ramp, and nothing has ever
+              used it. The page's whole argument is this ratio, and it was
+              set in prose at 40px. Eighty-two planted, eighty-two found. */}
+          <p className="mt-8 flex flex-wrap items-baseline gap-x-6 gap-y-2">
+            <span className="wdth-condensed tabular font-anek text-register font-extrabold leading-none text-agreed">
+              {aggregates.totals.detected}
+            </span>
+            <span className="wdth-condensed tabular font-anek text-[2.5rem] font-bold leading-none text-graphite-soft">
+              / {aggregates.totals.planted}
+            </span>
+          </p>
+          <p className="rag-pretty opsz-deck mt-6 max-w-[46ch] font-news text-[1.4rem] text-agreed sm:text-deck">
             {spell(aggregates.totals.planted, true)} defects were planted across{" "}
             {spell(aggregates.totals.companies)} synthetic ledgers,{" "}
             {spell(aggregates.companies[0].evaluation.planted)} in each. The engine found
             every one of them and raised nothing the answer key does not contain.
           </p>
-          <Reconcile />
-        </section>
+        </Sheet>
+
+        {/* The one place the page departs from its own measure. Everything
+            else is a 64ch column with a margin beside it; this runs the full
+            width of the sheet, because it is the only thing here that is a
+            picture rather than an argument about one. A rhythm needs one
+            deliberate rupture or it is just a rhythm. */}
+        <Reconcile />
 
         <Misregister slip={0.32} />
 
-        <section className="py-20">
-          <h2 className="wdth-tight max-w-[22ch] font-anek text-opener font-bold text-agreed">
-            The model cannot{" "}
-            <span className="whitespace-nowrap">produce a number</span>
-          </h2>
-          <p className="opsz-deck mt-7 max-w-[46ch] font-news text-[1.4rem] sm:text-deck text-agreed">
+        <Sheet
+          mark="traced"
+          reference="apps/api/…/numeric_guard.py · apps/api/tests/test_agent_guard.py"
+        >
+          <Opener slip={0.32} className="optical-cap max-w-[22ch]">
+            The model cannot <span className="whitespace-nowrap">produce a number</span>
+          </Opener>
+          <p className="rag-pretty opsz-deck mt-7 max-w-[46ch] font-news text-[1.4rem] text-agreed sm:text-deck">
             Every figure on screen is a SQL aggregate. The model is handed a finished
             finding and writes the sentence explaining it; it never sees a document, and
             any figure it does produce is checked against the finding before you see it.
           </p>
           <Leash />
-        </section>
+        </Sheet>
 
         <Misregister slip={0.2} />
 
-        <section className="py-20">
-          <h2 className="wdth-tight max-w-[20ch] font-anek text-opener font-bold text-agreed">
+        <Sheet
+          mark="traced"
+          reference={`${example.file}:${example.line} · packages/engine/…/normalise/invoice.py · packages/engine/…/reporting.py:99`}
+        >
+          <Opener slip={0.2} className="optical-cap max-w-[20ch]">
             Every figure has a line
-          </h2>
-          <p className="opsz-deck mt-7 max-w-[46ch] font-news text-[1.4rem] sm:text-deck text-agreed">
+          </Opener>
+          <p className="rag-pretty opsz-deck mt-7 max-w-[46ch] font-news text-[1.4rem] text-agreed sm:text-deck">
             One finding, followed from the row of the file it was read out of to the
             aggregate that puts it on a dashboard.
           </p>
           <Trace />
-        </section>
+        </Sheet>
 
         <Misregister slip={0.1} />
 
@@ -154,8 +188,11 @@ export default function ProductPage() {
 
         <CallToAction signIn={DASHBOARD} />
 
+        <Legend />
+
         <Colophon />
       </div>
     </main>
   );
 }
+

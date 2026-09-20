@@ -67,6 +67,51 @@
     U+20A0-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 
+/* ── Rags ────────────────────────────────────────────────────────────
+   A deck three to six lines long will, left to itself, end a line on "and"
+   or "the" and leave a one-word last line. `text-wrap: pretty` asks the
+   browser to look ahead across the whole paragraph rather than breaking
+   greedily line by line, which fixes both without anybody hand-setting a
+   break that a different viewport width would then get wrong.
+   Headings get `balance` instead, which evens the line lengths - the right
+   behaviour for two or three lines and the wrong one for a paragraph, which
+   is why they are separate rules. */
+
+.rag-pretty {
+  text-wrap: pretty;
+}
+
+.rag-balance {
+  text-wrap: balance;
+}
+
+/* ── Optical alignment at display scale ───────────────────────────────
+   Type is set to a metric box and read by an eye, and at 100px the two stop
+   agreeing. A capital T hangs its crossbar over its own sidebearing; a round
+   letter has to overshoot a flat one to look the same height; the rupee sign
+   carries two horizontal bars that read as an indent against a mono label
+   sitting above it. Left alone, every display string on this page starts a
+   pixel or two inside the column it is supposed to align with, and the page
+   looks very slightly loose without a reader being able to say why.
+   These pull each case back to where the eye expects the column to be. They
+   are wrong to measure and right to look at, which is the whole of optical
+   alignment. */
+
+.optical-figure {
+  /* The rupee sign's bars read as white space at the start of the line. */
+  margin-left: -0.045em;
+}
+
+.optical-cap {
+  /* A flat-sided capital - T, E, F, W - against a column edge. */
+  margin-left: -0.028em;
+}
+
+.optical-round {
+  /* A round capital overshoots, so it needs less correction than a flat one. */
+  margin-left: -0.018em;
+}
+
 /* Anek's width axis, named. Tailwind has no width utility and these are set
    often enough that an arbitrary value at every call site would rot. */
 .wdth-condensed {
@@ -272,4 +317,81 @@ summary::-webkit-details-marker {
     font-size: 9pt;
     color: theme("colors.graphite-soft");
   }
+
+  /* ── The landing page, printed ──────────────────────────────────────
+     The terminal form of a working paper is paper. This product's whole
+     argument is that what it produces is a document somebody files, and the
+     page has carried a real print stylesheet from the beginning without ever
+     telling a reader it existed. These rules are what make the sheet that
+     comes out of the printer worth filing rather than a screenshot of a
+     website. */
+
+  /* A page of a filed document is numbered and carries its index. */
+  @page {
+    margin: 18mm 16mm;
+  }
+
+  /* The full-bleed figure is sized for a viewport and there is no viewport
+     on paper; left alone it takes two and a half sheets and prints the
+     canvas as an empty rectangle, because a canvas is not in the print
+     rasterisation of the page. The static SVG behind it is what should
+     print, at the size of the measure. */
+  .print-figure {
+    height: auto !important;
+    margin: 0 !important;
+  }
+
+  .print-figure .sticky {
+    height: auto !important;
+    padding: 0 !important;
+  }
+
+  canvas {
+    display: none !important;
+  }
+
+  .print-fallback {
+    position: static !important;
+    display: block !important;
+  }
+
+  /* Ink on paper is not the screen's ink. Vermillion at 5.05:1 on bone goes
+     muddy on a laser printer and indigo prints as a grey, so type set in
+     either goes to black and the distinction is carried by the shapes that
+     were always carrying it too - the filled square, the open square, the
+     rule, the weight of a figure against its label.
+     The tick marks themselves keep their ink. They are marks rather than
+     type, they are the one place on the sheet where a colour is the whole
+     signal, and a red square survives a laser printer perfectly well. */
+  .text-statute,
+  .text-statute-deep,
+  .text-books {
+    color: #000 !important;
+  }
+
+  /* Sections should not straddle a fold. */
+  section {
+    break-inside: avoid;
+  }
+
+  h1,
+  h2,
+  h3 {
+    break-after: avoid;
+  }
+
+  /* The sign-off. A working paper carries a blank rule where a reviewer
+     signs, and it stays blank until somebody reviews it - which is the same
+     thing the `C` mark's absence says on screen. It appears only on paper,
+     because on a screen nobody can sign it. */
+  .print-signature {
+    display: block !important;
+    margin-top: 14mm;
+    break-inside: avoid;
+  }
+}
+
+/* The sign-off exists only in the printed form. */
+.print-signature {
+  display: none;
 }

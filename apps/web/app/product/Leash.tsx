@@ -96,7 +96,7 @@ export function Leash() {
         })}
       </dl>
 
-      <p className="opsz-prose mt-5 font-news text-prose leading-relaxed text-graphite">
+      <p className="rag-pretty opsz-prose mt-5 font-news text-prose leading-relaxed text-graphite">
         A refused sentence is not a failure the reader has to handle. The finding was
         already computed; the model was only asked to phrase it, and when it will not
         phrase it safely the deterministic sentence is shown instead. The cost of the

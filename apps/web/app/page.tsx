@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { SignOut } from "./components/SignOut";
+import { Overprint } from "./product/press/Overprint";
 import type { CompanyCard, SessionUser } from "./lib/api";
 import { api } from "./lib/api";
 import { requireData } from "./lib/session";
@@ -65,10 +66,16 @@ export default async function FirmDashboard() {
 
   return (
     <main className="mx-auto max-w-[1100px] px-6 py-10 sm:px-10">
+      {/* The firm's sheet, headed the way the landing page heads its own.
+          The product screens were set in the body face at intro size while
+          the front door was setting its headings in Anek at 116px, which is
+          two different products wearing one palette. */}
       <header className="ruled flex flex-wrap items-baseline justify-between gap-x-8 gap-y-2 pb-4">
-        <h1 className="text-intro font-semibold tracking-tight">{user.firm}</h1>
+        <h1 className="optical-cap wdth-tight font-anek text-[2rem] font-bold leading-none text-agreed">
+          {user.firm}
+        </h1>
         <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1">
-          <p className="text-ident text-graphite">
+          <p className="opsz-prose font-news text-ident text-graphite">
             Financial readiness across {companies.length} client{" "}
             {companies.length === 1 ? "company" : "companies"}
           </p>
@@ -84,8 +91,13 @@ export default async function FirmDashboard() {
         {/* A fourteen-character rupee figure at 52px is wider than a phone.
             The display size is the large-screen treatment; below that it drops
             to the figure step rather than being clipped at the gutter. */}
-        <p className="tabular mt-3 text-amount font-semibold text-statute sm:text-opener">
-          {inr(exposure)}
+        {/* Printed out of register, like the figure on the landing page.
+            This is the same number the front door leads with and it should
+            look like the same number, not like a different product's total. */}
+        <p className="optical-figure mt-3">
+          <Overprint className="wdth-condensed tabular font-anek text-amount font-bold leading-none sm:text-[clamp(48px,7vw,92px)]">
+            {inr(exposure)}
+          </Overprint>
         </p>
         <p className="mt-5 max-w-[62ch] text-prose leading-relaxed text-graphite">
           Already paid to suppliers and not yet claimable.

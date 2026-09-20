@@ -18,14 +18,14 @@ export function CallToAction({ signIn }: { signIn: string }) {
     <section className="-mx-6 mt-20 bg-plate px-6 py-20 text-stock sm:-mx-10 sm:px-10">
       <div className="grid gap-x-14 gap-y-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]">
         <div>
-          <h2 className="wdth-tight max-w-[16ch] font-anek text-opener font-bold text-stock">
+          <h2 className="optical-round wdth-tight max-w-[16ch] font-anek text-opener font-bold text-stock">
             Open it and look.
           </h2>
-          <p className="opsz-deck mt-7 max-w-[44ch] font-news text-[1.4rem] sm:text-deck text-stock-soft">
+          <p className="rag-pretty opsz-deck mt-7 max-w-[44ch] font-news text-[1.4rem] sm:text-deck text-stock-soft">
             A demo firm is already signed up, carrying two client companies with twelve
             months of books, GST returns and bank statements behind each.
           </p>
-          <p className="opsz-prose mt-6 max-w-[52ch] font-news text-prose text-stock-faint">
+          <p className="rag-pretty opsz-prose mt-6 max-w-[52ch] font-news text-prose text-stock-faint">
             The records are generated rather than real, and that is deliberate: it is the
             only way to know in advance what the engine is supposed to find, and therefore
             the only way to measure whether it found it.
@@ -61,7 +61,7 @@ export function CallToAction({ signIn }: { signIn: string }) {
               </dd>
             </div>
           </dl>
-          <p className="opsz-prose mt-6 font-news text-ident leading-relaxed text-stock-faint">
+          <p className="rag-pretty opsz-prose mt-6 font-news text-ident leading-relaxed text-stock-faint">
             A demo account on generated data. There is no self-service signup, because
             there is no self-service client data: a firm owner creates each account and
             every account belongs to exactly one firm.

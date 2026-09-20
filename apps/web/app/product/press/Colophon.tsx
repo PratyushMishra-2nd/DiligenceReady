@@ -20,7 +20,7 @@ export function Colophon() {
           <p className="wdth-tight font-anek text-[1.375rem] font-bold text-agreed">
             DiligenceReady
           </p>
-          <p className="opsz-prose mt-3 max-w-[60ch] font-news text-ident leading-relaxed text-graphite">
+          <p className="rag-pretty opsz-prose mt-3 max-w-[60ch] font-news text-ident leading-relaxed text-graphite">
             Figures on this page and in the product are from a seeded synthetic dataset,
             not a real company. GST rules change by notification; nothing here is tax
             advice.{" "}
@@ -32,10 +32,25 @@ export function Colophon() {
             </Link>
             .
           </p>
-          <p className="opsz-prose mt-4 max-w-[60ch] font-news text-ident leading-relaxed text-graphite">
+          <p className="rag-pretty opsz-prose mt-4 max-w-[60ch] font-news text-ident leading-relaxed text-graphite">
             Set in Anek, drawn by Ek Type in Mumbai, and Newsreader by Production Type,
             with IBM Plex Mono for anything that points at a row. All three are released
             under the SIL Open Font License.
+          </p>
+
+          {/* The page's terminal form. A working paper ends on paper, and
+              this one is typeset for it: the figure hands over to its static
+              form, the inks go to black, nothing straddles a fold, and there
+              is a rule at the foot where a reviewer signs. Worth saying out
+              loud, because a print stylesheet nobody is told about is a
+              print stylesheet nobody uses. */}
+          <p className="no-print opsz-prose mt-4 max-w-[60ch] font-news text-ident leading-relaxed text-graphite">
+            This page is typeset to be printed. Press{" "}
+            <kbd className="border border-hairline bg-sunk px-1 font-mono text-stub text-agreed">
+              ⌘P
+            </kbd>{" "}
+            and it comes out as a working paper, with the evidence, the marks, the legend
+            and a sign-off rule that is still blank.
           </p>
         </div>
 
@@ -64,6 +79,29 @@ export function Colophon() {
             </dd>
           </div>
         </dl>
+      </div>
+
+      {/* Paper only. A working paper carries a rule where a reviewer signs
+          and it stays blank until somebody does — the same statement the
+          absent C mark makes on screen, in the form the statement is
+          conventionally made. */}
+      <div className="print-signature">
+        <div className="grid grid-cols-2 gap-x-16 pt-8">
+          <div>
+            <p className="font-mono text-stub uppercase text-graphite">Prepared by</p>
+            <p className="mt-1 border-b border-agreed pb-1 text-prose">DiligenceReady</p>
+          </div>
+          <div>
+            <p className="font-mono text-stub uppercase text-graphite">
+              Reviewed by · signature · date
+            </p>
+            <p className="mt-1 border-b border-agreed pb-1 text-prose">&nbsp;</p>
+          </div>
+        </div>
+        <p className="rag-pretty opsz-prose mt-3 font-news text-ident leading-relaxed text-graphite">
+          Unsigned. No practising chartered accountant has reviewed the rule set behind
+          the figures on this sheet.
+        </p>
       </div>
     </footer>
   );

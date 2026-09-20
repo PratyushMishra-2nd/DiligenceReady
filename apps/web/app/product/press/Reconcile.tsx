@@ -164,9 +164,17 @@ export function Reconcile() {
   const read =
     totals.purchase_register + totals.gstr2b_documents + totals.bank_statement;
 
+  // Full bleed, and the only thing on the page that is.
+  //
+  // Everything else lives inside a 64ch measure with a cross-reference
+  // margin beside it. This runs edge to edge because it is a picture rather
+  // than an argument about one, and because a rhythm needs exactly one
+  // deliberate rupture or it is not a rhythm, it is a metronome. The
+  // negative margins undo the page's gutter and `overflow-x-clip` on main
+  // contains them.
   return (
-    <div ref={holder} className="relative mt-10 h-[260vh]">
-      <div className="sticky top-0 flex h-screen flex-col justify-center py-10">
+    <div ref={holder} className="print-figure relative -mx-6 mt-10 h-[260vh] sm:-mx-10">
+      <div className="sticky top-0 flex h-screen flex-col justify-center px-6 py-10 sm:px-10">
         {/* The registers are named beside the bands themselves now, so this
             row carries only what the figure is and how much of it there is.
             It keeps one shape whether or not a month is selected: the picker
@@ -243,14 +251,21 @@ export function Reconcile() {
           {/* The server renders this, and the canvas covers it only once it
               has proved it can draw. Anyone who never gets the canvas gets
               the whole argument, in the same figures. */}
-          {!live && (
-            <div className="absolute inset-0 overflow-hidden">
-              <Population />
-            </div>
-          )}
+          {/* On paper this is what prints. A canvas does not appear in the
+              print rasterisation at all, so without the static figure here
+              the printed sheet would carry an empty rectangle where its
+              evidence should be. It is rendered always and hidden on screen
+              once the canvas proves it can draw. */}
+          <div
+            className={`print-fallback absolute inset-0 overflow-hidden ${
+              live ? "hidden" : ""
+            }`}
+          >
+            <Population />
+          </div>
         </div>
 
-        <p className="opsz-prose mt-4 max-w-[76ch] font-news text-ident leading-relaxed text-graphite">
+        <p className="rag-pretty opsz-prose mt-4 max-w-[76ch] font-news text-ident leading-relaxed text-graphite">
           Every record of both seeded companies across twelve periods:{" "}
           {totals.purchase_register.toLocaleString("en-IN")} purchase invoices,{" "}
           {totals.gstr2b_documents.toLocaleString("en-IN")} GSTR-2B documents and{" "}
