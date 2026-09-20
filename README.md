@@ -5,7 +5,7 @@
 [![CI](https://github.com/PratyushMishra-2nd/DiligenceReady/actions/workflows/ci.yml/badge.svg)](../../actions/workflows/ci.yml)
 &nbsp;![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-1B2A2F)
 &nbsp;![Next.js 14](https://img.shields.io/badge/next.js-14-1B2A2F)
-&nbsp;![AWS](https://img.shields.io/badge/AWS-EC2%20%C2%B7%20Lambda%20%C2%B7%20Bedrock-FF9900)
+&nbsp;![AWS](https://img.shields.io/badge/AWS-App%20Runner%20%C2%B7%20Lambda%20%C2%B7%20Bedrock-FF9900)
 &nbsp;![License MIT](https://img.shields.io/badge/license-MIT-1B2A2F)
 
 ---
@@ -56,28 +56,26 @@ Deployed on the **Ship It** stack. Every service below is load-bearing — nothi
 here to be counted.
 
 ```
-  Amplify Hosting          CloudFront + EC2            RDS Postgres 17
-  ┌────────────────┐       ┌──────────────────────┐   ┌──────────────┐
-  │  Next.js 14    │ ────► │  CloudFront (HTTPS)  │   │  private     │
-  │  dashboard     │  TLS  │    ↓                 │   │  subnets     │
-  └────────────────┘       │  EC2 t3.small        │──►│              │
-                           │  FastAPI + Cedar      │   └──────▲───────┘
-                           └──────────┬────────────┘          │
-                                      │                       │
-                       ┌──────────────┼───────────────┐       │
-                       ▼              ▼               ▼       │
-                 S3 (documents)  Bedrock        Secrets Manager│
-                 gateway VPCe    Claude         (DB password)  │
-                                 + Strands agent               │
-                                                               │
-  EventBridge ──► Step Functions ──► Lambda × 4 ──────────────┘
+  Amplify Hosting              App Runner                     RDS Postgres 17
+  ┌────────────────┐          ┌──────────────────┐           ┌──────────────┐
+  │  Next.js 14    │ ───────► │  FastAPI         │ ────────► │  private     │
+  │  dashboard     │   HTTPS  │  + Cedar policy  │           │  subnets     │
+  └────────────────┘          └────────┬─────────┘           └──────▲───────┘
+                                       │                            │
+                        ┌──────────────┼───────────────┐            │
+                        ▼              ▼               ▼            │
+                  S3 (documents)  Bedrock        Secrets Manager    │
+                  gateway VPCe    Claude         (DB password)      │
+                                  + Strands agent                   │
+                                                                    │
+  EventBridge ──► Step Functions ──► Lambda × 4 ────────────────────┘
    Scheduler       migrate → reconcile → ims → rules
-   01:00 IST       (the same container image the EC2 runs)
+   01:00 IST       (the same container image App Runner runs)
 ```
 
 | Service | What it does here | Why this one |
 | --- | --- | --- |
-| **EC2 + CloudFront** | Serves the FastAPI engine | EC2 runs the same Docker image in the VPC (direct DB access, no connectors); CloudFront provides instant TLS via `*.cloudfront.net` with no domain ownership or ACM wait |
+| **App Runner** | Serves the FastAPI engine | Long-lived process keeps a Postgres connection pool; no cold start mid-demo; one Dockerfile, no adapter |
 | **Lambda** (container) | The four nightly pipeline stages | Runs minutes a night and scales to zero between — the opposite workload to the API, and the same image |
 | **Step Functions** | Orchestrates the stages | Stages fail for different reasons; a retry should redo the failed stage, not the month. The execution history is the run log |
 | **EventBridge Scheduler** | Fires it at 01:00 IST | The word "continuous" in the first sentence |
@@ -230,7 +228,7 @@ by content hash and risks by a deterministic key, so nothing duplicates.
 
 ```bash
 aws configure                 # or: aws sso login
-./infra/aws/deploy.sh         # ~20 minutes on a cold account
+./infra/aws/deploy.sh         # ~15 minutes on a cold account
 ./infra/aws/teardown.sh       # deletes everything, including the NAT gateway
 ```
 
@@ -239,24 +237,10 @@ and waits for the rollout. It discovers a Bedrock model id by asking the account
 rather than hard-coding one, because the id differs by region and a wrong guess
 fails at the worst possible moment.
 
-The API runs on **EC2 (t3.small)**, listening on HTTP port 8080 inside the VPC.
-The frontend (Amplify) uses Next.js server-side rewrites to proxy `/api/*` requests
-to the EC2 instance — so the browser always talks HTTPS to Amplify and never makes
-a direct HTTP call. No CDN layer is needed and no TLS certificate is required on the
-API server.
-
 Postgres has no route in from outside the VPC. That is the right call for other
 people's books, and it also means there is no psql session from a laptop — so the
 demo bootstrap runs *inside* the VPC, in the same container image, as a one-off
 Lambda invoke.
-
-After `deploy.sh` finishes, set these **two** environment variables in the Amplify
-console **before** the first build, then connect the GitHub repository:
-
-| Key | Value |
-| --- | --- |
-| `NEXT_PUBLIC_API_BASE` | *(empty string — leave the value blank)* |
-| `NEXT_PUBLIC_API_UPSTREAM` | the EC2 HTTP URL printed by `deploy.sh` |
 
 Roughly **$2–3/day** while it is up. The two line items that bill whether or not
 anyone visits are the NAT gateway and the RDS instance; `teardown.sh` removes both.

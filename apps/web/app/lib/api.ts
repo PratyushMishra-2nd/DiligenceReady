@@ -9,17 +9,18 @@
 /**
  * Where the engine answers.
  *
- * In production (Amplify): NEXT_PUBLIC_API_BASE is set to "" (empty string).
- * API calls go to the same Amplify origin (https://main.xxx.amplifyapp.com/api/...)
- * and Next.js rewrites() proxies them server-side to the EC2 HTTP backend.
- * The browser never talks directly to EC2, so there is no mixed-content issue.
+ * Two things to know before changing this.
  *
- * In local development: leave NEXT_PUBLIC_API_BASE unset; it defaults to
- * http://localhost:8077 (what `uv run uvicorn ... --port 8077` listens on).
+ * The default is `localhost`, not `127.0.0.1`, and that matters: the session
+ * is an httpOnly cookie the API sets on its own host. Cookies ignore the
+ * port but not the host, so an API on 127.0.0.1 and a dashboard on localhost
+ * are two different jars — the cookie is stored, the Next server never sees
+ * it, every page 401s and sign-in loops forever. Same host both sides.
  *
  * `NEXT_PUBLIC_*` is substituted at build time, not read at runtime, so a
  * deployment has to set it before `next build`. Setting it in the runtime
- * environment afterwards does nothing.
+ * environment afterwards does nothing and every browser call goes to the
+ * viewer's own machine.
  */
 export const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8077";
 

@@ -1,28 +1,18 @@
 # Amplify Hosting build spec for the dashboard.
 #
-# Amplify's own Next.js detection works, but this file makes a few things
+# Amplify's own Next.js detection works, but this file makes two things
 # explicit that are easy to get wrong and hard to diagnose afterwards.
 #
-# Environment variables required in the Amplify console (set BEFORE the first build):
+# 1. `NEXT_PUBLIC_API_BASE` is substituted at BUILD time, not read at
+#    runtime. Setting it in the Amplify console after a build has already
+#    run changes nothing: the bundle still holds the old value, and every
+#    browser call goes to whatever was baked in. The echo below puts the
+#    value in the build log so a wrong one is visible in thirty seconds
+#    rather than after an afternoon of debugging CORS.
 #
-#   NEXT_PUBLIC_API_BASE      = ""   (empty string — API calls go same-origin)
-#   NEXT_PUBLIC_API_UPSTREAM  = http://<ec2-public-dns>:8080
-#
-# How the proxy works:
-#   The browser calls https://<amplify-url>/api/... (same origin, HTTPS, no
-#   mixed-content issue). Next.js rewrites() forwards those /api/* requests
-#   server-side to http://<ec2>:8080/api/... The browser never sees HTTP.
-#
-# NEXT_PUBLIC_API_BASE must be "" (empty), NOT the EC2 HTTP URL. Setting it
-# to the EC2 URL would cause the browser to call HTTP directly, which modern
-# browsers block from an HTTPS page (mixed content).
-#
-# NEXT_PUBLIC_API_UPSTREAM is used by next.config.mjs rewrites() at build
-# time to configure where to proxy. It is also a NEXT_PUBLIC_* variable so
-# it is baked into the build and visible in the build log below.
-#
-# appRoot: the monorepo has the Python engine beside the web app; without
-# this, Amplify tries to build the repository root and fails on pyproject.toml.
+# 2. `appRoot` is apps/web. This is a monorepo and the Python engine lives
+#    beside the web app; without it Amplify tries to build the repository
+#    root and fails on a pyproject.toml it has no idea what to do with.
 version: 1
 applications:
   - appRoot: apps/web
@@ -33,8 +23,7 @@ applications:
             - npm ci
         build:
           commands:
-            - 'echo "API base (should be empty): \"${NEXT_PUBLIC_API_BASE}\""'
-            - 'echo "API upstream: ${NEXT_PUBLIC_API_UPSTREAM}"'
+            - 'echo "Building against API: ${NEXT_PUBLIC_API_BASE}"'
             - npm run build
       artifacts:
         baseDirectory: .next
