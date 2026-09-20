@@ -8,6 +8,9 @@
 &nbsp;![AWS](https://img.shields.io/badge/AWS-EC2%20%C2%B7%20Lambda%20%C2%B7%20Bedrock-FF9900)
 &nbsp;![License MIT](https://img.shields.io/badge/license-MIT-1B2A2F)
 
+> **Live Deployed Application (AWS Amplify)**: [https://main.d2iuitbi6z0hry.amplifyapp.com](https://main.d2iuitbi6z0hry.amplifyapp.com)  
+> **Demo Account**: `ca@mehta.example` | **Password**: `b5Lsnz0Hcj2hXKtq3UX3c1GF`
+
 ---
 
 An SME's financial truth lives in three systems that never agree: the books (Tally),
@@ -56,28 +59,26 @@ Deployed on the **Ship It** stack. Every service below is load-bearing — nothi
 here to be counted.
 
 ```
-  Amplify Hosting          CloudFront + EC2            RDS Postgres 17
-  ┌────────────────┐       ┌──────────────────────┐   ┌──────────────┐
-  │  Next.js 14    │ ────► │  CloudFront (HTTPS)  │   │  private     │
-  │  dashboard     │  TLS  │    ↓                 │   │  subnets     │
-  └────────────────┘       │  EC2 t3.small        │──►│              │
-                           │  FastAPI + Cedar      │   └──────▲───────┘
-                           └──────────┬────────────┘          │
-                                      │                       │
-                       ┌──────────────┼───────────────┐       │
-                       ▼              ▼               ▼       │
-                 S3 (documents)  Bedrock        Secrets Manager│
-                 gateway VPCe    Claude         (DB password)  │
-                                 + Strands agent               │
-                                                               │
-  EventBridge ──► Step Functions ──► Lambda × 4 ──────────────┘
+  Amplify Hosting (HTTPS)        EC2 (in-VPC API)            RDS Postgres 17
+  ┌───────────────────────┐      ┌──────────────────────┐   ┌──────────────┐
+  │  Next.js 14 Dashboard │───►  │  EC2 t3.small        │──►│  private     │
+  │  SSR Rewrite Proxy    │ HTTP │  FastAPI + Cedar     │   │  subnets     │
+  └───────────────────────┘      └──────────┬───────────┘   └──────▲───────┘
+                                            │                      │
+                             ┌──────────────┼───────────────┐      │
+                             ▼              ▼               ▼      │
+                       S3 (documents)    Bedrock       Secrets Manager
+                       gateway VPCe      Claude        (DB password)
+                                         + Strands
+                                                                   │
+  EventBridge ──► Step Functions ──► Lambda × 4 ───────────────────┘
    Scheduler       migrate → reconcile → ims → rules
    01:00 IST       (the same container image the EC2 runs)
 ```
 
 | Service | What it does here | Why this one |
 | --- | --- | --- |
-| **EC2 + CloudFront** | Serves the FastAPI engine | EC2 runs the same Docker image in the VPC (direct DB access, no connectors); CloudFront provides instant TLS via `*.cloudfront.net` with no domain ownership or ACM wait |
+| **EC2 + Next.js Proxy** | Serves the FastAPI engine & dashboard | EC2 runs inside the VPC (direct in-VPC DB socket, no connectors); Next.js on Amplify proxies `/api/*` server-side to eliminate cross-origin mixed content without requiring custom domain TLS or CloudFront verification |
 | **Lambda** (container) | The four nightly pipeline stages | Runs minutes a night and scales to zero between — the opposite workload to the API, and the same image |
 | **Step Functions** | Orchestrates the stages | Stages fail for different reasons; a retry should redo the failed stage, not the month. The execution history is the run log |
 | **EventBridge Scheduler** | Fires it at 01:00 IST | The word "continuous" in the first sentence |
