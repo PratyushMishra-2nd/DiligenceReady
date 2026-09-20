@@ -3,7 +3,7 @@ import Link from "next/link";
 import { inr } from "../lib/format";
 import aggregates from "./aggregates.json";
 import { Leash } from "./Leash";
-import { Population } from "./Population";
+import { Reconcile } from "./press/Reconcile";
 import { CallToAction } from "./press/CallToAction";
 import { Colophon } from "./press/Colophon";
 import { Hero } from "./press/Hero";
@@ -110,7 +110,7 @@ export default function ProductPage() {
             {spell(aggregates.companies[0].evaluation.planted)} in each. The engine found
             every one of them and raised nothing the answer key does not contain.
           </p>
-          <Population />
+          <Reconcile />
         </section>
 
         <Misregister slip={0.32} />
