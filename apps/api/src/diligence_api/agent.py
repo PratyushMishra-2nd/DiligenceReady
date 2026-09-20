@@ -235,9 +235,6 @@ def ask(company_id: str, question: str) -> LedgerAnswer:
 
     available = bedrock.candidates()
     if not available:
-        fallback_ans = _engine_fallback(company_id, question)
-        if fallback_ans is not None:
-            return fallback_ans
         return LedgerAnswer(
             text="",
             source="unavailable",
@@ -298,9 +295,6 @@ def ask(company_id: str, question: str) -> LedgerAnswer:
         break
 
     if result is None:
-        fallback_ans = _engine_fallback(company_id, question)
-        if fallback_ans is not None:
-            return fallback_ans
         return LedgerAnswer(
             text="",
             source="unavailable",
@@ -355,117 +349,3 @@ def _tool_names(result: Any) -> list[str]:
         return [str(name) for name in usage]
     except Exception:  # noqa: BLE001 - see docstring
         return []
-
-
-def _engine_fallback(company_id: str, question: str) -> LedgerAnswer | None:
-    """Intelligent fallback over the engine's read-only SQL tools.
-
-    Ensures the product continues to function correctly when Bedrock foundation
-    model access is restricted by AWS on the account. Never invents figures;
-    every number is computed from the database and verified against the
-    numeric guard.
-    """
-    import re
-    import uuid as _uuid
-
-    try:
-        cid = _uuid.UUID(company_id)
-    except ValueError:
-        return None
-
-    q_lower = question.lower()
-
-    # Rule 1: Prohibit arithmetic (adding/summing numbers)
-    if re.search(r"\b(add|sum|total)\b.*\b(and|\+|\bto\b)", q_lower) or "+" in question:
-        return LedgerAnswer(
-            text="",
-            source="refused",
-            tools_called=[],
-            rejected_reason=(
-                "The agent is prohibited from performing arithmetic. "
-                "All totals must be computed directly by the database engine."
-            ),
-        )
-
-    tools_called: list[str] = []
-    recorder: list[str] = []
-
-    def record(name: str, payload: Any) -> Any:
-        tools_called.append(name)
-        recorder.append(str(payload))
-        return payload
-
-    try:
-        with connect() as conn:
-            all_periods = record("list_periods", reporting.periods(conn, cid))
-            if not all_periods:
-                return None
-
-            period_match = re.search(r"\b(202\d-\d{2})\b", question)
-            if period_match:
-                target_period = period_match.group(1)
-            else:
-                reconciled_periods = [p["period"] for p in all_periods if p.get("gstr2b_generated")]
-                target_period = reconciled_periods[0] if reconciled_periods else all_periods[0]["period"]
-
-            if any(k in q_lower for k in ["largest exposure", "highest exposure", "largest risk", "exposure this month"]):
-                risks_list = record("list_findings", reporting.risks(conn, cid, target_period))
-                if risks_list:
-                    top = max(risks_list, key=lambda r: Decimal(str(r.get("headline_amount") or 0)))
-                    amt = f"₹{Decimal(str(top['headline_amount'])):,.2f}"
-                    record("top_finding", {"amount": amt, "rule": top["rule_code"], "title": top["title"], "calc": top["calculation"]})
-                    ans = f"The largest exposure for {target_period} is {amt} under rule {top['rule_code']} ({top['title']}). This finding was flagged because {top['calculation']}."
-                else:
-                    ans = f"No open findings with monetary exposure were recorded for {target_period}."
-
-            elif any(k in q_lower for k in ["bank variance", "variance"]):
-                readiness_data = record("get_readiness", reporting.readiness(conn, cid, target_period))
-                bv = f"₹{Decimal(str(readiness_data['bank_variance'])):,.2f}"
-                cov = f"{readiness_data['bank_coverage_pct']}%"
-                record("var_summary", {"bank_variance": bv, "bank_coverage": cov})
-                ans = f"For {target_period}, bank variance sits at {bv} with bank match coverage at {cov}. This variance reflects ledger payments and collections that have not yet cleared or matched against the monthly statement entries."
-
-            elif any(k in q_lower for k in ["16(4)", "close soonest", "deadline", "lapses"]):
-                risks_list = record("list_findings", reporting.risks(conn, cid, target_period))
-                r1_risks = [r for r in risks_list if r.get("rule_code") == "R1"]
-                if r1_risks:
-                    earliest = min(r1_risks, key=lambda r: str((r.get("metrics") or {}).get("sec_16_4_deadline") or "9999"))
-                    deadline = str((earliest.get("metrics") or {}).get("sec_16_4_deadline"))
-                    amt = f"₹{Decimal(str(earliest['headline_amount'])):,.2f}"
-                    record("deadline_summary", {"deadline": deadline, "amount": amt})
-                    ans = f"Under Section 16(4), credit on unmatched supplier invoices closes on {deadline}. In {target_period}, the earliest affected finding is {amt} under {earliest['title']}."
-                else:
-                    ans = f"There are no Section 16(4) lapse findings currently pending for {target_period}."
-
-            elif any(k in q_lower for k in ["gstr-2b", "2b", "other itc", "purchase register does not explain"]):
-                other = record("get_other_itc", reporting.other_itc(conn, cid, target_period))
-                net_notes = f"₹{Decimal(str(other['net_note_adjustment'])):,.2f}"
-                cdnr_count = len(other.get("credit_debit_notes", []))
-                record("itc_summary", {"net_notes": net_notes, "cdnr_count": cdnr_count})
-                ans = f"In {target_period}, GSTR-2B non-B2B adjustments include {cdnr_count} credit and debit notes totaling a net adjustment of {net_notes}. These adjustments explain differences between 2B and the purchase register that do not originate from standard supplier invoices."
-
-            else:
-                readiness_data = record("get_readiness", reporting.readiness(conn, cid, target_period))
-                gst_cov = f"{readiness_data['gst_coverage_pct']}%"
-                itc_risk = f"₹{Decimal(str(readiness_data['itc_at_risk'])):,.2f}"
-                open_count = str(readiness_data['open_risks'])
-                record("gen_summary", {"gst_coverage": gst_cov, "itc_at_risk": itc_risk, "open_count": open_count})
-                ans = f"For period {target_period}, GST match coverage is {gst_cov} with {open_count} open findings. Total input tax credit identified at risk across reconciliation rules is {itc_risk}."
-
-        facts = "\n".join(recorder)
-        problem = check_answer(ans, facts)
-        if problem:
-            return LedgerAnswer(
-                text="",
-                source="refused",
-                tools_called=sorted(set(tools_called)),
-                rejected_reason=problem,
-            )
-        return LedgerAnswer(
-            text=ans,
-            source="agent",
-            model="engine-fallback",
-            tools_called=sorted(set(tools_called)),
-        )
-    except Exception:
-        return None
