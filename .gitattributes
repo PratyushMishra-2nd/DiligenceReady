@@ -1,0 +1,18 @@
+# The repository is developed on Windows and deployed on Linux, and most of
+# it is checked in with CRLF. That is harmless for Python, TypeScript and
+# Markdown, and it is not harmless for these three.
+#
+# A shell script with CRLF line endings fails on Linux with `bad interpreter:
+# /bin/bash^M`. The CloudFormation templates are worse than that, because the
+# EC2 instance's UserData *is* a shell script embedded in YAML: a CRLF
+# template boots an instance whose container never starts, and the failure
+# surfaces as a health check that never goes green rather than as anything
+# naming line endings.
+#
+# An editor or a script that rewrites one of these on Windows will introduce
+# CRLF silently. This makes git refuse to store it.
+
+*.sh        text eol=lf
+*.yaml      text eol=lf
+*.yml       text eol=lf
+Dockerfile  text eol=lf
