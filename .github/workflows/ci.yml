@@ -157,3 +157,11 @@ jobs:
       - run: npm ci
       - run: npx tsc --noEmit
       - run: npm run build
+        env:
+          # CI compiles the app, it does not deploy it, and there is no API
+          # for it to point at. The upstream guard in next.config.mjs exists
+          # to stop a *deployment* baking in localhost and coming up green
+          # with an empty dashboard; this is the escape hatch that guard
+          # documents for exactly this case. A real deploy that forgets the
+          # variable still fails, which is the whole point of the guard.
+          ALLOW_LOCAL_API_UPSTREAM: "1"
