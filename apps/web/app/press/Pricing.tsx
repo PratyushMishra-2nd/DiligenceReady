@@ -1,7 +1,7 @@
 import aggregates from "./aggregates.json";
 
 import { DemoButton } from "./DemoButton";
-import { Opener } from "./Sheet";
+import { Opener, slipFor } from "./Sheet";
 import { Rupee } from "./Rupee";
 
 /**
@@ -30,12 +30,22 @@ export function Pricing() {
     <section id="pricing" className="scroll-mt-24 py-14 lg:pl-20">
       <div className="grid gap-x-14 gap-y-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div className="min-w-0">
-          <Opener slip={0.56} className="optical-cap max-w-[14ch]">
+          <Opener slip={slipFor("pricing")} className="optical-cap max-w-[14ch]">
             What it costs
           </Opener>
 
           <p className="optical-figure mt-8">
-            <span className="whitespace-nowrap wdth-condensed tabular font-anek text-[clamp(48px,7vw,92px)] font-bold leading-none text-agreed">
+            {/* The floor is 40px, not 48. Same defect as `text-register`: 7vw
+                does not reach 48px until a 686px viewport, so every phone got
+                the floor — thirteen glyphs of condensed Anek bold at 48px
+                against 272px of usable measure at 320px, held on one line by
+                `whitespace-nowrap`, inside a `<main>` that is
+                `overflow-x-clip`. The most important number on the page was
+                being cut off with no scrollbar to say so.
+                `whitespace-nowrap` stays: a price that breaks across two
+                lines mid-range is worse than a smaller one. Above 686px
+                nothing about this changes. */}
+            <span className="whitespace-nowrap wdth-condensed tabular font-anek text-[clamp(40px,7vw,92px)] font-bold leading-none text-agreed">
               ₹6,000&ndash;15,000
             </span>
           </p>

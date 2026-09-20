@@ -100,7 +100,7 @@ export const metadata: Metadata = {
     siteName: "DiligenceReady",
     locale: "en_IN",
     url: "/",
-    title: "Three systems. One truth.",
+    title: "Reconciled the week 2B lands.",
     description:
       "Books, GSTR-2B and bank, reconciled every month, with the evidence kept. Built for the CA firms who do the work.",
     images: [
@@ -114,7 +114,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Three systems. One truth.",
+    title: "Reconciled the week 2B lands.",
     description:
       "Books, GSTR-2B and bank, reconciled every month, with the evidence kept. Built for the CA firms who do the work.",
     images: ["/og.png"],

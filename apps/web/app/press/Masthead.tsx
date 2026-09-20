@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 import { ContentsNav } from "./ContentsNav";
 import { DemoButton } from "./DemoButton";
 
@@ -25,7 +23,7 @@ import { Logo } from "./Logo";
  * for print by globals.css, because a sticky header repeats itself on every
  * sheet.
  */
-export function Masthead() {
+export function Masthead({ current, sheet = "W-1" }: { current?: string; sheet?: string } = {}) {
   return (
     <header className="vt-masthead sticky top-0 z-50 border-b border-hairline bg-stock px-6 sm:px-10">
       <div className="mx-auto flex max-w-[1280px] flex-wrap items-baseline justify-between gap-x-10 gap-y-2 py-4">
@@ -36,15 +34,27 @@ export function Masthead() {
               Its own tagline stays off: the positioning line is already set
               beside it, in Newsreader, and printing it twice in two faces
               four pixels apart is a lockup used as wallpaper. */}
-          <Link href="/" className="logo-lockup text-[1.25rem]" aria-label="DiligenceReady, home">
+          <a href="/" className="logo-lockup text-[1.25rem]" aria-label="DiligenceReady, home">
             <Logo />
-          </Link>
+          </a>
           <p className="font-news text-ident text-graphite opsz-prose">
             Reconciliation for CA firms
           </p>
+          {/* The sheet number, in the running head.
+              It used to be printed only in the colophon — thirteen thousand
+              pixels down the landing page — and again near the top of the
+              sign-in sheet, which meant the one element that carries
+              `view-transition-name: index-block` was in a different place in
+              each document and the morph between them, if it ran at all,
+              travelled the height of the page. A bound document keeps its
+              foliation in the running head for exactly this reason: it is the
+              thing that has to stay put while the sheet under it changes. */}
+          <p className="vt-index no-print font-mono text-stub uppercase text-graphite-soft">
+            Index {sheet}
+          </p>
         </div>
 
-        <nav className="flex items-center gap-6">
+        <nav aria-label="Primary" className="flex items-center gap-6">
           {/* Above `lg`, the row. Below it, the same six behind a
               disclosure — they used to be `hidden lg:inline` with nothing in
               their place, which left a page eighteen thousand pixels long
@@ -73,12 +83,28 @@ export function Masthead() {
               link rather than a second filled button, because a firm that
               has an account and a stranger who does not are not being asked
               the same question. */}
-          <Link
-            href="/sign-in"
-            className="mark-verb no-print hidden font-mono text-stub uppercase text-graphite underline decoration-graphite-soft underline-offset-4 hover:text-agreed hover:decoration-agreed sm:inline"
-          >
-            Sign in
-          </Link>
+          {/* Not a link to the page you are already reading. On `/sign-in`
+              this was an underlined "Sign in" in the masthead of the sign-in
+              sheet — a control that looks like it goes somewhere and goes
+              nowhere, three tab stops before the field it is named after. It
+              stays in the row so the masthead does not change shape between
+              the two sheets, set as plain ink and marked as the current page
+              for anything reading the document rather than looking at it. */}
+          {current === "/sign-in" ? (
+            <span
+              aria-current="page"
+              className="no-print hidden font-mono text-stub uppercase text-graphite-soft sm:inline"
+            >
+              Sign in
+            </span>
+          ) : (
+            <a
+              href="/sign-in"
+              className="mark-verb no-print hidden font-mono text-stub uppercase text-graphite underline decoration-graphite-soft underline-offset-4 hover:text-agreed hover:decoration-agreed sm:inline"
+            >
+              Sign in
+            </a>
+          )}
           <div className="no-print contents">
             <DemoButton variant="masthead" />
           </div>

@@ -59,7 +59,7 @@ export function Trace() {
     <div className="mt-6 max-w-[64ch]">
       <ol>
         <Step step={STEPS[0]}>
-          <dl className="grid grid-cols-[8rem_minmax(0,1fr)] gap-x-4 gap-y-1">
+          <dl className="grid grid-cols-[6rem_minmax(0,1fr)] gap-x-4 gap-y-1 sm:grid-cols-[8rem_minmax(0,1fr)]">
             {Object.entries(columns).map(([column, value]) => (
               <Fragmentish key={column} column={column} value={value} />
             ))}

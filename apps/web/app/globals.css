@@ -114,15 +114,24 @@
 
 /* Anek's width axis, named. Tailwind has no width utility and these are set
    often enough that an arbitrary value at every call site would rot. */
-.wdth-condensed {
+/* The `:where()` is load-bearing. `.tabular:not(.font-mono)` further down
+   sets `font-stretch: 88%` at specificity (0,2,0) and these are (0,1,0), so
+   every figure that is both tabular and condensed — which is every large
+   rupee amount on the page, the three biggest included — was being set 13%
+   wider than it is authored. The width axis is the stated reason Anek is
+   here at all, and it was silently defeated on exactly the figures it was
+   chosen to carry. `:where(:not(.font-mono))` adds the same exemption at
+   zero specificity, so an explicit width class wins and a GSTIN in the mono
+   is still left alone. */
+.wdth-condensed:where(:not(.font-mono)) {
   font-stretch: 75%;
 }
 
-.wdth-tight {
+.wdth-tight:where(:not(.font-mono)) {
   font-stretch: 82%;
 }
 
-.wdth-set {
+.wdth-set:where(:not(.font-mono)) {
   font-stretch: 88%;
 }
 
@@ -224,6 +233,78 @@ html {
   outline-offset: 2px;
 }
 
+/* The ruled field, and what Chrome does to it when it fills one in.
+   The inputs are a line on paper rather than a box, which leaves the browser
+   nothing to tint except the thing it tints anyway: an autofilled field is
+   painted #E8F0FE, a pale blue, over a sheet that is bone. That is the normal
+   state for a returning reader — autofill is how most people sign in — so the
+   page designed to feel like the same sheet of paper as the one before it was
+   showing most of its visitors a blue rectangle.
+   `-webkit-autofill` cannot be overridden by `background-color`; the tint is
+   painted by the engine and an inset shadow the height of the field is the
+   documented way to cover it. `-webkit-text-fill-color` is the matching
+   override for the text, which `color` likewise does not reach.
+   `transition: background-color` with an absurd delay is the other half of
+   the trick — without it the blue flashes for a frame before the shadow
+   lands. */
+.field-rule {
+  transition: border-color 160ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+.field-rule:-webkit-autofill,
+.field-rule:-webkit-autofill:hover,
+.field-rule:-webkit-autofill:focus,
+.field-rule:-webkit-autofill:active {
+  -webkit-text-fill-color: theme("colors.agreed");
+  -webkit-box-shadow: inset 0 0 0 100px theme("colors.stock");
+  box-shadow: inset 0 0 0 100px theme("colors.stock");
+  caret-color: theme("colors.agreed");
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  transition: background-color 100000s ease-in-out 0s;
+}
+
+/* ── Windows High Contrast, where the whole argument disappears ──────
+   In `forced-colors: active` the OS replaces every background and every
+   border with a two-colour system palette — and `mix-blend-mode` is not a
+   property it can force, so a blended plate simply stops meaning anything.
+   That is survivable for decoration and fatal here: the answer key's three
+   states are carried ENTIRELY by blend arithmetic. Found is both plates
+   multiplying to `agreed`, a miss is the indigo plate alone, a false positive
+   is the vermillion alone. Forced into one system colour they become
+   eighty-two identical squares — the graphic that exists so a reader can
+   verify the result becomes the one thing on the page they have to take on
+   trust.
+
+   The fix is the rule this codebase already states in `Sheet.tsx`: three
+   shapes, not three colours. It was applied to the tick marks and never to
+   the plates. Found is filled with an outline inside it; a miss is filled
+   and bare; a false positive is an outline around nothing. No colour, no
+   blend, and the same three states remain distinguishable — including the
+   two that never occur, which is the point of drawing them. */
+@media (forced-colors: active) {
+  .plate-books {
+    forced-color-adjust: none;
+    background: CanvasText;
+  }
+
+  .plate-statute {
+    forced-color-adjust: none;
+    mix-blend-mode: normal;
+    background: transparent;
+    outline: 2px solid CanvasText;
+    outline-offset: -2px;
+  }
+
+  /* The dividers are the same problem one step down: two rules that overlap
+     into a third colour, in a mode with no third colour. Keeping them out of
+     register is what is left, and it is most of the signal anyway. */
+  .misregister-plate {
+    forced-color-adjust: none;
+    background: CanvasText;
+    mix-blend-mode: normal;
+  }
+}
+
 /* The disclosure sections are ruled rows, not widgets. The marker is drawn as
    a chevron in the summary itself so it can sit where the eye already is. */
 summary {
@@ -240,6 +321,14 @@ summary::-webkit-details-marker {
   *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
+
+    /* And it has to stop, not merely get short. Collapsing the duration of an
+       INFINITE animation does not end it — it loops forever at ten
+       microseconds an iteration, which is a main-thread tick for the life of
+       the element. `foot-rule-running` on the sign-in button is declared
+       `infinite`, so a reader who asked for no motion and pressed Sign in got
+       an invisible animation churning for the whole request. */
+    animation-iteration-count: 1 !important;
 
     /* Collapsing the duration does nothing to a scroll-driven animation.
        A progress-based timeline is driven by scroll position, not by a
@@ -269,6 +358,19 @@ summary::-webkit-details-marker {
   /* And the smooth scroll declared above. */
   html {
     scroll-behavior: auto !important;
+  }
+
+  /* One exemption, and it is not motion. The autofill override above uses a
+     100000-second `background-color` transition, which is the documented way
+     to stop Chrome repainting its blue tint over the field; it is a way of
+     saying "never", not an animation, and nothing about it moves. Collapsing
+     it to 0.01ms with the blanket rule hands a reader who asked for reduced
+     motion the pale blue rectangle the override exists to remove. */
+  .field-rule:-webkit-autofill,
+  .field-rule:-webkit-autofill:hover,
+  .field-rule:-webkit-autofill:focus,
+  .field-rule:-webkit-autofill:active {
+    transition-duration: 100000s !important;
   }
 }
 
@@ -534,9 +636,30 @@ summary::-webkit-details-marker {
 }
 
 /* Same document, different sheet. Three lines, no JavaScript, and nothing at
-   all in a browser that does not implement it. */
-@view-transition {
-  navigation: auto;
+   all in a browser that does not implement it.
+
+   The opt-in is gated here rather than left to the `::view-transition-*`
+   reduced-motion rule alone. That rule disables the animation; this declines
+   the transition, which is the cheaper and more honest of the two — there is
+   nothing to suppress if it never starts.
+
+   And every link in the masthead is a plain `<a>` rather than a `next/link`.
+   That is the whole reason any of this runs: `navigation: auto` fires on
+   cross-document navigations only, and the App Router's soft navigation is
+   same-document, so this block and the sixty lines under it were dead on the
+   one path between the two sheets of this document. The pages are
+   `force-dynamic` in any case, so client-side routing was buying nothing. */
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition {
+    navigation: auto;
+  }
+}
+
+/* The snapshot overlay sits above the document while the transition runs, so
+   a click landing during the turn is swallowed by it rather than reaching the
+   page underneath. */
+::view-transition {
+  pointer-events: none;
 }
 
 /* ── The register closing, under the reader ──────────────────────────
@@ -559,10 +682,25 @@ summary::-webkit-details-marker {
    same slip, but their ghost plates are `mix-blend-multiply` over live type:
    a blended element cannot take the cheap compositor path, so animating six
    openers' worth of them would force a repaint of each blended region on
-   every frame of a thirteen-thousand-pixel scroll. The dividers are flat 2px
-   rules with no blend on the layer being moved, they travel 14px against the
-   openers' 6px, and they are where the progression is legible anyway. Most
-   of the effect, a fraction of the cost.
+   every frame of a thirteen-thousand-pixel scroll. The dividers travel 14px
+   against the openers' 6px and they are where the progression is legible
+   anyway. Most of the effect, a fraction of the cost.
+
+   The sentence that used to sit here said the dividers have "no blend on the
+   layer being moved". They do: `Misregister.tsx` puts `mix-blend-multiply`
+   on `.misregister-plate` itself, which is the element this animates, and
+   the blend and the timeline arrived in the same commit. So the rule written
+   to avoid the blended-repaint path was applying it — every frame, the
+   blended tiles and everything under them re-rastered together.
+
+   `will-change: translate` is the fix, and it is the opposite of the usual
+   advice. It promotes the plate to its own composited layer with a real
+   backdrop texture instead of letting it decomposite into the layer beneath
+   and blend at raster time. It is safe HERE and nowhere else on this page:
+   promotion unconditionally disables subpixel antialiasing, which would be
+   ruinous on the openers and on the hero figure — live type, at 88px, with
+   the blend that is the whole argument — and costs nothing on a 2px rule
+   that contains no glyphs.
 
    `animation-range` hands the first viewport to `ink-settle`, which is
    already animating the hero's plates on load. Both drive the same kind of
@@ -590,6 +728,10 @@ summary::-webkit-details-marker {
       animation: close-register linear both;
       animation-timeline: scroll(root block);
       animation-range: 100vh calc(100% - 100vh);
+      /* See the note above: this is a 2px rule with no type in it, which is
+         the one case where promoting a blended layer is cheaper than letting
+         it decomposite. */
+      will-change: translate;
     }
   }
 }

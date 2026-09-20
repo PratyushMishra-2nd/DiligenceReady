@@ -161,7 +161,17 @@ const config: Config = {
         // page. The gap between `amount` and `opener` is deliberate and
         // large: there is no medium heading here, because a section either
         // opens at architectural scale or it does not open.
-        register: ["clamp(96px, 17.5vw, 268px)", { lineHeight: "0.82", letterSpacing: "-0.045em" }],
+        // The floor is 46px and is a backstop, not a size anybody sees.
+        // It was 96px, which is a floor that BINDS on every phone: 17.5vw
+        // does not reach 96px until a 549px viewport, so a 320px screen set
+        // this fourteen-character figure at 96px inside 272px of usable
+        // measure and `overflow-x-clip` on `<main>` swallowed the rest
+        // silently. A clamp whose minimum is larger than its preferred value
+        // across the entire range it is read at is not a clamp. At 46 the
+        // preferred value governs everywhere — 56px at 320, 68px at 390,
+        // 252px at 1440 — and the cap still delivers the 268px this ramp
+        // step, and this typeface, were chosen for.
+        register: ["clamp(46px, 17.5vw, 268px)", { lineHeight: "0.82", letterSpacing: "-0.045em" }],
         opener: ["clamp(56px, 8vw, 116px)", { lineHeight: "0.88", letterSpacing: "-0.035em" }],
         // The opener, one step down, for headings whose word count does not
         // suit the measure. Not a free dial: two headings on the page need it

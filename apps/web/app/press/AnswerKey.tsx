@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import aggregates from "./aggregates.json";
 import { Rupee } from "./Rupee";
+import { Opener, slipFor } from "./Sheet";
 
 /**
  * The answer key: eighty-two defects planted, eighty-two found.
@@ -183,10 +184,18 @@ export function AnswerKey() {
       {/* The finding, stated. A data graphic that does not say what it found
           is asking the reader to do the work of reading it, and most will
           not. The chart proves this sentence; it does not replace it. */}
-      <h2 className="rag-balance optical-cap wdth-tight mt-3 max-w-[24ch] font-anek text-opener-tight font-bold text-agreed">
-        We hid {spell(totals.planted)} defects in a year of books. The engine found{" "}
-        {spell(totals.detected)}.
-      </h2>
+      {/* On the ladder, like every other section heading.
+          This was a raw `<h2>` — the one sentence on the site that makes a
+          falsifiable claim, and the only heading printed in perfect register
+          with no argument made about it, while eight less important ones
+          carried the treatment. It is the first section of the document, so
+          it takes the top of the ladder. */}
+      <div className="mt-3">
+        <Opener slip={slipFor("answer-key")} size="text-opener-tight" className="optical-cap max-w-[24ch]">
+          We hid {spell(totals.planted)} defects in a year of books. The engine found{" "}
+          {spell(totals.detected)}.
+        </Opener>
+      </div>
 
       <div className="mt-10 grid items-start gap-x-14 gap-y-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,20rem)]">
         <div className="min-w-0">
@@ -252,10 +261,10 @@ export function AnswerKey() {
                   <dt>
                     <span className="relative isolate block h-5 w-5">
                       {planted && (
-                        <span aria-hidden className="absolute inset-0 bg-books mix-blend-multiply" />
+                        <span aria-hidden className="plate-books absolute inset-0 bg-books mix-blend-multiply" />
                       )}
                       {found && (
-                        <span aria-hidden className="absolute inset-0 bg-statute mix-blend-multiply" />
+                        <span aria-hidden className="plate-statute absolute inset-0 bg-statute mix-blend-multiply" />
                       )}
                     </span>
                   </dt>
@@ -353,13 +362,13 @@ function Cell({
           never whether the two plates meet. */}
       <span
         aria-hidden
-        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-books mix-blend-multiply"
+        className="plate-books absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-books mix-blend-multiply"
         style={{ width: ink, height: ink }}
       />
       {detected && (
         <span
           aria-hidden
-          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-statute mix-blend-multiply"
+          className="plate-statute absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-statute mix-blend-multiply"
           style={{ width: ink, height: ink }}
         />
       )}

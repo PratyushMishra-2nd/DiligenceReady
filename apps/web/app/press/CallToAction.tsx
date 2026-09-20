@@ -1,5 +1,6 @@
 import { DEMO_EMAIL, DEMO_FIRM, DEMO_PASSWORD } from "../lib/demo";
 import { DemoButton } from "./DemoButton";
+import { Opener } from "./Sheet";
 
 /**
  * The close, on an inverted plate.
@@ -27,9 +28,22 @@ export function CallToAction() {
     <section className="mt-20 bg-plate px-6 py-20 text-stock sm:px-10">
       <div className="mx-auto grid max-w-[1280px] gap-x-14 gap-y-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]">
         <div>
-          <h2 className="optical-round wdth-tight max-w-[16ch] font-anek text-opener font-bold text-stock">
+          {/* Slip zero, and through `Opener` rather than around it.
+              This is the close, so it is the one heading on the document
+              printed dead in register — the argument arriving rather than
+              still converging. It reached that state by being a raw `<h2>`
+              that nobody had put on the ladder, which is the same markup for
+              an entirely different reason, and the difference is the whole
+              point of the section.
+
+              `Opener` renders a plain heading at slip zero and adds no ghost
+              plates, which is also the only thing that works here: these two
+              inks are composited with `mix-blend-multiply`, and multiply
+              against a black plate returns the plate. An overprint on this
+              ground would be three invisible layers. */}
+          <Opener slip={0} className="optical-round max-w-[16ch] text-stock">
             Open it and look.
-          </h2>
+          </Opener>
           <p className="rag-pretty opsz-deck mt-7 max-w-[44ch] font-news text-[1.4rem] sm:text-deck text-stock-soft">
             A demo firm is already signed up, carrying two client companies with twelve
             months of books, GST returns and bank statements behind each.

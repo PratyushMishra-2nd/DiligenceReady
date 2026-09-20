@@ -29,7 +29,7 @@ const STANDING: { item: string; note: string }[] = [
   },
 ];
 
-import { Opener } from "./Sheet";
+import { Opener, slipFor } from "./Sheet";
 
 export function Standing() {
   return (
@@ -40,7 +40,7 @@ export function Standing() {
     <section className="py-14 lg:pl-20">
       <div className="grid gap-x-14 gap-y-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div>
-          <Opener slip={0.1} className="optical-cap max-w-[18ch]">
+          <Opener slip={slipFor("standing")} className="optical-cap max-w-[18ch]">
             What it does, monthly
           </Opener>
           <p className="rag-pretty opsz-deck mt-7 max-w-[40ch] font-news text-[1.4rem] sm:text-deck text-agreed">

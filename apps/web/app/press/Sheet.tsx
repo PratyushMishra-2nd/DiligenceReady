@@ -222,6 +222,52 @@ export function Legend() {
 }
 
 /**
+ * The register ladder, in one place, because hand-passing it did not survive.
+ *
+ * Every divider and every section heading on this page carries a `slip`, and
+ * the document's whole claim is that those values descend monotonically from
+ * the hero to the sign-off — that the two impressions are closing as you
+ * read. They were passed as nine literals across five files, and measured in
+ * document order they read 1.00, 0.72, 0.78, 0.56, 0.44, 0.10, 0.22, 0.11, 0.
+ *
+ * Twice, the page went back OUT of register. `Opener`'s own docstring says
+ * "`slip` matches the divider above it" and four headings had drifted onto
+ * the divider BELOW them instead. Nobody caught it because the offsets are
+ * between half a pixel and five: the magnitude that makes the effect tasteful
+ * is the same magnitude that let the argument rot without anyone seeing.
+ *
+ * So the ladder is derived from position now. A section cannot disagree with
+ * the rule above it, the sequence cannot reverse, and inserting a section
+ * re-spaces the whole document instead of silently breaking it.
+ */
+export const SECTIONS = [
+  "answer-key",
+  "how",
+  "screens",
+  "trace",
+  "pricing",
+  "data",
+  "standing",
+  "who",
+  "faq",
+  "pilot",
+] as const;
+
+export type SectionId = (typeof SECTIONS)[number];
+
+/**
+ * How far out of register a section's rule and heading are printed.
+ *
+ * Divided by `length` rather than `length - 1`, so the last section lands at
+ * one step above zero rather than at zero: the sign-off rule at the very foot
+ * of the document is the only thing on the page printed in perfect register,
+ * and it should not have to share that with the heading above it.
+ */
+export function slipFor(section: SectionId): number {
+  return 1 - SECTIONS.indexOf(section) / SECTIONS.length;
+}
+
+/**
  * A section heading, printed slightly out of register.
  *
  * The overprint existed on exactly one number on the whole site, and the
@@ -285,9 +331,16 @@ export function Opener({
           as 0.42px. The unit that works is the one the value is meant to be
           in. The openers are clamped between 56px and 116px, a range of about
           two, so a fixed pixel slip reads correctly across the whole ramp. */}
+      {/* 10.0, not 6.0. With ten sections the ladder steps in tenths, so
+          this coefficient prints the openers at exactly 10, 9, 8 … 1px and
+          the last one is still a pixel rather than the 0.60px it used to be
+          — which is to say, still visible rather than not printed at all.
+          Ten pixels at the head is an order of magnitude under the 0.055em
+          that `Overprint` rejects by name as reading like an extrusion
+          rather than a slip. */}
       <Overprint
-        offset={`${(6.0 * slip).toFixed(2)}px`}
-        drop={`${(3.6 * slip).toFixed(2)}px`}
+        offset={`${(10.0 * slip).toFixed(2)}px`}
+        drop={`${(6.0 * slip).toFixed(2)}px`}
       >
         {head}
       </Overprint>

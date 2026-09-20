@@ -39,13 +39,19 @@ export function SignOff() {
           Sign-off
         </p>
 
-        <div className="mt-8 grid gap-x-16 gap-y-10 sm:grid-cols-2">
+        {/* Two columns at every width, because the graphic IS the
+            adjacency: a filled rule beside a blank one. Stacked below `sm`
+            it became a heading followed by an empty paragraph — the reader
+            has to hold the first rule in memory to notice the second is
+            unsigned, which is the one thing this section cannot afford to
+            ask. The gutter tightens instead of the grid collapsing. */}
+        <div className="mt-8 grid grid-cols-2 gap-x-6 gap-y-10 sm:gap-x-16">
           <div>
             <p className="font-mono text-stub uppercase tracking-[0.06em] text-stock/60">
               Prepared by
             </p>
             {/* Filled, because this part is done. */}
-            <p className="wdth-set mt-2 border-b-2 border-stock pb-2 font-anek text-subhead font-semibold">
+            <p className="wdth-set mt-2 border-b-2 border-stock pb-2 font-anek text-[1.05rem] font-semibold sm:text-subhead">
               DiligenceReady
             </p>
           </div>
@@ -57,7 +63,7 @@ export function SignOff() {
             {/* Blank, because this part is not. The non-breaking space holds
                 the line open at the same height as the one beside it, so the
                 emptiness is a measured gap rather than a missing element. */}
-            <p className="mt-2 border-b-2 border-stock pb-2 font-anek text-subhead">&nbsp;</p>
+            <p className="mt-2 border-b-2 border-stock pb-2 font-anek text-[1.05rem] sm:text-subhead">&nbsp;</p>
           </div>
         </div>
 

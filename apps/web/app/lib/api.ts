@@ -239,6 +239,28 @@ async function get<T>(path: string): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+/**
+ * A failure the engine answered with, carrying the status it answered with.
+ *
+ * Callers used to have to guess from the message: the sign-in form matched
+ * `/^\/\S* returned \d{3}$/` to tell "your password is wrong" from "the
+ * engine is broken", which works only for the failures that had no `detail`
+ * body and silently misreads a 500 that has one as a credential error. That
+ * guess decided whether `aria-invalid` went on the reader's email address, so
+ * it was wrong in a way a screen reader read out loud.
+ *
+ * Nothing that only reads `.message` has to change: this is an `Error`.
+ */
+export class ApiError extends Error {
+  readonly status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+  }
+}
+
 async function post<T>(path: string, body?: unknown): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
     method: "POST",
@@ -248,7 +270,10 @@ async function post<T>(path: string, body?: unknown): Promise<T> {
   });
   if (!response.ok) {
     const detail = await response.json().catch(() => ({}));
-    throw new Error(detail.detail ?? `${path} returned ${response.status}`);
+    throw new ApiError(
+      detail.detail ?? `${path} returned ${response.status}`,
+      response.status,
+    );
   }
   return response.json() as Promise<T>;
 }

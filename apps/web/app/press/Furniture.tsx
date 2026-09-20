@@ -19,11 +19,22 @@
  * the sign-off, states the whole thing in one silent graphic in the five
  * seconds a reader actually gives a page.
  *
- * It is also, verifiably, an empty lane: a search of the award record
+ * This used to claim the lane was empty — "a search of the award record
  * returns nothing for overprint, misregistration, risograph, moiré or
- * newsprint, and the standing advice on simulating crop marks on the web is
- * that there is no reason to do it. There is a reason to do it here, and it
- * is that this page is a working paper rather than a page about one.
+ * newsprint". That is false, and it is the kind of false a judge can check in
+ * one search: Awwwards publishes a curated newspaper-inspired collection, and
+ * Obys shipped a print-material site in January 2026. A design justification
+ * written into source as a fact about the world is worth exactly as much as
+ * the fact, so the claim is withdrawn rather than softened.
+ *
+ * What survives it is the better argument anyway, because it never depended
+ * on being first: print reference on the web is usually a costume, applied to
+ * a page that is about something else. Here the instrument is functional —
+ * the target is apart at the head of the sheet and superimposed at the
+ * sign-off because the document genuinely converges between those two points.
+ * The standing advice on simulating crop marks is that there is no reason to
+ * do it. There is a reason to do it here, and it is that this page is a
+ * working paper rather than a page about one.
  *
  * ON CMYK, because this is the page that cannot afford to overclaim it:
  * `device-cmyk()` has no support in any browser engine. These are two sRGB

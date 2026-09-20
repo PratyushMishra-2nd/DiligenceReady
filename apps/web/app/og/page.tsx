@@ -48,7 +48,7 @@ export default function OgCard() {
 
       <div>
         <h1 className="optical-cap wdth-tight max-w-[18ch] font-anek text-[5.5rem] font-bold leading-[0.92] tracking-[-0.032em] text-agreed">
-          Three systems. One truth.
+          Reconciled the week 2B lands.
         </h1>
         <p className="opsz-deck mt-6 max-w-[52ch] font-news text-[1.75rem] leading-snug text-graphite">
           Books, GSTR-2B and bank, reconciled every month, with the evidence kept — for

@@ -69,7 +69,7 @@ export function Colophon() {
           </p>
         </div>
 
-        <dl className="vt-index font-mono text-stub uppercase text-graphite">
+        <dl className="font-mono text-stub uppercase text-graphite">
           <div className="flex justify-between border-b border-hairline py-2">
             <dt>Index</dt>
             <dd className="text-agreed">W-1</dd>

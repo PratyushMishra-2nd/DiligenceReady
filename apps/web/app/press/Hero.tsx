@@ -68,17 +68,65 @@ export function Hero() {
 
   return (
     <section className="pb-14 pt-10 sm:pt-12">
-      <div className="grid gap-x-14 gap-y-10 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]">
+      {/* Stacked, not two columns, and that is what the figure below is for.
+          The hero used to be a 1.05fr / 1fr split with the headline in one
+          column and the money in the other, which capped the figure at 88px:
+          half a 1280px sheet cannot hold a fourteen-character rupee amount at
+          any larger size. So the whole type system's reason for existing was
+          being set at a third of its scale — `globals.css` states outright
+          that Anek's width axis "is the entire reason it is here: it is what
+          lets a fourteen character rupee figure set at 268px inside a 1280px
+          viewport", and `text-register` was written for exactly that and
+          called from nowhere.
+          The figure gets the full measure now and the supporting material
+          goes underneath it in two columns. The argument runs in the same
+          order it always did — what this is, what we found, what it costs —
+          it is just no longer whispering the middle term. */}
+      <p className="sets sets-1 font-mono text-stub uppercase text-statute-deep">
+        Tally · GSTR-2B · Bank — for firms carrying 5 to 80 clients
+      </p>
+
+      <h1 className="sets sets-2 rag-balance optical-cap wdth-tight mt-4 max-w-[15ch] font-anek text-headline font-bold text-agreed">
+        Reconciled the week 2B lands.
+      </h1>
+
+      {/* The money, and the clock on it. This was captioned "what the
+          disagreement costs two client companies" — a caption about a demo
+          dataset rather than a claim the reader can feel. The credit is what
+          the client has already paid; the date is what makes it urgent; the
+          last clause is what makes it the partner's problem rather than the
+          client's. */}
+      <figure className="mt-9 min-w-0">
+        <figcaption className="font-mono text-stub uppercase text-graphite">
+          Found on two client companies, in one pass
+        </figcaption>
+
+        {/* The negative margin that used to be here — `-mr-[6vw]` — drew
+            nothing at any viewport. `Overprint`'s root is an `inline-block`,
+            so it shrinks to fit its content; widening the containing block to
+            its right does not stretch it. Measured at 1440px the figure ended
+            228px short of the column it was supposedly bleeding out of. The
+            bleed was a class, not an effect. */}
+        <div className="mt-2">
+          <Overprint
+            settle
+            throwBy={16}
+            settleMs={900}
+            className="optical-figure wdth-condensed font-anek text-register font-bold"
+          >
+            <Rupee amount={headline.amount} />
+          </Overprint>
+        </div>
+
+        <p className="rag-pretty opsz-prose mt-5 max-w-[52ch] font-news text-prose text-graphite">
+          Input tax credit your client has already paid to suppliers and cannot claim,
+          because the supplier&rsquo;s filing and the books disagree.
+        </p>
+      </figure>
+
+      <div className="mt-12 grid gap-x-14 gap-y-10 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]">
         <div className="min-w-0">
-          <p className="sets sets-1 font-mono text-stub uppercase text-statute-deep">
-            Tally · GSTR-2B · Bank — for firms carrying 5 to 80 clients
-          </p>
-
-          <h1 className="sets sets-2 rag-balance optical-cap wdth-tight mt-4 max-w-[15ch] font-anek text-headline font-bold text-agreed">
-            Reconciled the week 2B lands.
-          </h1>
-
-          <p className="sets sets-3 rag-pretty opsz-intro mt-5 max-w-[50ch] font-news text-[1.25rem] leading-snug text-agreed sm:text-[1.6rem]">
+          <p className="sets sets-3 rag-pretty opsz-intro max-w-[50ch] font-news text-[1.25rem] leading-snug text-agreed sm:text-[1.6rem]">
             Every rupee of input tax credit has a last date, and we put it on the invoice.
             DiligenceReady matches your client&rsquo;s Tally books, their GSTR-2B and their
             bank statement every month, for every client your firm carries, and dates every
@@ -128,33 +176,7 @@ export function Hero() {
           </div>
         </div>
 
-        {/* The money, and the clock on it. This was captioned "what the
-            disagreement costs two client companies" — a caption about a demo
-            dataset rather than a claim the reader can feel. The credit is what
-            the client has already paid; the date is what makes it urgent; the
-            last clause is what makes it the partner's problem rather than the
-            client's. */}
-        <figure className="min-w-0 lg:pt-5">
-          <figcaption className="font-mono text-stub uppercase text-graphite">
-            Found on two client companies, in one pass
-          </figcaption>
-
-          <div className="-mr-[6vw] mt-3">
-            <Overprint
-              settle
-              throwBy={16}
-              settleMs={900}
-              className="optical-figure wdth-condensed font-anek text-[clamp(44px,6.6vw,88px)] font-bold leading-[0.84] tracking-[-0.04em]"
-            >
-              <Rupee amount={headline.amount} />
-            </Overprint>
-          </div>
-
-          <p className="rag-pretty opsz-prose mt-4 max-w-[44ch] font-news text-prose text-graphite">
-            Input tax credit your client has already paid to suppliers and cannot claim,
-            because the supplier&rsquo;s filing and the books disagree.
-          </p>
-
+        <div className="min-w-0">
           {/* The consequence, at a size a reader can meet.
               This was the third sentence of the paragraph above, set at 17px:
               the strongest commercial claim on the page, below the fold of
@@ -163,8 +185,11 @@ export function Hero() {
               client if you do nothing — and a consequence claim is the one a
               partner acts on.
               It is deliberately smaller than the headline figure rather than
-              equal to it. Two figures at 88px fight; a large one and a firm
-              one read in order, which is the order the argument runs in. */}
+              equal to it. Two figures of one size fight; a large one and a
+              firm one read in order, which is the order the argument runs
+              in — and now that the headline figure is set at `text-register`
+              rather than at 88px, the gap between them states that order
+              rather than merely implying it. */}
           <div className="mt-6 border-t-2 border-agreed pt-4">
             <p className="font-mono text-stub uppercase tracking-[0.06em] text-statute-deep">
               Section 16(4) · closes {LONG_DATE.format(deadline)}
@@ -188,7 +213,7 @@ export function Hero() {
             <Row label="Records read" value={read.toLocaleString("en-IN")} />
             <Row label="Client-months reconciled" value={String(clientMonths)} />
           </dl>
-        </figure>
+        </div>
       </div>
     </section>
   );

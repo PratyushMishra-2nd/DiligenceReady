@@ -31,7 +31,7 @@ const STEPS: { n: string; title: string; body: string }[] = [
   },
 ];
 
-import { Opener } from "./Sheet";
+import { Opener, slipFor } from "./Sheet";
 
 export function HowItWorks() {
   return (
@@ -39,7 +39,7 @@ export function HowItWorks() {
       {/* The list below is on the paper grid and this heading was not, which
           left it 80px outside the column every other opener starts in. */}
       <div className="lg:pl-20">
-        <Opener slip={1} className="optical-cap max-w-[18ch]">
+        <Opener slip={slipFor("how")} className="optical-cap max-w-[18ch]">
           What it actually does
         </Opener>
       </div>

@@ -17,7 +17,7 @@ import { Plate } from "./press/Plate";
 import { Pricing } from "./press/Pricing";
 import { Screens } from "./press/Screens";
 import { SignOff } from "./press/SignOff";
-import { Legend, Opener, Sheet } from "./press/Sheet";
+import { Legend, Opener, Sheet, slipFor } from "./press/Sheet";
 import { Standing } from "./press/Standing";
 import { Trace } from "./press/Trace";
 import { Trust } from "./press/Trust";
@@ -150,10 +150,10 @@ export default function LandingPage() {
 
         <Answers />
 
-        <Misregister slip={1} />
+        <Misregister slip={slipFor("how")} />
 
         <HowItWorks />
-        <Misregister slip={0.89} />
+        <Misregister slip={slipFor("screens")} />
 
         <Screens />
 
@@ -174,10 +174,10 @@ export default function LandingPage() {
           </div>
         </aside>
 
-        <Misregister slip={0.78} />
+        <Misregister slip={slipFor("trace")} />
 
         <Sheet mark="traced">
-          <Opener slip={0.78} className="optical-cap max-w-[20ch]">
+          <Opener slip={slipFor("trace")} className="optical-cap max-w-[20ch]">
             Every figure has a line
           </Opener>
           <p className="rag-pretty opsz-deck mt-7 max-w-[46ch] font-news text-[1.4rem] text-agreed sm:text-deck">
@@ -207,14 +207,14 @@ export default function LandingPage() {
           </div>
         </Sheet>
 
-        <Misregister slip={0.67} />
+        <Misregister slip={slipFor("pricing")} />
 
         <Pricing />
 
-        <Misregister slip={0.56} />
+        <Misregister slip={slipFor("data")} />
 
         <Sheet id="data" mark="stated">
-          <Opener slip={0.44} className="optical-cap max-w-[22ch]">
+          <Opener slip={slipFor("data")} className="optical-cap max-w-[22ch]">
             Where the client data goes
           </Opener>
           <p className="rag-pretty opsz-deck mt-7 max-w-[48ch] font-news text-[1.4rem] text-agreed sm:text-deck">
@@ -224,32 +224,32 @@ export default function LandingPage() {
           <Trust />
         </Sheet>
 
-        <Misregister slip={0.44} />
+        <Misregister slip={slipFor("standing")} />
 
         <Standing />
 
-        <Misregister slip={0.33} />
+        <Misregister slip={slipFor("who")} />
 
         <Sheet id="who" mark="computed">
-          <Opener slip={0.22} className="optical-cap max-w-[18ch]">
+          <Opener slip={slipFor("who")} className="optical-cap max-w-[18ch]">
             Who this is for
           </Opener>
           <Audience />
         </Sheet>
 
-        <Misregister slip={0.22} />
+        <Misregister slip={slipFor("faq")} />
 
         <Sheet id="faq" mark="traced">
-          <Opener slip={0.11} className="optical-cap max-w-[20ch]">
+          <Opener slip={slipFor("faq")} className="optical-cap max-w-[20ch]">
             Questions, answered at length
           </Opener>
           <Faq />
         </Sheet>
 
-        <Misregister slip={0.11} />
+        <Misregister slip={slipFor("pilot")} />
 
         <Sheet id="pilot" mark="stated">
-          <Opener slip={0} className="optical-cap max-w-[20ch]">
+          <Opener slip={slipFor("pilot")} className="optical-cap max-w-[20ch]">
             Sign the sheet
           </Opener>
           <Pilot />

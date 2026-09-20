@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
+import { destination } from "../lib/next-path";
 import { hasLiveSession } from "../lib/session";
 import { Masthead } from "../press/Masthead";
 import { Misregister } from "../press/Misregister";
@@ -41,7 +42,11 @@ export default async function SignInPage({
   // string is allowed to repeat a key. Declaring it `string` here would be a
   // type that lies: `?next=/a&next=/b` arrives as an array and the first
   // string method called on it throws, on the login page of all routes.
-  searchParams: { next?: string | string[]; demo?: string | string[] };
+  searchParams: {
+    next?: string | string[];
+    demo?: string | string[];
+    failed?: string | string[];
+  };
 }) {
   const next = destination(searchParams.next);
   if (await hasLiveSession()) redirect(next);
@@ -49,6 +54,14 @@ export default async function SignInPage({
   // form has to explain why they are looking at a password box they did not
   // ask for, and fill it in for them.
   const demo = searchParams.demo === "1";
+  // Set by `submit/route.ts`, the path a reader takes when the form posted
+  // without JavaScript. The page renders the sentence; the route only said
+  // which of the two happened, because a `Location` is a URL and server prose
+  // in one is prose quoted back into the page out of the address bar.
+  const failed =
+    searchParams.failed === "credentials" || searchParams.failed === "engine"
+      ? searchParams.failed
+      : null;
 
   return (
     <>
@@ -63,7 +76,7 @@ export default async function SignInPage({
           client component: importing the masthead into it would pull the
           lockup and the demo button across the boundary with it, for markup
           that never changes after the first paint. */}
-      <Masthead />
+      <Masthead current="/sign-in" sheet="W-2" />
 
       <main className="mx-auto max-w-[1280px] px-6 sm:px-10">
         <section className="sheet py-14">
@@ -88,7 +101,7 @@ export default async function SignInPage({
                   </span>
                 </h1>
 
-                <dl className="vt-index font-mono text-stub uppercase text-graphite">
+                <dl className="font-mono text-stub uppercase text-graphite">
                   <div className="flex justify-between gap-x-8 border-b border-hairline py-2">
                     <dt>Index</dt>
                     <dd className="text-agreed">W-2</dd>
@@ -106,9 +119,10 @@ export default async function SignInPage({
                   : "Your firm’s workspace, and the client books inside it."}
               </p>
 
-              <div className="max-w-[34rem]">
-                <SignInForm next={next} demo={demo} />
-              </div>
+              {/* No measure cap here any more. The form sets its own, and
+                  the demo block now sits in the column that cap used to
+                  leave empty. */}
+              <SignInForm next={next} demo={demo} failed={failed} />
             </div>
           </div>
         </section>
@@ -121,23 +135,3 @@ export default async function SignInPage({
   );
 }
 
-/**
- * Where to go after the form, from a parameter anyone can write.
- *
- * It ends up in `router.push`, so it is confined to a path inside this app.
- * One leading slash and not two: `//somewhere.example` is a protocol-relative
- * URL and the browser reads it as another origin, which is how an open
- * redirect on a login page becomes a phishing link that starts on the real
- * one. A backslash is rejected for the same reason — some browsers normalise
- * `/\evil.example` the same way.
- */
-function destination(value: string | string[] | undefined): string {
-  if (!value) return "/app";
-  // A repeated `next` is nothing a link in this app produces, so it is either
-  // a mangled URL or someone probing. Neither is owed a guess at which of the
-  // two they meant; both get the dashboard.
-  if (typeof value !== "string") return "/app";
-  if (!value.startsWith("/")) return "/app";
-  if (value.startsWith("//") || value.startsWith("/\\")) return "/app";
-  return value;
-}
