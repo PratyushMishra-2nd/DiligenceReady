@@ -1,11 +1,13 @@
 import { inr } from "./lib/format";
 import aggregates from "./press/aggregates.json";
 import { Answers } from "./press/Answers";
+import { AnswerKey } from "./press/AnswerKey";
 import { Audience } from "./press/Audience";
 import { CallToAction } from "./press/CallToAction";
 import { Colophon } from "./press/Colophon";
 import { DemoButton } from "./press/DemoButton";
 import { Faq } from "./press/Faq";
+import { ColourBar, RegistrationTarget, TrimMark } from "./press/Furniture";
 import { Hero } from "./press/Hero";
 import { HowItWorks } from "./press/HowItWorks";
 import { Masthead } from "./press/Masthead";
@@ -14,6 +16,7 @@ import { Pilot } from "./press/Pilot";
 import { Plate } from "./press/Plate";
 import { Pricing } from "./press/Pricing";
 import { Screens } from "./press/Screens";
+import { SignOff } from "./press/SignOff";
 import { Legend, Opener, Sheet } from "./press/Sheet";
 import { Standing } from "./press/Standing";
 import { Trace } from "./press/Trace";
@@ -28,6 +31,17 @@ import { Trust } from "./press/Trust";
 export const metadata = {
   alternates: { canonical: "/" },
 };
+
+/**
+ * The hero now prints how many days are left before the next Section 16(4)
+ * cut-off, which is a figure that goes stale. Prerendered once at build, the
+ * page would still be claiming seventy-one days in December.
+ *
+ * An hour is the right granularity: the number changes once a day, the page
+ * stays static for every reader inside that hour, and nothing about this
+ * needs a client-side clock ticking on a marketing page.
+ */
+export const revalidate = 3600;
 
 /**
  * The landing page, which is a working paper.
@@ -78,30 +92,6 @@ export const metadata = {
  * reader who would rather type them than be signed in by a stranger.
  */
 
-/**
- * Counts this page writes in words.
- *
- * A figure set in digits is one the reader is invited to check against
- * something; these are neither at risk nor traceable to a row, they are the
- * shape of the dataset, and spelling them keeps the digits on the page meaning
- * one thing. Anything not listed falls back to the numeral rather than being
- * spelled wrongly.
- */
-const SPELLED: Record<number, string> = {
-  2: "two",
-  4: "four",
-  12: "twelve",
-  41: "forty-one",
-  82: "eighty-two",
-};
-
-/** The same word, at the start of a sentence. */
-function spell(n: number, sentenceStart = false): string {
-  const word = SPELLED[n];
-  if (!word) return String(n);
-  return sentenceStart ? word[0].toUpperCase() + word.slice(1) : word;
-}
-
 export default function LandingPage() {
   const example = aggregates.example;
 
@@ -112,8 +102,35 @@ export default function LandingPage() {
           carries its own. */}
       <Masthead />
 
-      <div className="mx-auto max-w-[1280px] px-6 sm:px-10">
+      {/* The sheet itself, with the blade marks at its four corners. */}
+      <div className="relative mx-auto max-w-[1280px] px-6 sm:px-10">
+        <TrimMark corner="tl" />
+        <TrimMark corner="tr" />
+        <TrimMark corner="bl" />
+        <TrimMark corner="br" />
+
+        {/* The head of the sheet. The target is the instrument the whole
+            document has been arguing about and never carried: two plates of
+            one crosshair, visibly apart here and exactly superimposed at the
+            sign-off, so the closing progression is stated once at full size
+            instead of nine times at three pixels. The trim marks are where
+            the blade would fall. */}
+        <div
+          aria-hidden
+          className="no-print flex items-center justify-end gap-5 pt-6 lg:pt-8"
+        >
+          <ColourBar className="hidden sm:flex" />
+          <RegistrationTarget slip={1} />
+        </div>
+
         <Hero />
+
+        {/* The measurement, directly under the hero.
+            It used to be nowhere — the strongest verifiable fact this product
+            owns, sitting in a JSON file while the page argued its way toward
+            it for nine sections and then never arrived. A reader who leaves
+            at sixty per cent should already have met it. */}
+        <AnswerKey />
 
         {/* The figure above, on the screen it is actually on.
             This is the shortest distance between a claim and its evidence
@@ -246,6 +263,21 @@ export default function LandingPage() {
             can only check that if the definition is on the page. */}
         <Legend />
 
+        {/* The foot of the sheet, and the instrument closing.
+            The target at the head of the page is two plates visibly apart;
+            this is the same mark with the plates exactly superimposed, so it
+            reads as one crosshair in the colour the two inks make. It is the
+            document's whole argument stated twice, at full size, at the two
+            ends of the sheet — which is the job the nine three-pixel slip
+            steps between them have never been large enough to do.
+            On paper rather than on the black plate below: multiply against
+            a near-black ground yields the ground, and a verification mark
+            that cannot perform its own mechanism is decoration. */}
+        <div aria-hidden className="no-print flex items-center justify-end gap-5 pt-4">
+          <ColourBar className="hidden sm:flex" />
+          <RegistrationTarget slip={0} />
+        </div>
+
         {/* In register. The progression down the page has been closing since
             the hero and this is where it arrives: one rule, in the colour the
             two inks make together. It sits here rather than under the black
@@ -260,6 +292,13 @@ export default function LandingPage() {
       <div className="mx-auto max-w-[1280px] px-6 sm:px-10">
         <Colophon />
       </div>
+
+      {/* Last, and full-bleed. The document ends on an empty signature line.
+          It sits after the colophon because that is the order a working
+          paper runs in — provenance, then the block where a reviewer signs
+          it — and outside the measure because the plate is a press bed and
+          a press bed reaches both edges of the sheet. */}
+      <SignOff />
     </main>
   );
 }

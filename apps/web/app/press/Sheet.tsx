@@ -149,8 +149,8 @@ export function ScheduleRow({
   note?: ReactNode;
 }) {
   return (
-    <div className="grid gap-x-6 gap-y-1 border-b border-hairline py-3 sm:grid-cols-[minmax(0,1fr)_auto]">
-      <dt className="rag-pretty opsz-prose font-news text-prose text-agreed">
+    <div className="mark-verb grid gap-x-6 gap-y-1 border-b border-hairline py-3 hover:bg-agreed-wash/40 sm:grid-cols-[minmax(0,1fr)_auto]">
+      <dt className="rag-pretty opsz-prose max-w-sheet font-news text-prose text-agreed">
         {term}
         {note && (
           <span className="mt-1 block font-news text-ident leading-relaxed text-graphite">
@@ -181,7 +181,7 @@ export function ScheduleRow({
  */
 export function Legend() {
   return (
-    <section className="max-w-sheet border-t border-hairline py-12">
+    <section className="legend max-w-sheet border-t border-hairline py-12">
       <h2 className="font-mono text-stub uppercase text-graphite">Tick mark legend</h2>
       <dl className="mt-5 grid gap-y-3">
         {MARKS.map(({ mark, name, meaning }) => (
@@ -286,8 +286,8 @@ export function Opener({
           in. The openers are clamped between 56px and 116px, a range of about
           two, so a fixed pixel slip reads correctly across the whole ramp. */}
       <Overprint
-        offset={`${(3.0 * slip).toFixed(2)}px`}
-        drop={`${(1.8 * slip).toFixed(2)}px`}
+        offset={`${(6.0 * slip).toFixed(2)}px`}
+        drop={`${(3.6 * slip).toFixed(2)}px`}
       >
         {head}
       </Overprint>

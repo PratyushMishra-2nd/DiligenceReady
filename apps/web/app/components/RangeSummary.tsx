@@ -109,7 +109,7 @@ export function RangeSummary({
                 <th scope="row" className="py-2 pr-4 text-left font-normal">
                   <Link
                     href={`/app/companies/${companyId}?period=${month.period}`}
-                    className="underline decoration-hairline underline-offset-4 hover:decoration-agreed hover:text-agreed"
+                    className="mark-verb underline decoration-graphite-soft underline-offset-4 hover:decoration-agreed hover:text-agreed"
                   >
                     {periodLabel(month.period)}
                   </Link>
@@ -216,7 +216,7 @@ function RangeFindings({ range, companyId }: { range: Range; companyId: string }
             <span className="sr-only">{risk.severity} severity</span>
             <Link
               href={`/app/companies/${companyId}?period=${risk.period}`}
-              className="tabular w-[5.5rem] shrink-0 text-ident text-graphite underline decoration-hairline underline-offset-4 hover:decoration-agreed hover:text-agreed"
+              className="tabular w-[5.5rem] shrink-0 text-ident text-graphite mark-verb underline decoration-graphite-soft underline-offset-4 hover:decoration-agreed hover:text-agreed"
             >
               {periodLabel(risk.period, true)}
             </Link>

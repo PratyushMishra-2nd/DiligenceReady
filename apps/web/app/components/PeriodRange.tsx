@@ -153,7 +153,7 @@ export function PeriodRange({
         onClick={() => setOpen((was) => !was)}
         aria-expanded={open}
         aria-haspopup="dialog"
-        className="flex items-center gap-2 border border-hairline px-3 py-1.5 text-ident text-graphite transition-colors hover:border-agreed hover:text-agreed"
+        className="flex items-center gap-2 border border-hairline px-3 py-1.5 text-ident text-graphite press-verb hover:border-agreed hover:text-agreed"
       >
         <span className="font-mono text-stub uppercase tracking-[0.06em] text-graphite-soft">
           Period
@@ -181,7 +181,7 @@ export function PeriodRange({
                   key={preset.key}
                   type="button"
                   onClick={() => go(preset.from, preset.to)}
-                  className={`border px-2 py-1 text-ident transition-colors ${
+                  className={`border px-2 py-1 text-ident press-verb ${
                     active
                       ? "border-agreed bg-agreed text-stock"
                       : "border-hairline text-graphite hover:border-agreed hover:text-agreed"
@@ -220,7 +220,7 @@ export function PeriodRange({
                 setEnd(to);
               }}
               disabled={!dirty}
-              className="text-ident text-graphite underline decoration-graphite-soft underline-offset-4 hover:decoration-agreed disabled:text-graphite-soft disabled:no-underline"
+              className="text-ident text-graphite mark-verb underline decoration-graphite-soft underline-offset-4 hover:decoration-agreed disabled:text-graphite-soft disabled:no-underline"
             >
               Reset
             </button>
@@ -228,7 +228,7 @@ export function PeriodRange({
               type="button"
               onClick={() => go(start, end)}
               disabled={!dirty || invalid}
-              className="border-2 border-books bg-books px-4 py-1.5 font-mono text-stub uppercase tracking-[0.06em] text-stock transition-colors hover:bg-stock hover:text-books disabled:border-graphite-soft disabled:bg-transparent disabled:text-graphite-soft"
+              className="border-2 border-books bg-books px-4 py-1.5 font-mono text-stub uppercase tracking-[0.06em] text-stock press-verb hover:bg-stock hover:text-books disabled:border-graphite-soft disabled:bg-transparent disabled:text-graphite-soft"
             >
               Apply
             </button>

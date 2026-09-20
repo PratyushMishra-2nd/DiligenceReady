@@ -30,7 +30,7 @@ export function SignOut({ name, role }: { name: string; role: string }) {
         type="button"
         onClick={signOut}
         disabled={busy}
-        className="underline decoration-graphite-soft underline-offset-4 hover:decoration-agreed disabled:opacity-50"
+        className="mark-verb underline decoration-graphite-soft underline-offset-4 hover:decoration-agreed disabled:opacity-50"
       >
         Sign out
       </button>

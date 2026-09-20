@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import aggregates from "./aggregates.json";
 import { DEMO_EMAIL, DEMO_PASSWORD } from "../lib/demo";
 
@@ -30,11 +32,39 @@ import { Rupee } from "./Rupee";
  *
  * Every figure is read from `aggregates.json`, generated from the seed feeds.
  */
+const LONG_DATE = new Intl.DateTimeFormat("en-IN", {
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+  timeZone: "UTC",
+});
+
+/**
+ * Days between today and the statutory cut-off.
+ *
+ * Both dates are pinned to UTC midnight rather than local time, because the
+ * only thing being compared is a calendar distance: a reader in IST and the
+ * server in UTC must be told the same number of days, and `new Date()` in two
+ * zones either side of midnight is otherwise off by one. A page that prints a
+ * deadline wrongly by a day is worse than one that does not print it.
+ *
+ * The count is computed on the server and the route revalidates hourly, so it
+ * is at worst an hour stale on a figure that changes once a day.
+ */
+function daysUntil(iso: string): number {
+  const now = new Date();
+  const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  const [y, m, d] = iso.split("-").map(Number);
+  return Math.max(0, Math.round((Date.UTC(y, m - 1, d) - today) / 86_400_000));
+}
+
 export function Hero() {
   const { headline, totals } = aggregates;
   const read =
     totals.purchase_register + totals.gstr2b_documents + totals.bank_statement;
   const clientMonths = totals.companies * aggregates.periods;
+  const deadline = new Date(`${headline.before_next_deadline.deadline}T00:00:00Z`);
+  const daysLeft = daysUntil(headline.before_next_deadline.deadline);
 
   return (
     <section className="pb-14 pt-10 sm:pt-12">
@@ -57,9 +87,21 @@ export function Hero() {
 
           <div className="sets sets-4 mt-7 flex flex-wrap items-center gap-x-4 gap-y-3">
             <DemoButton label="Open the live demo" />
+            {/* The one thing on this site a stranger can operate without an
+                account, and it was linked once from the colophon at 14px. A
+                date in, a real statutory answer out, in about ten seconds —
+                a stronger demonstration of domain competence than any
+                sentence on this page, and it does not depend on the demo
+                engine being reachable. */}
+            <Link
+              href="/tools/section-16-4"
+              className="mark-verb font-mono text-ident uppercase tracking-[0.08em] text-agreed underline decoration-statute underline-offset-4 hover:decoration-agreed"
+            >
+              Date an invoice &rarr;
+            </Link>
             <a
               href="#pricing"
-              className="font-mono text-ident uppercase tracking-[0.08em] text-graphite underline decoration-hairline underline-offset-4 transition-colors hover:text-agreed hover:decoration-agreed"
+              className="mark-verb font-mono text-ident uppercase tracking-[0.08em] text-graphite underline decoration-graphite-soft underline-offset-4 hover:text-agreed hover:decoration-agreed"
             >
               See pricing &rarr;
             </a>
@@ -76,8 +118,10 @@ export function Hero() {
             <p className="rag-pretty opsz-prose mt-2 font-news text-ident leading-relaxed text-graphite">
               The workspace is already loaded with two client companies and twelve months of
               books — or sign in yourself as{" "}
-              <span className="select-all break-all font-mono text-agreed">{DEMO_EMAIL}</span>{" "}
-              <span className="select-all break-all font-mono text-agreed">
+              <span className="mark-verb select-all break-all font-mono text-agreed hover:bg-sunk">
+                {DEMO_EMAIL}
+              </span>{" "}
+              <span className="mark-verb select-all break-all font-mono text-agreed hover:bg-sunk">
                 {DEMO_PASSWORD}
               </span>
             </p>
@@ -98,6 +142,8 @@ export function Hero() {
           <div className="-mr-[6vw] mt-3">
             <Overprint
               settle
+              throwBy={16}
+              settleMs={900}
               className="optical-figure wdth-condensed font-anek text-[clamp(44px,6.6vw,88px)] font-bold leading-[0.84] tracking-[-0.04em]"
             >
               <Rupee amount={headline.amount} />
@@ -106,14 +152,37 @@ export function Hero() {
 
           <p className="rag-pretty opsz-prose mt-4 max-w-[44ch] font-news text-prose text-graphite">
             Input tax credit your client has already paid to suppliers and cannot claim,
-            because the supplier&rsquo;s filing and the books disagree.{" "}
-            <span className="font-medium text-statute-deep">
-              <Rupee amount={headline.before_next_deadline.amount} /> of it sits on invoices
-              whose Section 16(4) window closes on 30 November.
-            </span>{" "}
-            After that date it stops being a receivable and becomes the client&rsquo;s cost,
-            and your conversation.
+            because the supplier&rsquo;s filing and the books disagree.
           </p>
+
+          {/* The consequence, at a size a reader can meet.
+              This was the third sentence of the paragraph above, set at 17px:
+              the strongest commercial claim on the page, below the fold of
+              attention. The figure above is a PROCESS claim — here is what we
+              found. This is a CONSEQUENCE claim — here is what happens to your
+              client if you do nothing — and a consequence claim is the one a
+              partner acts on.
+              It is deliberately smaller than the headline figure rather than
+              equal to it. Two figures at 88px fight; a large one and a firm
+              one read in order, which is the order the argument runs in. */}
+          <div className="mt-6 border-t-2 border-agreed pt-4">
+            <p className="font-mono text-stub uppercase tracking-[0.06em] text-statute-deep">
+              Section 16(4) · closes {LONG_DATE.format(deadline)}
+            </p>
+            <p className="mt-2 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+              <span className="wdth-condensed tabular optical-figure font-anek text-[clamp(30px,4vw,46px)] font-bold leading-none text-statute-deep">
+                <Rupee amount={headline.before_next_deadline.amount} />
+              </span>
+              <span className="tabular font-mono text-ident uppercase tracking-[0.06em] text-graphite">
+                {daysLeft} days left
+              </span>
+            </p>
+            <p className="rag-pretty opsz-prose mt-3 max-w-[46ch] font-news text-prose text-agreed">
+              of that credit sits on invoices whose window closes then. After that date it
+              stops being a receivable and becomes the client&rsquo;s cost, and your
+              conversation.
+            </p>
+          </div>
 
           <dl className="mt-6 border-t border-hairline">
             <Row label="Records read" value={read.toLocaleString("en-IN")} />

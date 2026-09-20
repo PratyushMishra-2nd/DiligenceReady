@@ -118,7 +118,7 @@ export default function Section164Tool({
               </label>
               <button
                 type="submit"
-                className="border-2 border-books bg-books px-6 py-3 font-mono text-ident uppercase tracking-[0.08em] text-stock transition-colors hover:bg-stock hover:text-books"
+                className="border-2 border-books bg-books px-6 py-3 font-mono text-ident uppercase tracking-[0.08em] text-stock press-verb hover:bg-stock hover:text-books"
               >
                 Work it out
               </button>
@@ -200,7 +200,7 @@ export default function Section164Tool({
             invoice in a client&rsquo;s books at once, and{" "}
             <Link
               href="/"
-              className="text-agreed underline decoration-hairline underline-offset-4 hover:decoration-agreed"
+              className="text-agreed mark-verb underline decoration-graphite-soft underline-offset-4 hover:decoration-agreed"
             >
               the rest of DiligenceReady
             </Link>{" "}

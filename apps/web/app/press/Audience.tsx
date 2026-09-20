@@ -56,7 +56,7 @@ export function Audience() {
           {FOR.map((line) => (
             <li
               key={line}
-              className="rag-pretty opsz-prose border-b border-hairline py-3 font-news text-prose text-agreed"
+              className="rag-pretty opsz-prose max-w-sheet border-b border-hairline py-3 font-news text-prose text-agreed"
             >
               {line}
             </li>

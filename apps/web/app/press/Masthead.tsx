@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { ContentsNav } from "./ContentsNav";
 import { DemoButton } from "./DemoButton";
 
 import { Logo } from "./Logo";
@@ -26,7 +27,7 @@ import { Logo } from "./Logo";
  */
 export function Masthead() {
   return (
-    <header className="sticky top-0 z-50 border-b border-hairline bg-stock px-6 sm:px-10">
+    <header className="vt-masthead sticky top-0 z-50 border-b border-hairline bg-stock px-6 sm:px-10">
       <div className="mx-auto flex max-w-[1280px] flex-wrap items-baseline justify-between gap-x-10 gap-y-2 py-4">
         <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1">
           {/* The lockup, not the word. The mark beside it is the same two
@@ -35,7 +36,7 @@ export function Masthead() {
               Its own tagline stays off: the positioning line is already set
               beside it, in Newsreader, and printing it twice in two faces
               four pixels apart is a lockup used as wallpaper. */}
-          <Link href="/" className="text-[1.25rem]" aria-label="DiligenceReady, home">
+          <Link href="/" className="logo-lockup text-[1.25rem]" aria-label="DiligenceReady, home">
             <Logo />
           </Link>
           <p className="font-news text-ident text-graphite opsz-prose">
@@ -44,47 +45,40 @@ export function Masthead() {
         </div>
 
         <nav className="flex items-center gap-6">
-          {/* Above `lg`, the row. Below it, the same six behind a disclosure
-              — because they used to be `hidden lg:inline` and nothing took
+          {/* Above `lg`, the row. Below it, the same six behind a
+              disclosure — they used to be `hidden lg:inline` with nothing in
               their place, which left a page eighteen thousand pixels long
               with no wayfinding at all on the width most of it is read at.
-              `<details>` and not a menu: no JavaScript, no state, no focus
-              trap, and it works on the first paint. */}
-          {/* The marker is already off globally — `summary { list-style:
-              none }` in globals.css, with the `-webkit` pseudo beside it. */}
-          <details className="no-print relative lg:hidden">
-            <summary className="cursor-pointer font-mono text-stub uppercase text-graphite underline decoration-hairline underline-offset-4 hover:decoration-agreed">
-              Contents
-            </summary>
-            {/* `left-0`, not `right-0`. The positioning context is the
-                summary, which is about seventy pixels of the word CONTENTS
-                at the left of the nav — so a right-aligned panel hung its
-                two hundred pixels off the left edge of a 390px screen and
-                half the list was unreachable. It opens rightwards from the
-                word instead. */}
-            <ul className="absolute left-0 top-full z-50 mt-3 min-w-[13rem] border border-hairline bg-stock py-1">
-              {NAV.map(({ href, label }) => (
-                <li key={href}>
-                  <a
-                    href={href}
-                    className="block px-4 py-2.5 font-mono text-stub uppercase text-graphite hover:bg-sunk hover:text-agreed"
-                  >
-                    {label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </details>
+              The disclosure is a client component only because Escape and
+              outside-tap need two listeners; the element itself is native
+              `<details>` and opens with no JavaScript at all. */}
+          <ContentsNav items={NAV} />
 
           {NAV.map(({ href, label }) => (
             <a
               key={href}
               href={href}
-              className="no-print hidden font-mono text-stub uppercase text-graphite underline decoration-hairline underline-offset-4 hover:decoration-agreed lg:inline"
+              className="no-print hidden font-mono text-stub uppercase text-graphite mark-verb underline decoration-graphite-soft underline-offset-4 hover:decoration-agreed lg:inline"
             >
               {label}
             </a>
           ))}
+          {/* The way back in, for somebody who already has an account.
+              There was no link to `/sign-in` anywhere on this page. The
+              argument was that a form is what an existing user wants and
+              "this page is not read by those people" — but `/` is the domain
+              root, so it is the first thing every returning customer hits.
+              Stripe, Linear, Ramp, Razorpay and Zoho all put it here for the
+              same reason. It sits before the demo button and is set as a
+              link rather than a second filled button, because a firm that
+              has an account and a stranger who does not are not being asked
+              the same question. */}
+          <Link
+            href="/sign-in"
+            className="mark-verb no-print hidden font-mono text-stub uppercase text-graphite underline decoration-graphite-soft underline-offset-4 hover:text-agreed hover:decoration-agreed sm:inline"
+          >
+            Sign in
+          </Link>
           <div className="no-print contents">
             <DemoButton variant="masthead" />
           </div>

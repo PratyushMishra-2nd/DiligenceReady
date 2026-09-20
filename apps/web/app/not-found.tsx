@@ -47,13 +47,13 @@ export default function NotFound() {
       <p className="mt-8 flex flex-wrap gap-x-8 gap-y-2 text-ident">
         <Link
           href="/app"
-          className="underline decoration-graphite-soft underline-offset-4 hover:decoration-agreed"
+          className="mark-verb underline decoration-graphite-soft underline-offset-4 hover:decoration-agreed"
         >
           All client companies
         </Link>
         <Link
           href="/"
-          className="underline decoration-graphite-soft underline-offset-4 hover:decoration-agreed"
+          className="mark-verb underline decoration-graphite-soft underline-offset-4 hover:decoration-agreed"
         >
           What this is
         </Link>

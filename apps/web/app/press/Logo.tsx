@@ -36,9 +36,9 @@ export function Mark({ className = "" }: { className?: string }) {
       focusable="false"
     >
       {/* Books. The upper plate, and the one a reader meets first. */}
-      <rect x="0" y="3" width="31" height="7.5" className="fill-books" />
+      <rect x="0" y="3" width="31" height="7.5" className="ink-books fill-books" />
       {/* The statute, landing low and to the right of it. */}
-      <rect x="9" y="13.5" width="31" height="7.5" className="fill-statute" />
+      <rect x="9" y="13.5" width="31" height="7.5" className="ink-statute fill-statute" />
     </svg>
   );
 }

@@ -180,7 +180,7 @@ export function UploadPanel({ companyId }: { companyId: string }) {
         <a
           href={`${API_BASE}/api/templates/${kind}/file`}
           download
-          className="border border-agreed px-3 py-1.5 font-mono text-stub uppercase tracking-[0.06em] text-agreed transition-colors hover:bg-agreed hover:text-stock"
+          className="border border-agreed px-3 py-1.5 font-mono text-stub uppercase tracking-[0.06em] text-agreed press-verb hover:bg-agreed hover:text-stock"
         >
           Download template
         </a>

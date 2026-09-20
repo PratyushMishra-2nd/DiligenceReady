@@ -172,6 +172,25 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* A document does not teleport.
+ *
+ * Measured before this line existed: pressing "FAQ" in the masthead put the
+ * reader at 9,330px on the very first frame — ten and a half viewports
+ * crossed instantly, in a document thirteen thousand pixels long, with no
+ * indication of which direction they had travelled or how far. The mobile
+ * Contents nav made that the primary way of moving around the page, so the
+ * defect got worse the moment wayfinding got better.
+ *
+ * Chrome caps a long smooth scroll near 700ms regardless of distance, which
+ * is the right behaviour here: the reader keeps their place without waiting
+ * for nine thousand pixels to roll past. `scroll-mt-24` on the sections
+ * already clears the sticky masthead. Reverted under reduced motion below —
+ * a long smooth scroll is a documented vestibular trigger, and the `*` rule
+ * that collapses animations does not touch this property. */
+html {
+  scroll-behavior: smooth;
+}
+
 /* A magnitude, and therefore Anek.
    The type system's rule is that a figure which came out of SQL is set in the
    display face, prose is set in Newsreader, and anything that points at a row
@@ -221,6 +240,35 @@ summary::-webkit-details-marker {
   *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
+
+    /* Collapsing the duration does nothing to a scroll-driven animation.
+       A progress-based timeline is driven by scroll position, not by a
+       clock, so `animation-duration: 0.01ms` leaves it tracking the
+       scrollbar exactly as before — measured, at three depths, with the
+       guard applying and the transform still interpolating. Any element
+       that opts into a scroll timeline has to have the timeline itself
+       removed, and then it rests on whichever keyframe is its base state.
+       That is why the closing keyframes on this page are authored with the
+       SETTLED, in-register state as the element's own CSS and the slip
+       added by the animation: pulling the timeline lands a reduced-motion
+       reader on the resolved document, which is both the intended resting
+       state and the more legible one. */
+    animation-timeline: none !important;
+  }
+
+  /* The `*` selector above does not match view-transition pseudo-elements —
+     they are generated on the pseudo-element tree, not in the document — so
+     the sheet turn between routes would have played at full duration for a
+     reader who asked for no motion. */
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+
+  /* And the smooth scroll declared above. */
+  html {
+    scroll-behavior: auto !important;
   }
 }
 
@@ -255,13 +303,39 @@ summary::-webkit-details-marker {
   }
 }
 
-.foot-rule {
+/* The keyframe has exactly one user, below.
+ *
+ * `.foot-rule` and `.foot-rule-final` were classes used by zero components:
+ * the ledger column they were written for was deleted and they outlived it.
+ * Half-fixing that — shipping the keyframe and leaving the orphans — is the
+ * same comment-ahead-of-build drift this page keeps being caught by, so the
+ * two dead classes are gone and the keyframe stays because it earns its
+ * place as a pending indicator.
+ *
+ * Footing a column is the act this product performs, which makes it the
+ * honest animation for a wait: the motion while you wait is the thing being
+ * waited for, rather than a spinner borrowed from a different kind of
+ * software. There is no spinner, skeleton or progress bar anywhere in this
+ * application and there does not need to be one. */
+.foot-rule-running {
   transform-origin: left;
-  animation: foot-rule 240ms ease-out both;
+  animation: foot-rule 900ms cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-.foot-rule-final {
-  animation-delay: 60ms;
+/* The error arriving, rather than simply existing on the next paint. */
+@keyframes alert-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.alert-in {
+  animation: alert-in 120ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
 }
 
 /* ── The impression landing ──────────────────────────────────────────
@@ -285,7 +359,10 @@ summary::-webkit-details-marker {
    finished frame. */
 @keyframes ink-settle {
   from {
-    transform: translate(calc(var(--ink-x) * 6), calc(var(--ink-y) * 6));
+    transform: translate(
+      calc(var(--ink-x) * var(--ink-throw, 6)),
+      calc(var(--ink-y) * var(--ink-throw, 6))
+    );
     opacity: 0.5;
   }
   to {
@@ -295,8 +372,26 @@ summary::-webkit-details-marker {
 }
 
 .ink-settle {
-  animation: ink-settle 620ms cubic-bezier(0.16, 0.84, 0.34, 1) both;
+  animation: ink-settle var(--ink-ms, 620ms) cubic-bezier(0.16, 0.84, 0.34, 1) both;
 }
+
+/* The throw is a parameter because the hero needs a different one from
+   everything else, and for a reason worth writing down.
+ *
+ * At the default 6x the hero's figure starts about 11px out of register,
+ * which reads as a slightly soft impression — a reader who blinks misses it
+ * entirely, and the effect the whole document is named after is spent on
+ * something sub-perceptual. The hero is the one place a reader meets this
+ * system before they have been told anything about it, so it is the one place
+ * the system has to teach itself. At 16x the figure opens as three visibly
+ * separate impressions of the same number in two inks and a near-black, and
+ * closes into one over 900ms.
+ *
+ * A slip that large is only legible because it RESOLVES. Held static it would
+ * be three overlapping numbers and unreadable; as a moment that lands it is
+ * the entire argument of the page, made once, with no copy. Those are one
+ * decision, not two: the magnitude is affordable only because of the motion,
+ * and the motion is only worth having at that magnitude. */
 
 /* Type setting after the rule is drawn. Four steps, 70ms apart, and the whole
    sequence is over before a reader who scrolled immediately would have missed
@@ -331,6 +426,77 @@ summary::-webkit-details-marker {
   animation-delay: 270ms;
 }
 
+/* ── What hover means on a working paper ─────────────────────────────
+   The page had two hover idioms and no rule governing them: an underline
+   shifting colour on text links, and an ink/paper inversion on buttons. Both
+   are drawn from print and both are right. What was missing was a statement
+   of what hover MEANS, and the consequence was that six buttons carried
+   `transition-colors` and about twenty-five other controls performing the
+   identical visual move had no transition at all — so the same gesture
+   behaved two ways depending on which file it lived in. Worse, the six that
+   did transition inherited Tailwind's default 150ms `cubic-bezier(.4,0,.2,1)`,
+   a symmetric ease-in-out sitting inside a document whose every authored
+   curve is a decelerating settle. The page was running two easing systems,
+   one designed and one arrived at by default.
+
+   A working paper affords exactly two things to a hand, so there are two
+   verbs:
+
+     MARK — things you are inspecting. An annotator runs a finger down a
+     column and what they touch gets ticked, tinted, ruled. Soft, 160ms, the
+     same duration the tick marks already use.
+
+     PRESS — things you actuate. Ink lands or it does not. Fast, 120ms, and
+     the move is the ink/paper inversion a plate performs.
+
+   One rule governs both: HOVER NEVER INTRODUCES A HUE. It changes how much
+   ink is on the paper. No control on this site gains a colour that was not
+   already in the palette's two inks and their product. */
+.press-verb {
+  transition:
+    background-color 120ms cubic-bezier(0.2, 0.7, 0.3, 1),
+    color 120ms cubic-bezier(0.2, 0.7, 0.3, 1),
+    border-color 120ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+.mark-verb {
+  transition:
+    background-color 160ms cubic-bezier(0.2, 0.7, 0.3, 1),
+    color 160ms cubic-bezier(0.2, 0.7, 0.3, 1),
+    text-decoration-color 160ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+/* The wordmark, which demonstrates the system it is the wordmark for.
+ *
+ * The logo mark is already the page's argument standing still: two plates,
+ * one per ink, the lower one offset down and right — the same figure every
+ * divider draws and the same figure that closes to nothing at the sign-off.
+ * It was also the only link on the site with no hover state of any kind.
+ *
+ * On hover the two plates separate by about a pixel each and come back. It
+ * is the cheapest possible statement of what this company is called and what
+ * it does, it lasts 160ms, and it is the one micro-interaction on this site
+ * that could not be lifted onto any other product.
+ *
+ * The offsets are in SVG user units against a 40x24 viewBox rendered at
+ * roughly 28px wide, so 1.5 units is about a pixel on screen — which is the
+ * magnitude the rest of the document uses for a slip, not a number picked to
+ * be noticed. */
+.logo-lockup .ink-books,
+.logo-lockup .ink-statute {
+  transition: transform 160ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+.logo-lockup:hover .ink-books,
+.logo-lockup:focus-visible .ink-books {
+  transform: translate(-1.5px, -1.5px);
+}
+
+.logo-lockup:hover .ink-statute,
+.logo-lockup:focus-visible .ink-statute {
+  transform: translate(1.5px, 1.5px);
+}
+
 /* ── The apparatus, linked ───────────────────────────────────────────
    The tick mark in the margin is the only part of the working-paper
    apparatus left on screen, and a mark nobody notices is a mark that is not
@@ -341,19 +507,156 @@ summary::-webkit-details-marker {
    It is a hover, so it is decoration for anyone who cannot use one — which is
    why it carries no information that is not already printed. */
 .sheet:hover .tick-mark,
-.sheet:focus-within .tick-mark {
-  transform: scale(1.35);
+.sheet:focus-within .tick-mark,
+/* The legend's own specimens, which were the three marks on this page that
+   did not respond to anything. Five of the eight tick marks on the document
+   grew on hover and the three in the legend sat inert — so the one place a
+   reader goes to learn what a mark is was the one place it refused to
+   behave like one. */
+.legend:hover .tick-mark,
+.legend:focus-within .tick-mark {
+  outline: 2px solid theme("colors.statute");
+  outline-offset: 3px;
 }
 
 .tick-mark {
-  transition: transform 160ms cubic-bezier(0.2, 0.7, 0.3, 1);
-  transform-origin: left center;
+  /* An outline, not `scale(1.35)`.
+     One multiplier cannot serve two geometries: the same 1.35 grew the 12x12
+     square by 4.2px in both directions and the 14x2 rule by 4.9px wide and
+     0.7px tall, so the two marks responded to the same gesture with visibly
+     different weight. An outline adds the same halo to both, whatever shape
+     it is drawn around. */
+  outline: 2px solid transparent;
+  outline-offset: 3px;
+  transition:
+    outline-color 160ms cubic-bezier(0.2, 0.7, 0.3, 1),
+    outline-offset 160ms cubic-bezier(0.2, 0.7, 0.3, 1);
 }
 
 /* Same document, different sheet. Three lines, no JavaScript, and nothing at
    all in a browser that does not implement it. */
 @view-transition {
   navigation: auto;
+}
+
+/* ── The register closing, under the reader ──────────────────────────
+   The dividers down this page step from fully out of register at the hero to
+   dead-on at the sign-off, and that progression has always been static: nine
+   fixed positions a reader might notice if they scrolled back up and
+   compared. The page's own copy claims something stronger — that the
+   document "has been closing since the hero and this is where it arrives" —
+   and this is that claim, honoured.
+
+   It is not a scroll reveal, which this document refuses and should keep
+   refusing. Nothing appears, nothing is gated, nothing is withheld until you
+   reach it: every word and every rule is present at every scroll position.
+   What changes is one continuous state — how far out of register the ink
+   sits — mapped to how far through the document you are. That is the
+   difference between an availability change and a state mapping, and only
+   the first is a reveal.
+
+   SCOPED TO THE DIVIDERS ONLY, deliberately. The section openers carry the
+   same slip, but their ghost plates are `mix-blend-multiply` over live type:
+   a blended element cannot take the cheap compositor path, so animating six
+   openers' worth of them would force a repaint of each blended region on
+   every frame of a thirteen-thousand-pixel scroll. The dividers are flat 2px
+   rules with no blend on the layer being moved, they travel 14px against the
+   openers' 6px, and they are where the progression is legible anyway. Most
+   of the effect, a fraction of the cost.
+
+   `animation-range` hands the first viewport to `ink-settle`, which is
+   already animating the hero's plates on load. Both drive the same kind of
+   offset on the same kind of element, and composing them would have the two
+   fighting over the hero figure for 900ms. The close starts below the fold
+   and finishes a viewport before the foot.
+
+   Chrome and Edge 115+, Safari 26.0+ (threaded since 26.4), Firefox behind a
+   flag until 159 — and where it is absent the `@supports` block never
+   applies, leaving the static staircase that shipped before this existed.
+   MDN still lists this as Limited availability; it is not Baseline, whatever
+   the search results say. */
+@supports (animation-timeline: scroll()) {
+  @media (prefers-reduced-motion: no-preference) {
+    @keyframes close-register {
+      from {
+        translate: var(--slip-x) var(--slip-y);
+      }
+      to {
+        translate: 0 0;
+      }
+    }
+
+    .misregister-plate {
+      animation: close-register linear both;
+      animation-timeline: scroll(root block);
+      animation-range: 100vh calc(100% - 100vh);
+    }
+  }
+}
+
+/* ── The sheet turn ──────────────────────────────────────────────────
+   `@view-transition` was live for several passes and undesigned: with only
+   the default `root` snapshot and no element-level names, turning from the
+   landing page to the sign-in sheet cross-faded the entire viewport,
+   including a masthead that is identical on both.
+
+   Three names fix that, and the middle one is the point.
+
+   `masthead` is the same header on both sheets, so it should not fade at
+   all — it holds still while the sheet changes underneath it, which is what
+   happens when you turn a page inside a bound document.
+
+   `index-block` is the payoff. The landing page's colophon carries INDEX
+   W-1 and the sign-in sheet carries INDEX W-2; giving both the same name
+   makes the browser morph one into the other, so a reader watches the sheet
+   number advance in place. The document's own foliation, animated, for
+   nothing.
+
+   The asymmetry in the two keyframes is deliberate. The outgoing sheet only
+   lifts — no displacement, because paper does not slide out from under you.
+   The incoming one lands slightly out of register and pulls in, which is the
+   press action this entire document is about, performed once at the moment a
+   reader turns a page. Both are under 350ms together, below where a
+   navigation begins to feel slow.
+
+   Chrome and Edge from 126; Safari from 26.0 and threaded since 26.4;
+   Firefox gets an ordinary instant navigation and loses nothing. Disabled
+   entirely under reduced motion, above — the `*` rule cannot reach these
+   pseudo-elements. */
+.vt-masthead {
+  view-transition-name: masthead;
+}
+
+.vt-index {
+  view-transition-name: index-block;
+}
+
+@keyframes sheet-in {
+  from {
+    opacity: 0;
+    transform: translate(max(2px, 0.14vw), max(1.5px, 0.1vw));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes sheet-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+::view-transition-new(root) {
+  animation: sheet-in 320ms cubic-bezier(0.16, 0.84, 0.34, 1) both;
+}
+
+::view-transition-old(root) {
+  animation: sheet-out 200ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
 }
 
 /* What this product is for is a document someone files. The screen is where
@@ -447,17 +750,23 @@ summary::-webkit-details-marker {
   }
 
   /* The sign-off. A working paper carries a blank rule where a reviewer
-     signs, and it stays blank until somebody reviews it - which is the same
-     thing the `C` mark's absence says on screen. It appears only on paper,
-     because on a screen nobody can sign it. */
-  .print-signature {
-    display: block !important;
+     signs, and it stays blank until somebody reviews it — which is the same
+     thing the `C` mark's absence says on screen.
+     It used to be print-only, on the argument that nobody can sign a
+     screen. True, and beside the point: the block is not there to be
+     signed, it is there to show that it has not been. It is on screen now,
+     and on paper it drops the plate — ink on black is a press bed, and a
+     press bed printed on a laser is a page of toner. */
+  .sign-off {
+    background: #fff !important;
+    color: theme("colors.agreed") !important;
     margin-top: 14mm;
+    padding: 0 !important;
     break-inside: avoid;
   }
-}
 
-/* The sign-off exists only in the printed form. */
-.print-signature {
-  display: none;
+  .sign-off * {
+    color: theme("colors.agreed") !important;
+    border-color: theme("colors.agreed") !important;
+  }
 }

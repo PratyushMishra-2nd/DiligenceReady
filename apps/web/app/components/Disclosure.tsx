@@ -29,7 +29,7 @@ export function Disclosure({
           <svg
             viewBox="0 0 8 10"
             aria-hidden
-            className="h-2.5 w-2 shrink-0 text-graphite-soft transition-transform group-open:rotate-90"
+            className="h-2.5 w-2 shrink-0 text-graphite-soft [transition:transform_160ms_cubic-bezier(0.2,0.7,0.3,1)] group-open:rotate-90"
           >
             <path d="M1 1l5 4-5 4" fill="none" stroke="currentColor" strokeWidth="1.5" />
           </svg>

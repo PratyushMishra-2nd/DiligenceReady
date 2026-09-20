@@ -60,7 +60,7 @@ export function HowItWorks() {
               <h3 className="wdth-set font-anek text-[1.5rem] font-semibold leading-tight text-agreed">
                 {step.title}
               </h3>
-              <p className="rag-pretty opsz-prose mt-2 font-news text-prose text-graphite">{step.body}</p>
+              <p className="rag-pretty opsz-prose mt-2 max-w-sheet font-news text-prose text-graphite">{step.body}</p>
             </div>
           </li>
         ))}

@@ -36,7 +36,7 @@ export function Pilot() {
         <div className="mt-8 flex flex-wrap items-center gap-x-4 gap-y-3">
           <a
             href={MAIL}
-            className="border-2 border-books bg-books px-6 py-3 font-mono text-ident uppercase tracking-[0.08em] text-stock transition-colors hover:bg-stock hover:text-books"
+            className="border-2 border-books bg-books px-6 py-3 font-mono text-ident uppercase tracking-[0.08em] text-stock press-verb hover:bg-stock hover:text-books"
           >
             Take a pilot
           </a>
@@ -51,7 +51,7 @@ export function Pilot() {
           <p className="rag-pretty opsz-prose max-w-[52ch] font-news text-ident leading-relaxed text-graphite">
             <a
               href={MAIL}
-              className="text-agreed underline decoration-hairline underline-offset-4 hover:decoration-agreed"
+              className="text-agreed mark-verb underline decoration-graphite-soft underline-offset-4 hover:decoration-agreed"
             >
               hello@diligenceready.in
             </a>{" "}

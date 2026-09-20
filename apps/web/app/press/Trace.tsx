@@ -22,8 +22,10 @@ import aggregates from "./aggregates.json";
  * failure this product exists to prevent.
  *
  * The connecting rule is one hairline in vermillion, because vermillion in
- * this product means money at statutory risk and that is what is being traced.
- * It does not animate. Nothing here does.
+ * this product means money at statutory risk and that is what is being
+ * traced. It is segmented per stage, and resting on a stage darkens that
+ * stage's own length of it — see the note on the `Step` component. Nothing
+ * animates on its own, on load or on scroll.
  */
 
 const STEPS = [
@@ -55,7 +57,7 @@ export function Trace() {
 
   return (
     <div className="mt-6 max-w-[64ch]">
-      <ol className="border-l border-statute/40 pl-5">
+      <ol>
         <Step step={STEPS[0]}>
           <dl className="grid grid-cols-[8rem_minmax(0,1fr)] gap-x-4 gap-y-1">
             {Object.entries(columns).map(([column, value]) => (
@@ -124,12 +126,33 @@ function Step({
   children: React.ReactNode;
 }) {
   return (
-    <li className={`relative ${last ? "" : "pb-7"}`}>
+    // The trace advances under the pointer.
+    //
+    // The four stages were a static list beside one continuous hairline, and
+    // the file said so: "It does not animate. Nothing here does." The rule
+    // is now segmented — one length per stage — so resting on a stage darkens
+    // its own segment and fills its mark, and the trace reads as being
+    // followed rather than as having been drawn.
+    //
+    // Pointer-driven rather than timed or scrolled, deliberately. A load
+    // animation this far down the page is invisible to everyone, and a
+    // scroll-triggered one is the reveal this document has refused from the
+    // beginning. A hover is neither: the reader operates it, it cannot fire
+    // on its own, and it is silent for anyone who never touches it.
+    //
+    // It carries no information that is not already printed, which is the
+    // same standard the tick marks are held to — decoration for anyone who
+    // cannot use a pointer, and nothing lost by missing it.
+    <li
+      className={`group relative border-l pl-5 [transition:border-color_160ms_cubic-bezier(0.2,0.7,0.3,1)] hover:border-statute focus-within:border-statute ${
+        last ? "border-transparent" : "border-statute/40 pb-7"
+      }`}
+    >
       {/* The mark sits on the rule rather than beside it, so the line reads as
           passing through each stage instead of running past them. */}
       <span
         aria-hidden
-        className="absolute -left-[23px] top-[6px] h-1.5 w-1.5 bg-statute"
+        className="absolute -left-[3.5px] top-[6px] h-1.5 w-1.5 bg-statute outline outline-2 outline-offset-[3px] outline-transparent [transition:outline-color_160ms_cubic-bezier(0.2,0.7,0.3,1)] group-hover:outline-statute/40 group-focus-within:outline-statute/40"
       />
       <h3 className="font-mono text-stub uppercase tracking-[0.08em] text-agreed">
         {step.stage}

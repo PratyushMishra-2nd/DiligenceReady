@@ -105,7 +105,7 @@ export default async function CompanyPage({
           >
             <path d="M6 1L1 5l5 4" fill="none" stroke="currentColor" strokeWidth="1.5" />
           </svg>
-          <span className="underline decoration-graphite-soft underline-offset-4 group-hover:decoration-agreed">
+          <span className="mark-verb underline decoration-graphite-soft underline-offset-4 group-hover:decoration-agreed">
             {company.firm_name}
           </span>
           <span className="text-graphite-soft">· all client companies</span>

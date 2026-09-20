@@ -456,7 +456,7 @@ export function Findings({
           <button
             type="button"
             onClick={() => void undo()}
-            className="underline decoration-graphite-soft underline-offset-4 hover:decoration-stock"
+            className="mark-verb underline decoration-graphite-soft underline-offset-4 hover:decoration-stock"
           >
             Undo
           </button>
@@ -511,7 +511,7 @@ function FindingRow({
 
   return (
     <div
-      className={`ruled group flex w-full items-stretch gap-3 transition-colors ${
+      className={`ruled group flex w-full items-stretch gap-3 press-verb ${
         marked ? "bg-agreed-wash/50" : selected ? "bg-sunk" : "hover:bg-sunk"
       }`}
     >
@@ -611,7 +611,7 @@ function BulkBar({
       ) : (
         <span className="text-ident opacity-70">This account has read-only access.</span>
       )}
-      <button type="button" onClick={onClear} className="text-ident underline opacity-70">
+      <button type="button" onClick={onClear} className="text-ident mark-verb underline opacity-70">
         Clear
       </button>
     </div>

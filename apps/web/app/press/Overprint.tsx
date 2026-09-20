@@ -71,15 +71,32 @@ export function Overprint({
   offset = "max(1.5px, 0.022em)",
   drop = "max(1px, 0.014em)",
   settle = false,
+  throwBy,
+  settleMs,
 }: {
   children: React.ReactNode;
   className?: string;
   offset?: string;
   drop?: string;
   settle?: boolean;
+  /**
+   * How far out of register the impression starts, as a multiple of its
+   * settled offset. Only meaningful with `settle`. The default of 6 is a soft
+   * landing; the hero passes 16, which is the difference between an effect a
+   * reader notices and one they do not. See the note on `ink-settle` in
+   * globals.css for why the magnitude and the motion are one decision.
+   */
+  throwBy?: number;
+  /** Duration of the settle. A longer throw needs longer to land. */
+  settleMs?: number;
 }) {
   const plate = (x: string, y: string, ink: string) => {
-    const vars = { "--ink-x": x, "--ink-y": y } as React.CSSProperties;
+    const vars = {
+      "--ink-x": x,
+      "--ink-y": y,
+      ...(throwBy ? { "--ink-throw": String(throwBy) } : null),
+      ...(settleMs ? { "--ink-ms": `${settleMs}ms` } : null),
+    } as React.CSSProperties;
     return (
       <span
         aria-hidden

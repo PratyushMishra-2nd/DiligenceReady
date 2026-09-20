@@ -88,7 +88,7 @@ export default async function SignInPage({
                   </span>
                 </h1>
 
-                <dl className="font-mono text-stub uppercase text-graphite">
+                <dl className="vt-index font-mono text-stub uppercase text-graphite">
                   <div className="flex justify-between gap-x-8 border-b border-hairline py-2">
                     <dt>Index</dt>
                     <dd className="text-agreed">W-2</dd>

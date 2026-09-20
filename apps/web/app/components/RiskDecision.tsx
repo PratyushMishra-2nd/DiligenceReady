@@ -91,7 +91,7 @@ export function RiskDecision({
               onClick={() => choose(option.value)}
               disabled={busy !== null}
               aria-pressed={active}
-              className={`border px-2.5 py-1 text-ident transition-colors disabled:opacity-50 ${
+              className={`border px-2.5 py-1 text-ident press-verb disabled:opacity-50 ${
                 active
                   ? "border-agreed bg-agreed text-stock"
                   : "border-hairline text-graphite hover:border-agreed hover:text-agreed"

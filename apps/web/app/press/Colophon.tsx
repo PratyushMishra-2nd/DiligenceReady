@@ -42,7 +42,7 @@ export function Colophon() {
             <DemoButton variant="link" label="Open the demo" />
             <Link
               href="/tools/section-16-4"
-              className="text-agreed underline decoration-hairline underline-offset-4 hover:decoration-agreed"
+              className="text-agreed mark-verb underline decoration-graphite-soft underline-offset-4 hover:decoration-agreed"
             >
               Section 16(4) deadline tool
             </Link>
@@ -69,7 +69,7 @@ export function Colophon() {
           </p>
         </div>
 
-        <dl className="font-mono text-stub uppercase text-graphite">
+        <dl className="vt-index font-mono text-stub uppercase text-graphite">
           <div className="flex justify-between border-b border-hairline py-2">
             <dt>Index</dt>
             <dd className="text-agreed">W-1</dd>
@@ -83,7 +83,7 @@ export function Colophon() {
             <dd>
               <a
                 href="mailto:hello@diligenceready.in?subject=CA%20firm%20pilot"
-                className="normal-case text-agreed underline decoration-hairline underline-offset-4 hover:decoration-agreed"
+                className="normal-case text-agreed mark-verb underline decoration-graphite-soft underline-offset-4 hover:decoration-agreed"
               >
                 hello@diligenceready.in
               </a>
@@ -92,24 +92,6 @@ export function Colophon() {
         </dl>
       </div>
 
-      {/* Paper only. A working paper carries a rule where a reviewer signs
-          and it stays blank until somebody does — the same statement the
-          absent C mark makes on screen, in the form the statement is
-          conventionally made. */}
-      <div className="print-signature">
-        <div className="grid grid-cols-2 gap-x-16 pt-8">
-          <div>
-            <p className="font-mono text-stub uppercase text-graphite">Prepared by</p>
-            <p className="mt-1 border-b border-agreed pb-1 text-prose">DiligenceReady</p>
-          </div>
-          <div>
-            <p className="font-mono text-stub uppercase text-graphite">
-              Reviewed by · signature · date
-            </p>
-            <p className="mt-1 border-b border-agreed pb-1 text-prose">&nbsp;</p>
-          </div>
-        </div>
-      </div>
     </footer>
   );
 }

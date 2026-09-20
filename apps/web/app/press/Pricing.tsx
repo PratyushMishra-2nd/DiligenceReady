@@ -35,7 +35,7 @@ export function Pricing() {
           </Opener>
 
           <p className="optical-figure mt-8">
-            <span className="wdth-condensed tabular font-anek text-[clamp(48px,7vw,92px)] font-bold leading-none text-agreed">
+            <span className="whitespace-nowrap wdth-condensed tabular font-anek text-[clamp(48px,7vw,92px)] font-bold leading-none text-agreed">
               ₹6,000&ndash;15,000
             </span>
           </p>
@@ -52,7 +52,7 @@ export function Pricing() {
             <DemoButton label="Open the live demo" />
             <a
               href="#pilot"
-              className="border-2 border-hairline px-6 py-3 font-mono text-ident uppercase tracking-[0.08em] text-graphite transition-colors hover:border-agreed hover:text-agreed"
+              className="border-2 border-hairline px-6 py-3 font-mono text-ident uppercase tracking-[0.08em] text-graphite press-verb hover:border-agreed hover:text-agreed"
             >
               Run it on a real client
             </a>

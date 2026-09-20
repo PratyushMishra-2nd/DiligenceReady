@@ -177,7 +177,7 @@ export default async function FirmDashboard() {
                     <td className="py-3 pr-4">
                       <Link
                         href={`/app/companies/${company.company_id}`}
-                        className="font-medium text-agreed underline decoration-graphite-soft underline-offset-4 hover:decoration-agreed"
+                        className="font-medium text-agreed mark-verb underline decoration-graphite-soft underline-offset-4 hover:decoration-agreed"
                       >
                         {company.name}
                       </Link>
@@ -227,7 +227,7 @@ export default async function FirmDashboard() {
         <p className="mt-4 text-ident text-graphite-soft">
           <Link
             href="/"
-            className="underline decoration-graphite-soft underline-offset-4 hover:decoration-agreed"
+            className="mark-verb underline decoration-graphite-soft underline-offset-4 hover:decoration-agreed"
           >
             What this is
           </Link>
