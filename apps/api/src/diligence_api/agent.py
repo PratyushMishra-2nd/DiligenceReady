@@ -1,8 +1,12 @@
 """Ask the ledger — a Strands agent that orchestrates but never calculates.
 
-Strands Agents is AWS's open-source agent SDK; this runs it on Amazon
-Bedrock. The point of putting an agent in a product whose entire claim is
-"the model never produces a number" is that it makes the claim *legible*.
+Strands Agents is AWS's open-source agent SDK. It runs here on whichever
+model `llm.py` can reach — Amazon Bedrock when the account is allowed to
+invoke one, and otherwise the open-weights model served on this instance,
+which is what the deployed stack actually uses. The SDK's provider objects
+differ; nothing below this line does. The point of putting an agent in a
+product whose entire claim is "the model never produces a number" is that it
+makes the claim *legible*.
 The agent decides which questions to ask the database. The database answers
 them. Then the same numeric guard that governs `/explain` checks the reply.
 
@@ -38,10 +42,9 @@ from dataclasses import dataclass, field
 from decimal import Decimal
 from typing import Any
 
-from diligence_api import bedrock
+from diligence_api import llm
 from diligence_api.numeric_guard import check
 from diligence_engine import reporting
-from diligence_engine.config import settings
 from diligence_engine.db import connect
 
 MAX_TOKENS = 2048
@@ -67,12 +70,18 @@ subtract, total, average, convert, re-round or restate figures. If the \
 accountant asks for a total that no tool returns, say which figures you can \
 see and that the total is not one of them. This is the most important rule: \
 your answer is rejected outright if it contains a number no tool produced.
-2. Call tools before answering. Do not answer from memory or from the \
+2. "A number" means every digit you write, not only rupee amounts. \
+Counts ("9 findings"), rankings ("the top 3"), day counts ("due in 12 \
+days"), percentages and dates are rejected too, unless they appear in a \
+tool result exactly as you write them. If you want to say how many of \
+something there are and no tool returned that count, name them instead \
+of counting them.
+3. Call tools before answering. Do not answer from memory or from the \
 question's own wording.
-3. Be brief. Three or four sentences. The reader is busy and knows GST law.
-4. You can see exactly one company. If asked about another, say you cannot \
+4. Be brief. Three or four sentences. The reader is busy and knows GST law.
+5. You can see exactly one company. If asked about another, say you cannot \
 see it.
-5. Quote amounts exactly as the tools write them, including the rupee \
+6. Quote amounts exactly as the tools write them, including the rupee \
 formatting and decimals."""
 
 
@@ -215,6 +224,46 @@ def build_tools(company_id: str, recorder: list[str]) -> list:
     return [list_periods, get_readiness, list_findings, get_finding, get_other_itc]
 
 
+def latest_period(company_id: str) -> str | None:
+    """The most recent period this company has data for, from the engine.
+
+    The agent used to be left to work this out, and on a small model it
+    frequently did not: asked "what is the largest exposure this month",
+    it read "this month" as today's calendar month, called `get_readiness`
+    for a period with nothing in it, and reported ₹0.00 with complete
+    coverage. Every figure in that answer was real — it came from a tool,
+    so the guard passed it — and the answer was still useless, because the
+    question and the data were about different months.
+
+    That is not a prompt problem, it is a missing fact. Which period has
+    data is a SQL question the engine already answers for the dashboard, so
+    it is answered here once, in code, and handed to the model as context.
+    The model still chooses which tools to call; it no longer has to guess
+    what "this month" means.
+    """
+    with connect() as conn:
+        found = reporting.periods(conn, _uuid_of(company_id))
+    if not found:
+        return None
+    # `periods` is ordered newest first, and "newest" is not the answer. A
+    # period row appears as soon as any feed carries a date inside it, so two
+    # bank value-dates spilling into the new month create a September that has
+    # no GSTR-2B and nothing reconciled against it. The company page picks the
+    # newest period that has a 2B for exactly this reason (2B for month M
+    # generates on the 14th of M+1, so a CA opening this on 20 September is
+    # working on August), and the agent has to agree with the page it sits
+    # next to, or the panel and the screen behind it name different months.
+    reconciled = [entry for entry in found if entry.get("gstr2b_generated")]
+    chosen = reconciled[0] if reconciled else found[0]
+    return str(chosen["period"])
+
+
+def _uuid_of(company_id: str):
+    import uuid as _uuid
+
+    return _uuid.UUID(company_id)
+
+
 def _answer_text(message: Any) -> str:
     content = (message or {}).get("content", []) if isinstance(message, dict) else []
     parts = [block["text"] for block in content if isinstance(block, dict) and "text" in block]
@@ -233,20 +282,20 @@ def ask(company_id: str, question: str) -> LedgerAnswer:
             rejected_reason=f"question is longer than {QUESTION_LIMIT} characters",
         )
 
-    available = bedrock.candidates()
+    available = llm.plan()
     if not available:
         return LedgerAnswer(
             text="",
             source="unavailable",
             rejected_reason=(
-                "no Bedrock model is configured or reachable; run "
-                "`diligence bedrock models` to see what this account can call"
+                "no model is configured or reachable; run "
+                "`diligence bedrock models` to see what this account can call, "
+                "or set OLLAMA_HOST to use the model on this instance"
             ),
         )
 
     try:
         from strands import Agent
-        from strands.models import BedrockModel
     except ImportError:
         return LedgerAnswer(
             text="", source="unavailable", rejected_reason="strands-agents is not installed"
@@ -257,48 +306,76 @@ def ask(company_id: str, question: str) -> LedgerAnswer:
     except ValueError:
         return LedgerAnswer(text="", source="refused", rejected_reason="company_id is not a uuid")
 
-    # One attempt per candidate model, cheapest adequate first. A model id
-    # that Bedrock has retired fails every call identically, and before this
-    # loop existed that failure was the whole feature dark from the moment it
-    # deployed — see `bedrock.py`. The recorder is rebuilt per attempt: a
-    # half-finished run must not widen the set of numbers the next attempt is
-    # allowed to quote.
+    # The one fact the model should not have to infer. See `latest_period`.
+    prompt = SYSTEM_PROMPT
+    try:
+        current = latest_period(company_id)
+    except Exception:  # noqa: BLE001 - a missing hint is worse prose, not an outage
+        current = None
+    if current:
+        prompt = (
+            f"{SYSTEM_PROMPT}\n\nThe most recent period this company has data for is "
+            f"{current}. When the accountant says this month, the latest month, "
+            f"or names no month at all, they mean {current}. Do not assume "
+            f"today's calendar month has been reconciled."
+        )
+
+    # One attempt per candidate, Bedrock before the local server. A model id
+    # that Bedrock has retired — or that the account is not yet allowed to
+    # invoke at all — fails every call identically, and before this loop
+    # existed that failure was the whole feature dark from the moment it
+    # deployed. See `bedrock.py` and `llm.py`. The recorder is rebuilt per
+    # attempt: a half-finished run must not widen the set of numbers the next
+    # attempt is allowed to quote.
     result = None
+    agent = None
     model_id = ""
     recorder: list[str] = []
     failure = ""
+    # A provider that throttled or timed out is stalled, not broken, and its
+    # other model ids are behind the same wall. Without this, one throttled
+    # Bedrock account turns a single question into thirty sequential agent
+    # runs of up to eight tool-calling turns each, and the caller waits for
+    # all of them to fail before seeing the refusal. A dead id is different:
+    # it is retired individually, because the next id on the same provider is
+    # exactly what should answer.
+    stalled: set[str] = set()
     for candidate in available:
+        if candidate.provider in stalled:
+            continue
         recorder = []
+        try:
+            model = llm.strands_model(candidate, max_tokens=MAX_TOKENS, temperature=TEMPERATURE)
+        except ImportError as error:
+            # The SDK extra for this provider is not installed. That is a
+            # property of the deployment, not of the model id, so it retires
+            # the candidate and tries the next one.
+            failure = f"{candidate} is not usable here: {error}"
+            llm.retire(candidate)
+            continue
         agent = Agent(
-            model=BedrockModel(
-                model_id=candidate,
-                region_name=settings().bedrock_region or None,
-                max_tokens=MAX_TOKENS,
-                temperature=TEMPERATURE,
-                streaming=False,
-            ),
+            model=model,
             tools=build_tools(company_id, recorder),
-            system_prompt=SYSTEM_PROMPT,
+            system_prompt=prompt,
             callback_handler=None,  # nothing is printed to the server's stdout
         )
         try:
             result = agent(question)
         except Exception as error:  # noqa: BLE001 - the panel degrades, it does not 500
-            failure = f"agent run failed: {bedrock.describe(error)}"
-            if bedrock.is_dead(error):
-                bedrock.retire(candidate)
-                continue
-            # Throttled, timed out, or the tool loop itself broke. Another
-            # model reaches the same wall.
-            break
-        model_id = candidate
+            failure = f"agent run failed on {candidate}: {llm.describe(error)}"
+            if llm.is_dead(candidate, error):
+                llm.retire(candidate)
+            else:
+                stalled.add(candidate.provider)
+            continue
+        model_id = str(candidate)
         break
 
     if result is None:
         return LedgerAnswer(
             text="",
             source="unavailable",
-            rejected_reason=failure or "no Bedrock model answered",
+            rejected_reason=failure or "no model answered",
         )
 
     called = sorted({name for name in _tool_names(result)})
@@ -325,13 +402,56 @@ def ask(company_id: str, question: str) -> LedgerAnswer:
         )
 
     problem = check_answer(generated, "\n".join(recorder))
+
+    if problem and agent is not None:
+        # One correction, and only one.
+        #
+        # This does not soften the guard: the retry is checked by exactly
+        # the same rule, and a second failure is still a refusal shown as a
+        # refusal. What it buys is the case the guard is designed to catch
+        # and a smaller model walks into often — a figure the model
+        # totalled, rounded, or carried over from the question rather than
+        # read out of a tool result. Told which token was rejected, it
+        # usually quotes the tool instead, and the accountant gets the
+        # answer the tools already support.
+        #
+        # This became worth doing when the model layer moved from Claude on
+        # Bedrock to a 3B model on this instance. The rejection rate went up
+        # because the writer got smaller, not because the books got harder,
+        # and a panel that refuses a good question is a panel nobody opens
+        # twice.
+        correction = (
+            f"Your answer was rejected: {problem}. Every number you write "
+            "must appear in a tool result exactly as the tool wrote it. Do "
+            "not add, total, round or reformat. If the figure the "
+            "accountant asked for is not in any tool result, say so and "
+            "give the figures that are. Answer again."
+        )
+        try:
+            retried = agent(correction)
+        except Exception as error:  # noqa: BLE001 - the panel degrades, it does not 500
+            retried = None
+            failure = f"agent retry failed on {model_id}: {llm.describe(error)}"
+        if retried is not None:
+            retried_text = _answer_text(retried.message)
+            called = sorted({name for name in _tool_names(retried)})
+            if retried_text:
+                second = check_answer(retried_text, "\n".join(recorder))
+                if second is None:
+                    generated, problem = retried_text, None
+                else:
+                    problem = second
+
     if problem:
         return LedgerAnswer(
             text="",
             source="refused",
             model=model_id,
             tools_called=called,
-            rejected_reason=problem,
+            # If the correction itself crashed, that is the more useful half
+            # of the story: without it an operator sees only the guard's
+            # message and concludes corrections never fire.
+            rejected_reason=f"{problem} ({failure})" if failure else problem,
         )
 
     return LedgerAnswer(text=generated, source="agent", model=model_id, tools_called=called)

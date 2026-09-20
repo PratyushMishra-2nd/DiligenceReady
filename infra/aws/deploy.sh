@@ -113,6 +113,11 @@ note "pushed ${REPO_URI}:${IMAGE_TAG}"
 # to the next live model at run time, so the next retirement costs one
 # failed call rather than the model layer.
 
+# The model this instance serves itself when Bedrock will not answer. Four
+# vCPUs and no GPU, so: small, quantised, and picked for tool calling
+# because "Ask the ledger" is an agent.
+LOCAL_MODEL_ID="${LOCAL_MODEL_ID:-qwen2.5:3b}"
+
 say "Discovering a Bedrock model"
 BEDROCK_MODEL_ID="${BEDROCK_MODEL_ID:-}"
 if [[ -z "${BEDROCK_MODEL_ID}" ]]; then
@@ -141,6 +146,23 @@ if [[ "${BEDROCK_MODEL_ID}" == "None" || -z "${BEDROCK_MODEL_ID}" ]]; then
   note "available — correct, just plainer."
 else
   note "using ${BEDROCK_MODEL_ID}"
+  # Listing a model and being allowed to invoke it are different
+  # permissions, and on a new account they differ in a way no listing
+  # reports. Until a billing cycle closes, AWS holds foundation-model
+  # invocation for the whole account: every id answers
+  # `ValidationException: Operation not allowed`, in every region, whatever
+  # IAM says and whatever credits are on the account. It reads as an IAM
+  # problem for hours. So the deploy asks the question the listing cannot
+  # answer, once, and says plainly which model layer this deployment is
+  # about to have.
+  if ! aws bedrock-runtime converse     --region "${BEDROCK_REGION:-${REGION}}"     --model-id "${BEDROCK_MODEL_ID}"     --messages '[{"role":"user","content":[{"text":"ping"}]}]'     --inference-config '{"maxTokens":1}' >/dev/null 2>&1; then
+    note "This account cannot invoke ${BEDROCK_MODEL_ID} yet."
+    note "That is an account-level hold on Bedrock, not an IAM problem, and"
+    note "it lifts when a billing cycle closes. Explanations and the ledger"
+    note "agent will run on the open-weights model this instance serves"
+    note "(${LOCAL_MODEL_ID}); the deployment re-tries Bedrock on every"
+    note "restart and takes it back the moment it answers."
+  fi
 fi
 
 # ── 4. application ──────────────────────────────────────────────────────────
@@ -155,6 +177,9 @@ aws cloudformation deploy \
   "ImageTag=${IMAGE_TAG}" \
   "BedrockModelId=${BEDROCK_MODEL_ID}" \
   "BedrockRegion=${BEDROCK_REGION:-}" \
+  "InstanceType=${INSTANCE_TYPE:-m7i-flex.large}" \
+  "LlmProvider=${LLM_PROVIDER:-auto}" \
+  "LocalModelId=${LOCAL_MODEL_ID}" \
   "CorsOrigins=${CORS_ORIGINS:-}" \
   --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
   --no-fail-on-empty-changeset

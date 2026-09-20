@@ -31,7 +31,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from sqlalchemy import text
 
-from diligence_api import bedrock
+from diligence_api import llm
 from diligence_api.agent import ask
 from diligence_api.deps import (
     bearer_token,
@@ -137,8 +137,14 @@ def health() -> dict:
         "status": "ok",
         "storage_backend": settings().storage_backend,
         "region": settings().aws_region or None,
-        "model": available[0] if available else None,
+        "model": str(available[0]) if available else None,
         "model_fallbacks": max(len(available) - 1, 0),
+        # Which providers are still on the list after retirements. On this
+        # deployment Bedrock drops off the first time the account hold
+        # refuses a call, and the line becomes the local server alone —
+        # which is a thing an operator should be able to read rather than
+        # infer from latency.
+        "model_providers": sorted({item.provider for item in available}) or None,
         "agent": "strands" if _strands_available() else None,
     }
     try:
@@ -161,16 +167,17 @@ def health() -> dict:
     return detail
 
 
-def _model_candidates() -> list[str]:
-    """The model ids this process will try, in order. Never raises.
+def _model_candidates() -> list[llm.Candidate]:
+    """The models this process will try, in order. Never raises.
 
     The health check is what a load balancer reads. A catalogue lookup that
     throws must not be the reason a healthy deployment is marked down.
     """
     try:
-        return bedrock.candidates()
+        return llm.plan()
     except Exception:  # noqa: BLE001 - see docstring
-        return [settings().bedrock_model_id] if settings().bedrock_model_id else []
+        configured = settings().bedrock_model_id
+        return [llm.Candidate(llm.BEDROCK, configured)] if configured else []
 
 
 @lru_cache(maxsize=1)

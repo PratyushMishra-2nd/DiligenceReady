@@ -213,7 +213,7 @@ Turn it back off before the next rehearsal:
 
 Scroll to the **Ask the ledger** panel and click a suggested question.
 
-> "This is a Strands agent — AWS's open-source agent SDK — on Bedrock. It chose
+> "This is a Strands agent — AWS's open-source agent SDK. It chose
 > which queries to run. It did not compute anything. Every figure in that
 > sentence came out of one of the queries listed underneath it."
 
