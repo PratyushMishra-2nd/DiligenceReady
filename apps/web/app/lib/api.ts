@@ -142,6 +142,56 @@ export type Risk = {
   evidence_count: number;
 };
 
+/** One month inside a chosen span. Every figure computed by the engine. */
+export type RangeMonth = {
+  period: string;
+  present: boolean;
+  status: string | null;
+  gstr2b_generated: boolean;
+  gstr3b_filed: boolean;
+  gstr2b_stale: boolean;
+  gst_matched: number;
+  gst_total: number;
+  gst_coverage_pct: string;
+  bank_matched: number;
+  bank_total: number;
+  bank_coverage_pct: string;
+  open_risks: number;
+  high_risks: number;
+  medium_risks: number;
+  low_risks: number;
+  itc_at_risk: string;
+  itc_mismatch: string;
+  itc_reversal_37a: string;
+  bank_variance: string;
+  unidentified_deposits: string;
+};
+
+/**
+ * The span totalled.
+ *
+ * `gst_coverage_pct` here is not the average of the months' percentages: the
+ * engine sums matched and total across the span and divides once, so a month
+ * with three documents cannot outvote a month with three thousand. Nothing in
+ * this interface recomputes it.
+ */
+export type RangeTotals = Omit<
+  RangeMonth,
+  "period" | "present" | "status" | "gstr2b_generated" | "gstr3b_filed" | "gstr2b_stale"
+> & {
+  months: number;
+  months_with_data: number;
+  months_reconciled: number;
+};
+
+export type RangeSummary = {
+  from: string;
+  to: string;
+  months: RangeMonth[];
+  totals: RangeTotals;
+  risks: (Risk & { period: string })[];
+};
+
 export type EvidenceItem = {
   evidence_id: string;
   record_type: string;
@@ -254,6 +304,8 @@ export const api = {
     get<Readiness>(`/api/companies/${id}/periods/${period}/readiness`),
   risks: (id: string, period: string) =>
     get<{ risks: Risk[] }>(`/api/companies/${id}/periods/${period}/risks`),
+  periodRange: (id: string, from: string, to: string) =>
+    get<RangeSummary>(`/api/companies/${id}/range?from=${from}&to=${to}`),
   otherItc: (id: string, period: string) =>
     get<OtherItcSummary>(`/api/companies/${id}/periods/${period}/other-itc`),
   ims: async (id: string, period: string): Promise<ImsSummary | null> => {

@@ -6,6 +6,8 @@ import { Findings } from "../../../components/Findings";
 import { ImsPanel } from "../../../components/ImsPanel";
 import { LenderPackage } from "../../../components/LenderPackage";
 import { OtherItc } from "../../../components/OtherItc";
+import { PeriodRange } from "../../../components/PeriodRange";
+import { RangeSummary } from "../../../components/RangeSummary";
 import { ReadinessCard } from "../../../components/ReadinessCard";
 import { Sparkline } from "../../../components/Sparkline";
 import { UploadPanel } from "../../../components/UploadPanel";
@@ -14,6 +16,7 @@ import type {
   CompanyCard,
   ImsSummary,
   OtherItcSummary,
+  RangeSummary as Range,
   Readiness,
   Risk,
   SessionUser,
@@ -28,7 +31,7 @@ export default async function CompanyPage({
   searchParams,
 }: {
   params: { companyId: string };
-  searchParams: { period?: string };
+  searchParams: { period?: string; from?: string; to?: string };
 }) {
   let company: Company;
   try {
@@ -49,11 +52,24 @@ export default async function CompanyPage({
   // bank value-dates spilling into the new month were enough to land the
   // page on an empty September showing 0.0% coverage.
   const reconciled = company.periods.filter((entry) => entry.gstr2b_generated);
-  const period =
-    searchParams.period ?? reconciled[0]?.period ?? company.periods[0].period;
-  const chosenForYou = !searchParams.period && reconciled[0]?.period === period;
+  const fallback = reconciled[0]?.period ?? company.periods[0].period;
+
+  // A span asked for in the URL, clamped to the months this company has. Both
+  // ends must be present and well-formed: half a range is a mangled link, and
+  // guessing the missing end would answer a question nobody asked. A span of
+  // one month is not a span — it is the single-month page, which already has
+  // a URL of its own.
+  const span = spanFrom(searchParams, company.periods);
+  const period = span ? span.to : (searchParams.period ?? fallback);
+  const chosenForYou = !span && !searchParams.period && reconciled[0]?.period === period;
+
   const base = `/api/companies/${company.company_id}/periods/${period}`;
-  const [readiness, { risks }, ims, other, firm, user] = await Promise.all([
+  const [range, readiness, { risks }, ims, other, firm, user] = await Promise.all([
+    span
+      ? requireData<Range>(
+          `/api/companies/${company.company_id}/range?from=${span.from}&to=${span.to}`,
+        )
+      : Promise.resolve(null),
     requireData<Readiness>(`${base}/readiness`),
     requireData<{ risks: Risk[] }>(`${base}/risks`),
     requireData<ImsSummary>(`${base}/ims`).catch(() => null),
@@ -117,10 +133,11 @@ export default async function CompanyPage({
             />
             <span className="text-ident text-graphite-soft">open findings</span>
           </div>
-          <PeriodPicker
+          <PeriodRange
             companyId={company.company_id}
             periods={company.periods}
-            current={period}
+            from={span ? span.from : period}
+            to={span ? span.to : period}
           />
         </div>
       </header>
@@ -131,7 +148,8 @@ export default async function CompanyPage({
           otherwise is reading the wrong month. One sentence, no pixels of
           permanent furniture. */}
       <p className="mt-6 max-w-[70ch] text-ident text-graphite">
-        Financial readiness · {periodLabel(period)}
+        Financial readiness ·{" "}
+        {span ? `${periodLabel(span.from)} to ${periodLabel(span.to)}` : periodLabel(period)}
         {chosenForYou && (
           <span className="text-graphite-soft">
             {" "}
@@ -141,28 +159,40 @@ export default async function CompanyPage({
         )}
       </p>
 
-      <div className="mt-3">
-        <ReadinessCard readiness={readiness} />
-      </div>
+      {range ? (
+        <RangeSummary range={range} companyId={company.company_id} />
+      ) : (
+        <div className="mt-3">
+          <ReadinessCard readiness={readiness} />
+        </div>
+      )}
 
       {/* The findings are the work. Everything below them is context, a write
           path, or an aspiration, and each of those used to sit above the list
           — putting the only surface a CA acts on about four viewports down,
           behind a button that by design does nothing. */}
-      <Findings
-        risks={risks}
-        period={period}
-        company={company.name}
-        companyId={company.company_id}
-        periods={company.periods}
-        companies={firm.companies}
-        canWrite={user?.can_write ?? true}
-      />
+      {/* The working surfaces below are a month's, not a span's. A decision on
+          a finding is taken with that month's GSTR-2B in front of you, the
+          other-ITC sections and the IMS dashboard are both per-return, and an
+          upload lands in the period its own dates put it in. In a span they
+          would each be answering for a month the reader did not choose, so
+          the span shows its index and sends them into the month instead. */}
+      {!range && (
+        <Findings
+          risks={risks}
+          period={period}
+          company={company.name}
+          companyId={company.company_id}
+          periods={company.periods}
+          companies={firm.companies}
+          canWrite={user?.can_write ?? true}
+        />
+      )}
 
       <div className="mt-10 border-t border-graphite-soft">
-        {other && <OtherItc other={other} />}
+        {!range && other && <OtherItc other={other} />}
 
-        {ims && <ImsPanel ims={ims} />}
+        {!range && ims && <ImsPanel ims={ims} />}
 
         {/* Not collapsed, and not grouped with the rest. A company with no
             documents has no findings, and this is the control that fixes
@@ -185,41 +215,42 @@ export default async function CompanyPage({
   );
 }
 
-function PeriodPicker({
-  companyId,
-  periods,
-  current,
-}: {
-  companyId: string;
-  periods: { period: string; open_risks: number; gstr2b_generated: boolean }[];
-  current: string;
-}) {
-  return (
-    <nav aria-label="Period" className="no-print flex flex-wrap gap-1">
-      {[...periods].reverse().map((entry) => {
-        const active = entry.period === current;
-        return (
-          <Link
-            key={entry.period}
-            href={`/app/companies/${companyId}?period=${entry.period}`}
-            aria-current={active ? "page" : undefined}
-            title={
-              entry.gstr2b_generated
-                ? `${entry.open_risks} open findings`
-                : "GSTR-2B has not generated for this period"
-            }
-            className={`tabular border px-2 py-1 text-ident ${
-              active
-                ? "border-agreed bg-agreed text-stock"
-                : entry.gstr2b_generated
-                  ? "border-hairline text-graphite hover:border-agreed hover:text-agreed"
-                  : "border-hairline border-dashed text-graphite-soft hover:border-agreed hover:text-agreed"
-            }`}
-          >
-            {periodLabel(entry.period, true)}
-          </Link>
-        );
-      })}
-    </nav>
-  );
+const PERIOD = /^\d{4}-(0[1-9]|1[0-2])$/;
+
+/**
+ * The span the URL is asking for, or null for the ordinary one-month page.
+ *
+ * Every rejection here lands on the single-month view rather than on an error,
+ * because each one describes a link that is wrong rather than a reader who is:
+ *
+ * *   **One end missing.** `?from=` alone does not mean "to the end of time";
+ *     it means the link lost half of itself in a chat client.
+ * *   **Not a period.** These reach a `between` in SQL. The API validates them
+ *     too — this is the copy that keeps a mangled link from becoming a 400 on
+ *     a page a reader is already looking at.
+ * *   **Reversed.** April to January is not a span.
+ * *   **Outside the books.** Clamped to the months this company has rather
+ *     than refused, so a range pasted between two clients still resolves to
+ *     the overlapping part instead of to an empty table.
+ * *   **One month wide.** That is not a range, it is the page this already is,
+ *     and it has a shorter URL.
+ */
+function spanFrom(
+  searchParams: { from?: string; to?: string },
+  periods: { period: string }[],
+): { from: string; to: string } | null {
+  const { from, to } = searchParams;
+  if (!from || !to) return null;
+  if (!PERIOD.test(from) || !PERIOD.test(to)) return null;
+  if (from > to) return null;
+
+  // Periods arrive newest first.
+  const newest = periods[0].period;
+  const oldest = periods[periods.length - 1].period;
+  const start = from < oldest ? oldest : from;
+  const end = to > newest ? newest : to;
+
+  if (start > end) return null;
+  if (start === end) return null;
+  return { from: start, to: end };
 }

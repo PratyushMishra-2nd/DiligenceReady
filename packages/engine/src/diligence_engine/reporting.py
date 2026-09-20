@@ -286,7 +286,274 @@ def readiness(conn: Connection, company_id: uuid.UUID, period: str) -> dict:
     }
 
 
-# ── risks and evidence ──────────────────────────────────────────────────────
+# ── a span of months ────────────────────────────────────────────────────────
+#
+# Everything above answers for one period, because that is the unit GST works
+# in: a return is filed for a month, a GSTR-2B is generated for a month. But
+# "is this client getting better or worse", "how much credit have we lost this
+# financial year" and "what did the last quarter cost" are the questions a
+# partner actually asks, and not one of them is a question about August.
+
+
+#: The rules whose headline amount is money that adds up across months. A
+#: table rather than branches, so a new rule is a line here — and so the two
+#: things that must agree, what is summed per month and what is summed into
+#: the total, cannot be written out twice and drift.
+_RANGE_MONEY = {
+    "itc_at_risk": "R1",
+    "itc_mismatch": "R2",
+    "itc_reversal_37a": "R4",
+    "bank_variance": "R5",
+    "unidentified_deposits": "R6",
+}
+
+
+def _period_index(period: str) -> int:
+    year, month = (int(part) for part in period.split("-"))
+    return year * 12 + (month - 1)
+
+
+def months_between(start: str, end: str) -> list[str]:
+    """Every 'YYYY-MM' from start to end inclusive, oldest first.
+
+    Generated rather than read back from the periods table on purpose: a month
+    with no rows is a real answer to "what happened between April and August"
+    — it means nothing was filed — and a range that silently skips it reports
+    four months of work as though the fifth had never been asked about.
+    """
+    return [
+        f"{value // 12:04d}-{value % 12 + 1:02d}"
+        for value in range(_period_index(start), _period_index(end) + 1)
+    ]
+
+
+def period_range(conn: Connection, company_id: uuid.UUID, start: str, end: str) -> dict:
+    """Readiness across a span of months, and what it comes to in total.
+
+    The thing here that is easy to get wrong, and wrong in a way nobody would
+    catch by looking: **coverage over a range is not the average of the
+    monthly coverages.** A month with three purchase documents and a month
+    with three thousand are not two equal opinions about how well this client
+    reconciles, and averaging their percentages says they are. So the matched
+    and total counts are summed first and the percentage is taken once from
+    those sums — the same arithmetic `readiness()` does for a single month,
+    over a bigger numerator and denominator rather than over a bag of
+    percentages.
+
+    Money is summed as `Decimal` by Postgres and handed on untouched. Nothing
+    in this function puts a rupee through a float.
+    """
+    months = months_between(start, end)
+    params = {"cid": company_id, "start": start, "end": end}
+
+    gst = {
+        row.period: row
+        for row in conn.execute(
+            text(
+                """
+                select period,
+                       count(*) filter (where status = 'matched') as matched,
+                       count(*) as total
+                from matches
+                where company_id = :cid and period between :start and :end
+                  and domain = 'gst' and left_type = 'purchase_invoice'
+                group by period
+                """
+            ),
+            params,
+        )
+    }
+
+    bank = {
+        row.period: row
+        for row in conn.execute(
+            text(
+                """
+                select period,
+                       count(*) filter (where status = 'matched') as matched,
+                       count(*) as total
+                from matches
+                where company_id = :cid and period between :start and :end
+                  and domain = 'bank' and left_type = 'bank_txn'
+                group by period
+                """
+            ),
+            params,
+        )
+    }
+
+    severity: dict[str, dict[str, int]] = {}
+    for row in conn.execute(
+        text(
+            """
+            select period, severity, count(*) as count
+            from risks
+            where company_id = :cid and period between :start and :end
+              and status = 'open'
+            group by period, severity
+            """
+        ),
+        params,
+    ):
+        severity.setdefault(row.period, {})[row.severity] = row.count
+
+    # Headline amounts per rule per month. Unlike the counts above, this is
+    # every finding regardless of status: an amount that was at risk in April
+    # was at risk in April whether or not someone has since marked it
+    # accepted, and a year-to-date total that moves when a finding is actioned
+    # is a total nobody can reconcile against last week's copy of this page.
+    money: dict[str, dict[str, Decimal]] = {}
+    for row in conn.execute(
+        text(
+            """
+            select period, rule_code, sum(headline_amount) as amount
+            from risks
+            where company_id = :cid and period between :start and :end
+              and rule_code = any(:rules)
+            group by period, rule_code
+            """
+        ),
+        {**params, "rules": list(_RANGE_MONEY.values())},
+    ):
+        money.setdefault(row.period, {})[row.rule_code] = row.amount or ZERO
+
+    filed = {
+        row.period: row
+        for row in conn.execute(
+            text(
+                """
+                select period, status, gstr2b_generated_at, gstr3b_filed, gstr2b_stale
+                from periods
+                where company_id = :cid and period between :start and :end
+                """
+            ),
+            params,
+        )
+    }
+
+    rows: list[dict] = []
+    for period in months:
+        gst_row = gst.get(period)
+        bank_row = bank.get(period)
+        open_by_severity = severity.get(period, {})
+        amounts = money.get(period, {})
+        period_row = filed.get(period)
+
+        gst_matched = gst_row.matched if gst_row else 0
+        gst_total = gst_row.total if gst_row else 0
+        bank_matched = bank_row.matched if bank_row else 0
+        bank_total = bank_row.total if bank_row else 0
+
+        rows.append(
+            {
+                "period": period,
+                # A month with no `periods` row was never opened by any feed.
+                # Reported as present-but-empty rather than dropped, because
+                # in a range the gap is itself the finding.
+                "present": period_row is not None,
+                "status": period_row.status if period_row else None,
+                "gstr2b_generated": bool(period_row and period_row.gstr2b_generated_at),
+                "gstr3b_filed": bool(period_row and period_row.gstr3b_filed),
+                "gstr2b_stale": bool(period_row and period_row.gstr2b_stale),
+                "gst_matched": gst_matched,
+                "gst_total": gst_total,
+                "gst_coverage_pct": _pct(gst_matched, gst_total),
+                "bank_matched": bank_matched,
+                "bank_total": bank_total,
+                "bank_coverage_pct": _pct(bank_matched, bank_total),
+                "open_risks": sum(open_by_severity.values()),
+                "high_risks": open_by_severity.get("high", 0),
+                "medium_risks": open_by_severity.get("medium", 0),
+                "low_risks": open_by_severity.get("low", 0),
+                **{key: amounts.get(rule) or ZERO for key, rule in _RANGE_MONEY.items()},
+            }
+        )
+
+    gst_matched = sum(row["gst_matched"] for row in rows)
+    gst_total = sum(row["gst_total"] for row in rows)
+    bank_matched = sum(row["bank_matched"] for row in rows)
+    bank_total = sum(row["bank_total"] for row in rows)
+
+    totals = {
+        "months": len(rows),
+        "months_with_data": sum(1 for row in rows if row["present"]),
+        "months_reconciled": sum(1 for row in rows if row["gstr2b_generated"]),
+        "gst_matched": gst_matched,
+        "gst_total": gst_total,
+        # Summed first, divided once. See the docstring.
+        "gst_coverage_pct": _pct(gst_matched, gst_total),
+        "bank_matched": bank_matched,
+        "bank_total": bank_total,
+        "bank_coverage_pct": _pct(bank_matched, bank_total),
+        "open_risks": sum(row["open_risks"] for row in rows),
+        "high_risks": sum(row["high_risks"] for row in rows),
+        "medium_risks": sum(row["medium_risks"] for row in rows),
+        "low_risks": sum(row["low_risks"] for row in rows),
+        **{key: sum((row[key] for row in rows), ZERO) for key in _RANGE_MONEY},
+    }
+
+    return {"from": start, "to": end, "months": rows, "totals": totals}
+
+
+def risks_in_range(
+    conn: Connection,
+    company_id: uuid.UUID,
+    start: str,
+    end: str,
+    rule_code: str | None = None,
+) -> list[dict]:
+    """`risks()` over a span, with each finding carrying the month it is from.
+
+    The period rides on every row because a list spanning five months is the
+    one place a finding cannot be read without it: two identical R3 duplicates
+    three months apart are the same sentence twice until the month tells them
+    apart.
+
+    Sorted by month first and severity second, rather than by severity across
+    the whole span. A CA works a month at a time — the high findings of April
+    are one piece of work and the high findings of July are another — and a
+    list interleaving them is a list that cannot be worked down.
+    """
+    clause = "and r.rule_code = :rule" if rule_code else ""
+    rows = conn.execute(
+        text(
+            f"""
+            select r.id, r.period, r.rule_code, r.risk_key, r.severity, r.headline_amount,
+                   r.headline_pct, r.calculation, r.rule_text, r.explanation,
+                   r.status, r.metrics, ru.title, ru.domain,
+                   (select count(*) from risk_evidence e where e.risk_id = r.id) as evidence
+            from risks r
+            join rules ru on ru.code = r.rule_code
+            where r.company_id = :cid and r.period between :start and :end {clause}
+            order by r.period desc, {_SEVERITY_ORDER}, r.headline_amount desc nulls last
+            """
+        ),
+        {"cid": company_id, "start": start, "end": end, "rule": rule_code},
+    ).all()
+
+    return [
+        {
+            "risk_id": str(row.id),
+            "period": row.period,
+            "rule_code": row.rule_code,
+            "title": row.title,
+            "domain": row.domain,
+            "risk_key": row.risk_key,
+            "severity": row.severity,
+            "headline_amount": row.headline_amount,
+            "headline_pct": row.headline_pct,
+            "calculation": row.calculation,
+            "rule_text": row.rule_text,
+            "explanation": row.explanation,
+            "status": row.status,
+            "metrics": row.metrics,
+            "evidence_count": row.evidence,
+        }
+        for row in rows
+    ]
+
+
+# ── risks and evidence ──────────────────────────────────────────────────────────────────
 
 _SEVERITY_ORDER = (
     "case severity when 'high' then 0 when 'medium' then 1 when 'low' then 2 else 3 end"

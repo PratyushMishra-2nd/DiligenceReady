@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import tempfile
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -26,7 +27,17 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Annotated, Any
 
-from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, Response, UploadFile
+from fastapi import (
+    Depends,
+    FastAPI,
+    File,
+    Form,
+    HTTPException,
+    Query,
+    Request,
+    Response,
+    UploadFile,
+)
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from sqlalchemy import text
@@ -301,6 +312,67 @@ def company(company_id: str, principal: auth.Principal = Depends(current_princip
             raise HTTPException(status_code=404, detail="No such company.")
         found["periods"] = reporting.periods(conn, identifier)
     return _jsonable(found)
+
+
+_PERIOD = re.compile(r"^\d{4}-(0[1-9]|1[0-2])$")
+
+#: A range wider than this is refused rather than served slowly. Five years of
+#: months is already more than any working paper covers, and the number exists
+#: so that a hand-edited query string cannot ask one query to walk a century.
+MAX_RANGE_MONTHS = 60
+
+
+def _period_or_400(value: str, name: str) -> str:
+    if not _PERIOD.match(value):
+        raise HTTPException(
+            status_code=400,
+            detail=f"{name} must be a tax period as YYYY-MM, for example 2026-04. Got {value!r}.",
+        )
+    return value
+
+
+@app.get("/api/companies/{company_id}/range")
+def period_range(
+    company_id: str,
+    start: Annotated[str, Query(alias="from")],
+    end: Annotated[str, Query(alias="to")],
+    principal: auth.Principal = Depends(current_principal),
+) -> dict:
+    """Readiness across a span of months, and the findings inside it.
+
+    One request rather than one per month. A five-month range fanned out from
+    the browser is five round trips whose totals are then added up in
+    JavaScript — which would make the interface a second place that does
+    arithmetic on rupees, and this product's whole claim is that there is only
+    one.
+
+    `from` and `to` are inclusive and are the query's own words, so the URL
+    reads the way the control does. They are validated rather than trusted:
+    they interpolate into `between`, and a period that is not YYYY-MM is
+    either a mangled link or someone probing.
+    """
+    start = _period_or_400(start, "from")
+    end = _period_or_400(end, "to")
+    if start > end:
+        # A reversed range is a mistake with an obvious repair, and silently
+        # swapping the ends would hide a link that will keep being wrong.
+        raise HTTPException(
+            status_code=400,
+            detail=f"from ({start}) is after to ({end}).",
+        )
+
+    months = len(reporting.months_between(start, end))
+    if months > MAX_RANGE_MONTHS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"{months} months is more than the {MAX_RANGE_MONTHS} this will serve.",
+        )
+
+    with connect() as conn:
+        identifier = company_or_404(conn, principal, company_id)
+        summary = reporting.period_range(conn, identifier, start, end)
+        summary["risks"] = reporting.risks_in_range(conn, identifier, start, end)
+    return _jsonable(summary)
 
 
 @app.get("/api/companies/{company_id}/periods/{period}/readiness")
