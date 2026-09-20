@@ -1,0 +1,465 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: >-
+  DiligenceReady application: the API on a single EC2 instance (HTTP on port 8080),
+  plus the nightly reconciliation as Lambda stages under Step Functions.
+
+  No CloudFront, no App Runner — both require account verification on new accounts.
+  The frontend (Amplify) uses Next.js rewrites to proxy /api/* to this EC2 instance
+  server-side, so the browser never makes a direct HTTP call (no mixed-content issue).
+
+  Same Docker image for both EC2 and Lambda — the nightly run and the dashboard
+  cannot disagree about a rounding rule because they are the same bytes.
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: diligenceready
+
+  ImageTag:
+    Type: String
+    Default: latest
+
+  BedrockModelId:
+    Type: String
+    Default: ""
+
+  BedrockRegion:
+    Type: String
+    Default: ""
+
+  CorsOrigins:
+    Type: String
+    Default: ""
+
+  InstanceType:
+    Type: String
+    Default: t3.small
+
+  LatestAmiId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64
+    Description: >-
+      Resolved live against SSM so it is always a valid, current AMI for the
+      deploy region.
+
+  ScheduleExpression:
+    Type: String
+    Default: "cron(30 19 * * ? *)"
+
+  ScheduleEnabled:
+    Type: String
+    Default: "ENABLED"
+    AllowedValues: ["ENABLED", "DISABLED"]
+
+Conditions:
+  HasBedrockRegion: !Not [!Equals [!Ref BedrockRegion, ""]]
+
+Resources:
+  # ── how the application reaches Postgres ──────────────────────────────────
+
+  AppSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: The API instance and the pipeline Lambdas.
+      VpcId:
+        Fn::ImportValue: !Sub "${ProjectName}-VpcId"
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 8080
+          ToPort: 8080
+          CidrIp: 0.0.0.0/0
+          Description: >-
+            HTTP API. Amplify's Next.js server proxies browser requests to this
+            port server-side, so the browser never makes a direct HTTP call.
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+          Description: Postgres in-VPC, S3 by gateway endpoint, Bedrock via NAT/IGW.
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-app"
+
+  DatabaseIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId:
+        Fn::ImportValue: !Sub "${ProjectName}-DbSecurityGroupId"
+      IpProtocol: tcp
+      FromPort: 5432
+      ToPort: 5432
+      SourceSecurityGroupId: !Ref AppSecurityGroup
+      Description: !Sub "${ProjectName} application"
+
+  # ── what the application is allowed to do ─────────────────────────────────
+
+  ApplicationPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: What the API and the pipeline may touch. Nothing else.
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: Documents
+            Effect: Allow
+            Action:
+              - s3:GetObject
+              - s3:PutObject
+              - s3:ListBucket
+            Resource:
+              - !Sub
+                - "arn:aws:s3:::${Bucket}"
+                - Bucket: !ImportValue
+                    Fn::Sub: "${ProjectName}-DocumentBucketName"
+              - !Sub
+                - "arn:aws:s3:::${Bucket}/*"
+                - Bucket: !ImportValue
+                    Fn::Sub: "${ProjectName}-DocumentBucketName"
+          - Sid: DatabaseCredentials
+            Effect: Allow
+            Action: secretsmanager:GetSecretValue
+            Resource:
+              Fn::ImportValue: !Sub "${ProjectName}-DbSecretArn"
+          - Sid: Explanations
+            Effect: Allow
+            Action:
+              - bedrock:InvokeModel
+              - bedrock:InvokeModelWithResponseStream
+            Resource:
+              - "arn:aws:bedrock:*::foundation-model/*"
+              - !Sub "arn:aws:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/*"
+
+  InstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - !Ref ApplicationPolicy
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+
+  InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref InstanceRole
+
+  PipelineLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+        - !Ref ApplicationPolicy
+
+  # ── the API: one EC2 instance running the container ───────────────────────
+  #
+  # The instance is in a PUBLIC subnet so it gets a public IP. Port 8080
+  # accepts connections on that IP. The Amplify Next.js server (running
+  # server-side) talks HTTP to port 8080; the browser always talks HTTPS to
+  # Amplify. No CDN layer is needed.
+
+  ApiInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceType
+      ImageId: !Ref LatestAmiId
+      IamInstanceProfile: !Ref InstanceProfile
+      SubnetId:
+        Fn::Select:
+          - 0
+          - !Split [",", Fn::ImportValue: !Sub "${ProjectName}-PublicSubnetIds"]
+      SecurityGroupIds:
+        - !Ref AppSecurityGroup
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-api"
+      UserData:
+        Fn::Base64: !Sub
+          - |
+            #!/bin/bash
+            set -euo pipefail
+            dnf install -y docker
+            systemctl enable --now docker
+            aws ecr get-login-password --region ${AWS::Region} | docker login --username AWS --password-stdin ${RepoHost}
+            docker pull ${RepoUri}:${ImageTag}
+            docker run -d --name api --restart always -p 8080:8080 \
+              -e STORAGE_BACKEND=s3 \
+              -e S3_BUCKET=${DocBucket} \
+              -e S3_PREFIX=documents \
+              -e DB_HOST=${DbHost} \
+              -e DB_PORT=${DbPort} \
+              -e DB_NAME=diligence \
+              -e DB_USER=diligence \
+              -e DB_SECRET_ARN=${DbSecretArn} \
+              -e BEDROCK_MODEL_ID=${BedrockModelId} \
+              -e BEDROCK_REGION=${EffectiveBedrockRegion} \
+              -e CORS_ORIGINS=${CorsOrigins} \
+              -e PORT=8080 \
+              ${RepoUri}:${ImageTag}
+          - RepoHost: !Select
+              - 0
+              - !Split
+                - "/"
+                - Fn::ImportValue: !Sub "${ProjectName}-ImageRepositoryUri"
+            RepoUri: !ImportValue
+              Fn::Sub: "${ProjectName}-ImageRepositoryUri"
+            DocBucket: !ImportValue
+              Fn::Sub: "${ProjectName}-DocumentBucketName"
+            DbHost: !ImportValue
+              Fn::Sub: "${ProjectName}-DbEndpoint"
+            DbPort: !ImportValue
+              Fn::Sub: "${ProjectName}-DbPort"
+            DbSecretArn: !ImportValue
+              Fn::Sub: "${ProjectName}-DbSecretArn"
+            EffectiveBedrockRegion: !If [HasBedrockRegion, !Ref BedrockRegion, !Ref "AWS::Region"]
+
+  # ── the nightly reconciliation ─────────────────────────────────────────────
+
+  PipelineFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${ProjectName}-pipeline"
+      PackageType: Image
+      Code:
+        ImageUri: !Sub
+          - "${Repo}:${ImageTag}"
+          - Repo: !ImportValue
+              Fn::Sub: "${ProjectName}-ImageRepositoryUri"
+      ImageConfig:
+        EntryPoint: ["/app/.venv/bin/python", "-m", "awslambdaric"]
+        Command: ["diligence_engine.aws_lambda.handler"]
+        WorkingDirectory: /app
+      Role: !GetAtt PipelineLambdaRole.Arn
+      Timeout: 900
+      MemorySize: 2048
+      Environment:
+        Variables:
+          STORAGE_BACKEND: s3
+          S3_BUCKET:
+            Fn::ImportValue: !Sub "${ProjectName}-DocumentBucketName"
+          S3_PREFIX: documents
+          DB_HOST:
+            Fn::ImportValue: !Sub "${ProjectName}-DbEndpoint"
+          DB_PORT:
+            Fn::ImportValue: !Sub "${ProjectName}-DbPort"
+          DB_NAME: diligence
+          DB_USER: diligence
+          DB_SECRET_ARN:
+            Fn::ImportValue: !Sub "${ProjectName}-DbSecretArn"
+      VpcConfig:
+        SubnetIds: !Split
+          - ","
+          - Fn::ImportValue: !Sub "${ProjectName}-PrivateSubnetIds"
+        SecurityGroupIds:
+          - !Ref AppSecurityGroup
+
+  PipelineLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${ProjectName}-pipeline"
+      RetentionInDays: 14
+
+  StateMachineLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    Properties:
+      LogGroupName: !Sub "/aws/vendedlogs/states/${ProjectName}-pipeline"
+      RetentionInDays: 14
+
+  StateMachineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: states.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: invoke-and-log
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: lambda:InvokeFunction
+                Resource: !GetAtt PipelineFunction.Arn
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogDelivery
+                  - logs:GetLogDelivery
+                  - logs:UpdateLogDelivery
+                  - logs:DeleteLogDelivery
+                  - logs:ListLogDeliveries
+                  - logs:PutResourcePolicy
+                  - logs:DescribeResourcePolicies
+                  - logs:DescribeLogGroups
+                Resource: "*"
+
+  PipelineStateMachine:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      StateMachineName: !Sub "${ProjectName}-pipeline"
+      RoleArn: !GetAtt StateMachineRole.Arn
+      LoggingConfiguration:
+        Level: ALL
+        IncludeExecutionData: true
+        Destinations:
+          - CloudWatchLogsLogGroup:
+              LogGroupArn: !GetAtt StateMachineLogGroup.Arn
+      DefinitionString: !Sub |
+        {
+          "Comment": "Nightly reconciliation.",
+          "StartAt": "Migrate",
+          "States": {
+            "Migrate": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::lambda:invoke",
+              "Parameters": {
+                "FunctionName": "${PipelineFunction.Arn}",
+                "Payload": { "stage": "migrate" }
+              },
+              "ResultSelector": { "migrate.$": "$.Payload" },
+              "ResultPath": "$.migrate",
+              "Retry": [
+                {
+                  "ErrorEquals": ["Lambda.ServiceException", "Lambda.AWSLambdaException", "Lambda.SdkClientException", "Lambda.TooManyRequestsException"],
+                  "IntervalSeconds": 5,
+                  "MaxAttempts": 3,
+                  "BackoffRate": 2
+                }
+              ],
+              "Next": "Reconcile"
+            },
+            "Reconcile": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::lambda:invoke",
+              "Parameters": {
+                "FunctionName": "${PipelineFunction.Arn}",
+                "Payload": { "stage": "reconcile" }
+              },
+              "ResultSelector": { "reconcile.$": "$.Payload" },
+              "ResultPath": "$.reconcile",
+              "Retry": [
+                {
+                  "ErrorEquals": ["States.TaskFailed"],
+                  "IntervalSeconds": 10,
+                  "MaxAttempts": 2,
+                  "BackoffRate": 2
+                }
+              ],
+              "Next": "Ims"
+            },
+            "Ims": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::lambda:invoke",
+              "Parameters": {
+                "FunctionName": "${PipelineFunction.Arn}",
+                "Payload": { "stage": "ims" }
+              },
+              "ResultSelector": { "ims.$": "$.Payload" },
+              "ResultPath": "$.ims",
+              "Retry": [
+                {
+                  "ErrorEquals": ["States.TaskFailed"],
+                  "IntervalSeconds": 10,
+                  "MaxAttempts": 2,
+                  "BackoffRate": 2
+                }
+              ],
+              "Next": "Rules"
+            },
+            "Rules": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::lambda:invoke",
+              "Parameters": {
+                "FunctionName": "${PipelineFunction.Arn}",
+                "Payload": { "stage": "rules" }
+              },
+              "ResultSelector": { "rules.$": "$.Payload" },
+              "ResultPath": "$.rules",
+              "Retry": [
+                {
+                  "ErrorEquals": ["States.TaskFailed"],
+                  "IntervalSeconds": 10,
+                  "MaxAttempts": 2,
+                  "BackoffRate": 2
+                }
+              ],
+              "End": true
+            }
+          }
+        }
+
+  SchedulerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: scheduler.amazonaws.com
+            Action: sts:AssumeRole
+            Condition:
+              StringEquals:
+                "aws:SourceAccount": !Ref "AWS::AccountId"
+      Policies:
+        - PolicyName: start-the-pipeline
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: states:StartExecution
+                Resource: !Ref PipelineStateMachine
+
+  NightlySchedule:
+    Type: AWS::Scheduler::Schedule
+    Properties:
+      Name: !Sub "${ProjectName}-nightly"
+      State: !Ref ScheduleEnabled
+      FlexibleTimeWindow:
+        Mode: FLEXIBLE
+        MaximumWindowInMinutes: 15
+      ScheduleExpression: !Ref ScheduleExpression
+      ScheduleExpressionTimezone: Asia/Kolkata
+      Target:
+        Arn: !Ref PipelineStateMachine
+        RoleArn: !GetAtt SchedulerRole.Arn
+        Input: "{}"
+        RetryPolicy:
+          MaximumRetryAttempts: 2
+
+Outputs:
+  ApiUrl:
+    Description: >-
+      The API's HTTP endpoint on the EC2 instance. Used by the Next.js server
+      as the upstream for its /api/* rewrite proxy. NOT called by the browser
+      directly — browsers call the Amplify HTTPS URL which proxies here.
+    Value: !Sub "http://${ApiInstance.PublicDnsName}:8080"
+
+  ApiPublicIp:
+    Description: The EC2 instance's public IP address.
+    Value: !GetAtt ApiInstance.PublicIp
+
+  HealthUrl:
+    Value: !Sub "http://${ApiInstance.PublicDnsName}:8080/api/health"
+
+  StateMachineArn:
+    Value: !Ref PipelineStateMachine
+
+  PipelineFunctionName:
+    Value: !Ref PipelineFunction

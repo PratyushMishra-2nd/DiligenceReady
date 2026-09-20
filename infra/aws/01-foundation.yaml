@@ -339,6 +339,11 @@ Outputs:
     Export:
       Name: !Sub "${ProjectName}-PrivateSubnetIds"
 
+  PublicSubnetIds:
+    Value: !Join [",", [!Ref PublicSubnetA, !Ref PublicSubnetB]]
+    Export:
+      Name: !Sub "${ProjectName}-PublicSubnetIds"
+
   DbSecurityGroupId:
     Value: !Ref DbSecurityGroup
     Export:

@@ -31,7 +31,7 @@ cat <<WARNING
 
 This permanently deletes, in region ${REGION}:
 
-    ${APP_STACK}          App Runner service, Lambda, Step Functions, schedule
+    ${APP_STACK}          EC2 instance, CloudFront distribution, Lambda, Step Functions, schedule
     ${FOUNDATION_STACK}   VPC, NAT gateway, RDS instance AND ITS DATA,
                           the S3 document bucket AND EVERY DOCUMENT IN IT,
                           and the ECR repository
@@ -50,7 +50,7 @@ say "Deleting ${APP_STACK}"
 if aws cloudformation describe-stacks --region "${REGION}" \
   --stack-name "${APP_STACK}" >/dev/null 2>&1; then
   aws cloudformation delete-stack --region "${REGION}" --stack-name "${APP_STACK}"
-  note "waiting (App Runner takes a few minutes to drain)"
+  note "waiting (CloudFront distribution deletion takes a few minutes)"
   aws cloudformation wait stack-delete-complete \
     --region "${REGION}" --stack-name "${APP_STACK}"
   note "gone"
