@@ -255,7 +255,7 @@ migrations/sql/      hash-tracked schema migrations
 infra/aws/           CloudFormation, deploy and teardown
 ```
 
-~12,400 lines of Python, ~2,400 of TypeScript, ~730 of SQL, **244 tests**.
+~12,400 lines of Python, ~2,400 of TypeScript, ~730 of SQL, **246 tests**.
 
 CI runs ruff, the full test suite against a real Postgres, the whole pipeline, and a
 TypeScript build, and fails if the evaluation's recall drops below 1.00. Tests that
