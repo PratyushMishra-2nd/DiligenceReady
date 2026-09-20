@@ -35,7 +35,8 @@ export function HowItWorks() {
   return (
     <section id="how" className="scroll-mt-10 py-20">
       <h2 className="wdth-tight max-w-[18ch] font-anek text-opener font-bold text-agreed">
-        What it actually does
+        What it{" "}
+        <span className="whitespace-nowrap">actually does</span>
       </h2>
 
       <ol className="mt-14 border-t border-hairline">

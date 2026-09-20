@@ -104,7 +104,7 @@ export default function ProductPage() {
           <h2 className="wdth-tight max-w-[20ch] font-anek text-opener font-bold text-agreed">
             Measured, not asserted
           </h2>
-          <p className="opsz-deck mt-7 max-w-[46ch] font-news text-deck text-agreed">
+          <p className="opsz-deck mt-7 max-w-[46ch] font-news text-[1.4rem] sm:text-deck text-agreed">
             {spell(aggregates.totals.planted, true)} defects were planted across{" "}
             {spell(aggregates.totals.companies)} synthetic ledgers,{" "}
             {spell(aggregates.companies[0].evaluation.planted)} in each. The engine found
@@ -117,9 +117,10 @@ export default function ProductPage() {
 
         <section className="py-20">
           <h2 className="wdth-tight max-w-[22ch] font-anek text-opener font-bold text-agreed">
-            The model cannot produce a number
+            The model cannot{" "}
+            <span className="whitespace-nowrap">produce a number</span>
           </h2>
-          <p className="opsz-deck mt-7 max-w-[46ch] font-news text-deck text-agreed">
+          <p className="opsz-deck mt-7 max-w-[46ch] font-news text-[1.4rem] sm:text-deck text-agreed">
             Every figure on screen is a SQL aggregate. The model is handed a finished
             finding and writes the sentence explaining it; it never sees a document, and
             any figure it does produce is checked against the finding before you see it.
@@ -133,7 +134,7 @@ export default function ProductPage() {
           <h2 className="wdth-tight max-w-[20ch] font-anek text-opener font-bold text-agreed">
             Every figure has a line
           </h2>
-          <p className="opsz-deck mt-7 max-w-[46ch] font-news text-deck text-agreed">
+          <p className="opsz-deck mt-7 max-w-[46ch] font-news text-[1.4rem] sm:text-deck text-agreed">
             One finding, followed from the row of the file it was read out of to the
             aggregate that puts it on a dashboard.
           </p>
@@ -143,6 +144,13 @@ export default function ProductPage() {
         <Misregister slip={0.1} />
 
         <Standing />
+
+        {/* In register. The progression down the page has been closing since
+            the hero and this is where it arrives: one rule, in the colour the
+            two inks make together. It sits here rather than under the black
+            plate below, because a rule that resolves needs paper on both
+            sides of it to be seen resolving. */}
+        <Misregister slip={0} />
 
         <CallToAction signIn={DASHBOARD} />
 

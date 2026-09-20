@@ -23,9 +23,9 @@ export function Standing() {
       <div className="grid gap-x-14 gap-y-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div>
           <h2 className="wdth-tight max-w-[18ch] font-anek text-opener font-bold text-agreed">
-            Where this actually is
+            <span className="whitespace-nowrap">Where this</span> actually is
           </h2>
-          <p className="opsz-deck mt-7 max-w-[40ch] font-news text-deck text-agreed">
+          <p className="opsz-deck mt-7 max-w-[40ch] font-news text-[1.4rem] sm:text-deck text-agreed">
             Working software with a measured evaluation. Not a product you can buy yet.
           </p>
           <p className="opsz-prose mt-6 max-w-[48ch] font-news text-prose text-graphite">

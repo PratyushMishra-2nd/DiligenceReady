@@ -34,7 +34,7 @@ export function Hero({ signIn }: { signIn: string }) {
             Three systems. One truth.
           </h1>
 
-          <p className="opsz-deck mt-7 max-w-[46ch] font-news text-deck text-agreed">
+          <p className="opsz-deck mt-7 max-w-[46ch] font-news text-[1.4rem] sm:text-deck text-agreed">
             An SME&rsquo;s books, the government&rsquo;s record of them, and the money
             never agree. We keep them agreeing every month, keep the evidence, and put a
             deadline on the money.
@@ -76,7 +76,13 @@ export function Hero({ signIn }: { signIn: string }) {
           </figcaption>
 
           <div className="-mr-[10vw] mt-4">
-            <Overprint className="wdth-condensed font-anek text-[clamp(56px,11vw,132px)] font-extrabold leading-[0.82] tracking-[-0.04em]">
+            {/* Deliberately smaller and lighter than the h1 beside it. At
+              132px/extrabold it was sixteen pixels larger and a weight heavier
+              than the headline, in the same face — so the eye landed on the
+              number first and had to walk back left to find out what the
+              product was. The source order was right and the optical order
+              was not. It is still the largest thing in its own column. */}
+          <Overprint className="wdth-condensed font-anek text-[clamp(48px,8.5vw,104px)] font-bold leading-[0.84] tracking-[-0.04em]">
               <Rupee amount={headline.amount} />
             </Overprint>
           </div>

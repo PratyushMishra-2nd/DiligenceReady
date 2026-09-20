@@ -132,16 +132,19 @@ export default async function FirmDashboard() {
                 <th scope="col" className="py-2 pr-4 font-medium">
                   Latest period
                 </th>
-                <th scope="col" className="py-2 pr-4 text-right font-medium">
+                <th scope="col" className="py-2 pr-4 text-right font-medium text-books">
                   GST reconciled
                 </th>
-                <th scope="col" className="hidden py-2 pr-4 text-right font-medium md:table-cell">
+                <th
+                  scope="col"
+                  className="hidden py-2 pr-4 text-right font-medium text-books md:table-cell"
+                >
                   Bank reconciled
                 </th>
                 <th scope="col" className="py-2 pr-4 text-right font-medium">
                   Open
                 </th>
-                <th scope="col" className="py-2 text-right font-medium">
+                <th scope="col" className="py-2 text-right font-medium text-statute-deep">
                   ITC unmatched
                 </th>
               </tr>
@@ -185,7 +188,7 @@ export default async function FirmDashboard() {
                     <td className="tabular py-3 pr-4 text-right">
                       {company.open_risks}
                       {company.high_risks > 0 && (
-                        <span className="ml-2 border border-statute/30 bg-statute-wash px-1.5 py-0.5 text-ident font-medium text-statute">
+                        <span className="ml-2 bg-statute-wash px-1.5 py-0.5 text-ident font-medium text-statute">
                           {company.high_risks} high
                         </span>
                       )}
@@ -250,21 +253,32 @@ function Closes({ iso }: { iso: string | null }) {
  * the vermillion means one thing in this product. It is `aria-hidden` because
  * the number beside it is already the accessible value.
  */
+/**
+ * How much of a register found its counterpart, in the ink of the record it
+ * was matched against.
+ *
+ * Indigo is what the books say, and coverage is the books agreeing with
+ * something, so this column is indigo and the exposure column beside it is
+ * vermillion. The near-black the rest of the table is set in is the product
+ * of those two, and on this screen both of its parents are visible.
+ *
+ * A fully reconciled register is marked by weight rather than by a second
+ * colour — the previous version branched on `complete` and then set the same
+ * class in both arms, so the distinction it was written for never reached the
+ * screen at all.
+ */
 function Coverage({ value }: { value: string }) {
   const number = Number(value);
   const complete = Number.isFinite(number) && number >= 99.95;
   const width = Number.isFinite(number) ? Math.max(0, Math.min(100, number)) : 0;
   return (
     <span className="inline-block">
-      <span className={complete ? "text-agreed" : "text-agreed"}>
+      <span className={`text-books ${complete ? "font-semibold" : ""}`}>
         {value}
-        <span className="text-graphite-soft">%</span>
+        <span className="text-books/70">%</span>
       </span>
       <span aria-hidden className="mt-1 block h-px w-12 bg-hairline">
-        <span
-          className={`block h-px ${complete ? "bg-agreed" : "bg-graphite"}`}
-          style={{ width: `${width}%` }}
-        />
+        <span className="block h-px bg-books" style={{ width: `${width}%` }} />
       </span>
     </span>
   );

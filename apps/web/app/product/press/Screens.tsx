@@ -23,7 +23,8 @@ export function Screens() {
   return (
     <section className="py-20">
       <h2 className="wdth-tight max-w-[20ch] font-anek text-opener font-bold text-agreed">
-        Eight screens, one question each
+        Eight screens,{" "}
+        <span className="whitespace-nowrap">one question each</span>
       </h2>
 
       <dl className="mt-12 border-t border-hairline">

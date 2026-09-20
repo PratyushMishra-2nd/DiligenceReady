@@ -51,7 +51,7 @@ export function Leash() {
       <p className="font-mono text-stub uppercase tracking-[0.08em] text-graphite">
         What the tools returned
       </p>
-      <pre className="mt-2 overflow-x-auto border border-hairline bg-sunk p-3 font-mono text-ident leading-relaxed text-graphite">
+      <pre className="mt-2 whitespace-pre-wrap break-words border border-hairline bg-sunk p-3 font-mono text-ident leading-relaxed text-graphite">
         {TOOL_OUTPUT}
       </pre>
 

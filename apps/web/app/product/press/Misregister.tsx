@@ -17,8 +17,19 @@
  * added.
  */
 
-const MAX_DROP = 6;
-const MAX_SHIFT = 40;
+// A press slip translates the whole plate. The first cut inset one end
+// instead — the statute rule was `right-0` with a `left` offset — so the
+// right edges stayed flush and what a reader saw was a short red rule tucked
+// under a long blue one. That is a nested-rule graphic, not a registration
+// error, and by the third divider the two were close enough to read as a
+// single thick maroon line, so the progression down the page was
+// imperceptible.
+//
+// Both ends now move together, the vertical separation carries most of the
+// signal, and the horizontal shift is small enough to read as slip rather
+// than as indent.
+const MAX_DROP = 10;
+const MAX_SHIFT = 14;
 const WEIGHT = 2;
 
 export function Misregister({ slip }: { slip: number }) {
@@ -32,16 +43,17 @@ export function Misregister({ slip }: { slip: number }) {
       className="relative w-full"
       style={{ height: WEIGHT + Math.max(drop, 0) }}
     >
-      {/* The books plate. Always on register; it is the statute plate that
-          has slipped, which is also the argument. */}
+      {/* Settled: one rule, in the colour the two inks make together. This is
+          what the whole progression is walking toward, and it only means
+          anything if it actually ships — see the foot of the landing page. */}
       <div
-        className={settled ? "absolute inset-x-0 top-0 bg-agreed" : "absolute inset-x-0 top-0 bg-books"}
+        className={`absolute inset-x-0 top-0 ${settled ? "bg-agreed" : "bg-books"}`}
         style={{ height: WEIGHT }}
       />
       {!settled && (
         <div
-          className="absolute right-0 bg-statute"
-          style={{ height: WEIGHT, top: drop, left: shift }}
+          className="absolute inset-x-0 top-0 bg-statute"
+          style={{ height: WEIGHT, transform: `translate(${shift}px, ${drop}px)` }}
         />
       )}
     </div>

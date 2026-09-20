@@ -91,7 +91,7 @@ export function Trace() {
         </Step>
 
         <Step step={STEPS[3]} last>
-          <pre className="overflow-x-auto border border-hairline bg-sunk p-3 font-mono text-ident leading-relaxed text-graphite">
+          <pre className="whitespace-pre-wrap break-words border border-hairline bg-sunk p-3 font-mono text-ident leading-relaxed text-graphite">
 {`sum(headline_amount) filter (
   where rule_code = 'R1' and status = 'open'
 )`}

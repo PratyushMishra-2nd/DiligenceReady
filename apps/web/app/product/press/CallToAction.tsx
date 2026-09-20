@@ -21,7 +21,7 @@ export function CallToAction({ signIn }: { signIn: string }) {
           <h2 className="wdth-tight max-w-[16ch] font-anek text-opener font-bold text-stock">
             Open it and look.
           </h2>
-          <p className="opsz-deck mt-7 max-w-[44ch] font-news text-deck text-stock-soft">
+          <p className="opsz-deck mt-7 max-w-[44ch] font-news text-[1.4rem] sm:text-deck text-stock-soft">
             A demo firm is already signed up, carrying two client companies with twelve
             months of books, GST returns and bank statements behind each.
           </p>
