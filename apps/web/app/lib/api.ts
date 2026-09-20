@@ -21,7 +21,12 @@
  * deployment has to set it before `next build`. Setting it in the runtime
  * environment afterwards does nothing.
  */
-export const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8077";
+export const API_BASE =
+  process.env.NEXT_PUBLIC_API_BASE &&
+  process.env.NEXT_PUBLIC_API_BASE !== "/" &&
+  process.env.NEXT_PUBLIC_API_BASE !== "same-origin"
+    ? process.env.NEXT_PUBLIC_API_BASE
+    : (process.env.NODE_ENV === "production" ? "" : "http://localhost:8077");
 
 export type CompanyCard = {
   company_id: string;
