@@ -242,6 +242,17 @@
   "periods": 12,
   "period_from": "2025-09",
   "period_to": "2026-08",
+  "headline": {
+    "rule": "R1",
+    "label": "Input tax credit paid and not claimable",
+    "amount": "1625635.64",
+    "defects": 24,
+    "before_next_deadline": {
+      "deadline": "2026-11-30",
+      "amount": "517412.74",
+      "defects": 6
+    }
+  },
   "registers": {
     "books": {
       "label": "Books, purchase register",
@@ -355,6 +366,828 @@
       ]
     }
   },
+  "defects": [
+    {
+      "company": "acme-industries",
+      "rule": "R1",
+      "defect_type": "vendor_didnt_file",
+      "period": "2025-12",
+      "amount": "35171.04",
+      "target": "row",
+      "register": "books",
+      "cumulative": "35171.04"
+    },
+    {
+      "company": "vertex-components",
+      "rule": "R1",
+      "defect_type": "vendor_didnt_file",
+      "period": "2025-12",
+      "amount": "75795.48",
+      "target": "row",
+      "register": "books",
+      "cumulative": "110966.52"
+    },
+    {
+      "company": "vertex-components",
+      "rule": "R6",
+      "defect_type": "unidentified_deposit",
+      "period": "2025-12",
+      "amount": "286594.00",
+      "target": "row",
+      "register": "bank",
+      "cumulative": "397560.52"
+    },
+    {
+      "company": "acme-industries",
+      "rule": "R6",
+      "defect_type": "unidentified_deposit",
+      "period": "2025-12",
+      "amount": "519713.00",
+      "target": "row",
+      "register": "bank",
+      "cumulative": "917273.52"
+    },
+    {
+      "company": "vertex-components",
+      "rule": "R5",
+      "defect_type": "bank_timing_gap",
+      "period": "2025-12",
+      "amount": "883941.12",
+      "target": "row",
+      "register": "bank",
+      "cumulative": "1801214.64"
+    },
+    {
+      "company": "acme-industries",
+      "rule": "R5",
+      "defect_type": "bank_timing_gap",
+      "period": "2025-12",
+      "amount": "1356428.22",
+      "target": "row",
+      "register": "bank",
+      "cumulative": "3157642.86"
+    },
+    {
+      "company": "acme-industries",
+      "rule": "R7",
+      "defect_type": "concentration_spike",
+      "period": "2026-02",
+      "amount": "45251751.00",
+      "target": "period",
+      "register": null,
+      "cumulative": "48409393.86"
+    },
+    {
+      "company": "vertex-components",
+      "rule": "R7",
+      "defect_type": "concentration_spike",
+      "period": "2026-02",
+      "amount": "47929348.60",
+      "target": "period",
+      "register": null,
+      "cumulative": "96338742.46"
+    },
+    {
+      "company": "acme-industries",
+      "rule": "R1",
+      "defect_type": "vendor_didnt_file",
+      "period": "2026-03",
+      "amount": "56207.76",
+      "target": "row",
+      "register": "books",
+      "cumulative": "96394950.22"
+    },
+    {
+      "company": "acme-industries",
+      "rule": "R1",
+      "defect_type": "vendor_didnt_file",
+      "period": "2026-03",
+      "amount": "62804.70",
+      "target": "row",
+      "register": "books",
+      "cumulative": "96457754.92"
+    },
+    {
+      "company": "vertex-components",
+      "rule": "R1",
+      "defect_type": "vendor_didnt_file",
+      "period": "2026-03",
+      "amount": "100474.68",
+      "target": "row",
+      "register": "books",
+      "cumulative": "96558229.60"
+    },
+    {
+      "company": "vertex-components",
+      "rule": "R1",
+      "defect_type": "vendor_didnt_file",
+      "period": "2026-03",
+      "amount": "186959.08",
+      "target": "row",
+      "register": "books",
+      "cumulative": "96745188.68"
+    },
+    {
+      "company": "vertex-components",
+      "rule": "R6",
+      "defect_type": "unidentified_deposit",
+      "period": "2026-03",
+      "amount": "469618.00",
+      "target": "row",
+      "register": "bank",
+      "cumulative": "97214806.68"
+    },
+    {
+      "company": "acme-industries",
+      "rule": "R6",
+      "defect_type": "unidentified_deposit",
+      "period": "2026-03",
+      "amount": "491944.00",
+      "target": "row",
+      "register": "bank",
+      "cumulative": "97706750.68"
+    },
+    {
+      "company": "vertex-components",
+      "rule": "R5",
+      "defect_type": "bank_timing_gap",
+      "period": "2026-03",
+      "amount": "836232.92",
+      "target": "row",
+      "register": "bank",
+      "cumulative": "98542983.60"
+    },
+    {
+      "company": "acme-industries",
+      "rule": "R5",
+      "defect_type": "bank_timing_gap",
+      "period": "2026-03",
+      "amount": "877640.96",
+      "target": "row",
+      "register": "bank",
+      "cumulative": "99420624.56"
+    },
+    {
+      "company": "acme-industries",
+      "rule": "R4",
+      "defect_type": "vendor_stopped_filing",
+      "period": "2026-04",
+      "amount": "13085.95",
+      "target": "row",
+      "register": "books",
+      "cumulative": "99433710.51"
+    },
+    {
+      "company": "acme-industries",
+      "rule": "R3",
+      "defect_type": "duplicate_invoice",
+      "period": "2026-04",
+      "amount": "60802.56",
+      "target": "row",
+      "register": "books",
+      "cumulative": "99494513.07"
+    },
+    {
+      "company": "vertex-components",
+      "rule": "R4",
+      "defect_type": "vendor_stopped_filing",
+      "period": "2026-04",
+      "amount": "157974.04",
+      "target": "row",
+      "register": "books",
+      "cumulative": "99652487.11"
+    },
+    {
+      "company": "vertex-components",
+      "rule": "R3",
+      "defect_type": "duplicate_invoice",
+      "period": "2026-04",
+      "amount": "162622.72",
+      "target": "row",
+      "register": "books",
+      "cumulative": "99815109.83"
+    },
+    {
+      "company": "acme-industries",
+      "rule": "R2",
+      "defect_type": "amount_mismatch",
+      "period": "2026-05",
+      "amount": "840.00",
+      "target": "row",
+      "register": "books",
+      "cumulative": "99815949.83"
+    },
+    {
+      "company": "vertex-components",
+      "rule": "R2",
+      "defect_type": "amount_mismatch",
+      "period": "2026-05",
+      "amount": "1163.00",
+      "target": "row",
+      "register": "books",
+      "cumulative": "99817112.83"
+    },
+    {
+      "company": "vertex-components",
+      "rule": "R2",
+      "defect_type": "amount_mismatch",
+      "period": "2026-05",
+      "amount": "3492.00",
+      "target": "row",
+      "register": "books",
+      "cumulative": "99820604.83"
+    },
+    {
+      "company": "acme-industries",
+      "rule": "R2",
+      "defect_type": "amount_mismatch",
+      "period": "2026-05",
+      "amount": "4145.00",
+      "target": "row",
+      "register": "books",
+      "cumulative": "99824749.83"
+    },
+    {
+      "company": "acme-industries",
+      "rule": "R1",
+      "defect_type": "vendor_didnt_file",
+      "period": "2026-06",
+      "amount": "32304.60",
+      "target": "row",
+      "register": "books",
+      "cumulative": "99857054.43"
+    },
+    {
+      "company": "vertex-components",
+      "rule": "R1",
+      "defect_type": "vendor_didnt_file",
+      "period": "2026-06",
+      "amount": "32563.25",
+      "target": "row",
+      "register": "books",
+      "cumulative": "99889617.68"
+    },
+    {
+      "company": "acme-industries",
+      "rule": "R1",
+      "defect_type": "vendor_didnt_file",
+      "period": "2026-06",
+      "amount": "43118.85",
+      "target": "row",
+      "register": "books",
+      "cumulative": "99932736.53"
+    },
+    {
+      "company": "vertex-components",
+      "rule": "R1",
+      "defect_type": "vendor_didnt_file",
+      "period": "2026-06",
+      "amount": "57275.46",
+      "target": "row",
+      "register": "books",
+      "cumulative": "99990011.99"
+    },
+    {
+      "company": "acme-industries",
+      "rule": "R6",
+      "defect_type": "unidentified_deposit",
+      "period": "2026-06",
+      "amount": "67451.00",
+      "target": "row",
+      "register": "bank",
+      "cumulative": "100057462.99"
+    },
+    {
+      "company": "vertex-components",
+      "rule": "R3",
+      "defect_type": "duplicate_invoice",
+      "period": "2026-06",
+      "amount": "105178.88",
+      "target": "row",
+      "register": "books",
+      "cumulative": "100162641.87"
+    },
+    {
+      "company": "vertex-components",
+      "rule": "R6",
+      "defect_type": "unidentified_deposit",
+      "period": "2026-06",
+      "amount": "368116.00",
+      "target": "row",
+      "register": "bank",
+      "cumulative": "100530757.87"
+    },
+    {
+      "company": "vertex-components",
+      "rule": "R6",
+      "defect_type": "unidentified_deposit",
+      "period": "2026-06",
+      "amount": "418776.00",
+      "target": "row",
+      "register": "bank",
+      "cumulative": "100949533.87"
+    },
+    {
+      "company": "acme-industries",
+      "rule": "R3",
+      "defect_type": "duplicate_invoice",
+      "period": "2026-06",
+      "amount": "551035.80",
+      "target": "row",
+      "register": "books",
+      "cumulative": "101500569.67"
+    },
+    {
+      "company": "acme-industries",
+      "rule": "R6",
+      "defect_type": "unidentified_deposit",
+      "period": "2026-06",
+      "amount": "605126.00",
+      "target": "row",
+      "register": "bank",
+      "cumulative": "102105695.67"
+    },
+    {
+      "company": "vertex-components",
+      "rule": "R3",
+      "defect_type": "duplicate_invoice",
+      "period": "2026-06",
+      "amount": "649938.10",
+      "target": "row",
+      "register": "books",
+      "cumulative": "102755633.77"
+    },
+    {
+      "company": "acme-industries",
+      "rule": "R5",
+      "defect_type": "bank_timing_gap",
+      "period": "2026-06",
+      "amount": "676954.88",
+      "target": "row",
+      "register": "bank",
+      "cumulative": "103432588.65"
+    },
+    {
+      "company": "acme-industries",
+      "rule": "R3",
+      "defect_type": "duplicate_invoice",
+      "period": "2026-06",
+      "amount": "760449.90",
+      "target": "row",
+      "register": "books",
+      "cumulative": "104193038.55"
+    },
+    {
+      "company": "vertex-components",
+      "rule": "R5",
+      "defect_type": "bank_timing_gap",
+      "period": "2026-06",
+      "amount": "860882.40",
+      "target": "row",
+      "register": "bank",
+      "cumulative": "105053920.95"
+    },
+    {
+      "company": "vertex-components",
+      "rule": "R2",
+      "defect_type": "amount_mismatch",
+      "period": "2026-07",
+      "amount": "2821.00",
+      "target": "row",
+      "register": "books",
+      "cumulative": "105056741.95"
+    },
+    {
+      "company": "acme-industries",
+      "rule": "R2",
+      "defect_type": "amount_mismatch",
+      "period": "2026-07",
+      "amount": "2833.00",
+      "target": "row",
+      "register": "books",
+      "cumulative": "105059574.95"
+    },
+    {
+      "company": "vertex-components",
+      "rule": "R2",
+      "defect_type": "amount_mismatch",
+      "period": "2026-07",
+      "amount": "3221.00",
+      "target": "row",
+      "register": "books",
+      "cumulative": "105062795.95"
+    },
+    {
+      "company": "acme-industries",
+      "rule": "R2",
+      "defect_type": "amount_mismatch",
+      "period": "2026-07",
+      "amount": "3744.00",
+      "target": "row",
+      "register": "books",
+      "cumulative": "105066539.95"
+    },
+    {
+      "company": "vertex-components",
+      "rule": "R1",
+      "defect_type": "vendor_didnt_file",
+      "period": "2026-07",
+      "amount": "21890.60",
+      "target": "row",
+      "register": "books",
+      "cumulative": "105088430.55"
+    },
+    {
+      "company": "acme-industries",
+      "rule": "R1",
+      "defect_type": "vendor_didnt_file",
+      "period": "2026-07",
+      "amount": "22442.64",
+      "target": "row",
+      "register": "books",
+      "cumulative": "105110873.19"
+    },
+    {
+      "company": "acme-industries",
+      "rule": "R1",
+      "defect_type": "vendor_didnt_file",
+      "period": "2026-07",
+      "amount": "47714.58",
+      "target": "row",
+      "register": "books",
+      "cumulative": "105158587.77"
+    },
+    {
+      "company": "vertex-components",
+      "rule": "R1",
+      "defect_type": "vendor_didnt_file",
+      "period": "2026-07",
+      "amount": "63281.68",
+      "target": "row",
+      "register": "books",
+      "cumulative": "105221869.45"
+    },
+    {
+      "company": "vertex-components",
+      "rule": "R1",
+      "defect_type": "vendor_didnt_file",
+      "period": "2026-07",
+      "amount": "68180.22",
+      "target": "row",
+      "register": "books",
+      "cumulative": "105290049.67"
+    },
+    {
+      "company": "vertex-components",
+      "rule": "R4",
+      "defect_type": "vendor_stopped_filing",
+      "period": "2026-07",
+      "amount": "150238.80",
+      "target": "row",
+      "register": "books",
+      "cumulative": "105440288.47"
+    },
+    {
+      "company": "acme-industries",
+      "rule": "R1",
+      "defect_type": "vendor_didnt_file",
+      "period": "2026-07",
+      "amount": "160473.04",
+      "target": "row",
+      "register": "books",
+      "cumulative": "105600761.51"
+    },
+    {
+      "company": "acme-industries",
+      "rule": "R4",
+      "defect_type": "vendor_stopped_filing",
+      "period": "2026-07",
+      "amount": "247353.96",
+      "target": "row",
+      "register": "books",
+      "cumulative": "105848115.47"
+    },
+    {
+      "company": "vertex-components",
+      "rule": "R2",
+      "defect_type": "amount_mismatch",
+      "period": "2026-08",
+      "amount": "982.00",
+      "target": "row",
+      "register": "books",
+      "cumulative": "105849097.47"
+    },
+    {
+      "company": "acme-industries",
+      "rule": "R2",
+      "defect_type": "amount_mismatch",
+      "period": "2026-08",
+      "amount": "1243.00",
+      "target": "row",
+      "register": "books",
+      "cumulative": "105850340.47"
+    },
+    {
+      "company": "acme-industries",
+      "rule": "R2",
+      "defect_type": "amount_mismatch",
+      "period": "2026-08",
+      "amount": "1748.00",
+      "target": "row",
+      "register": "books",
+      "cumulative": "105852088.47"
+    },
+    {
+      "company": "vertex-components",
+      "rule": "R2",
+      "defect_type": "amount_mismatch",
+      "period": "2026-08",
+      "amount": "1845.00",
+      "target": "row",
+      "register": "books",
+      "cumulative": "105853933.47"
+    },
+    {
+      "company": "acme-industries",
+      "rule": "R2",
+      "defect_type": "amount_mismatch",
+      "period": "2026-08",
+      "amount": "2105.00",
+      "target": "row",
+      "register": "books",
+      "cumulative": "105856038.47"
+    },
+    {
+      "company": "vertex-components",
+      "rule": "R2",
+      "defect_type": "amount_mismatch",
+      "period": "2026-08",
+      "amount": "3628.00",
+      "target": "row",
+      "register": "books",
+      "cumulative": "105859666.47"
+    },
+    {
+      "company": "vertex-components",
+      "rule": "R2",
+      "defect_type": "amount_mismatch",
+      "period": "2026-08",
+      "amount": "4170.00",
+      "target": "row",
+      "register": "books",
+      "cumulative": "105863836.47"
+    },
+    {
+      "company": "acme-industries",
+      "rule": "R2",
+      "defect_type": "amount_mismatch",
+      "period": "2026-08",
+      "amount": "4272.00",
+      "target": "row",
+      "register": "books",
+      "cumulative": "105868108.47"
+    },
+    {
+      "company": "acme-industries",
+      "rule": "R1",
+      "defect_type": "vendor_didnt_file",
+      "period": "2026-08",
+      "amount": "7675.60",
+      "target": "row",
+      "register": "books",
+      "cumulative": "105875784.07"
+    },
+    {
+      "company": "vertex-components",
+      "rule": "R1",
+      "defect_type": "vendor_didnt_file",
+      "period": "2026-08",
+      "amount": "19524.00",
+      "target": "row",
+      "register": "books",
+      "cumulative": "105895308.07"
+    },
+    {
+      "company": "acme-industries",
+      "rule": "R1",
+      "defect_type": "vendor_didnt_file",
+      "period": "2026-08",
+      "amount": "43064.40",
+      "target": "row",
+      "register": "books",
+      "cumulative": "105938372.47"
+    },
+    {
+      "company": "acme-industries",
+      "rule": "R4",
+      "defect_type": "vendor_stopped_filing",
+      "period": "2026-08",
+      "amount": "49410.00",
+      "target": "row",
+      "register": "books",
+      "cumulative": "105987782.47"
+    },
+    {
+      "company": "vertex-components",
+      "rule": "R1",
+      "defect_type": "vendor_didnt_file",
+      "period": "2026-08",
+      "amount": "49437.90",
+      "target": "row",
+      "register": "books",
+      "cumulative": "106037220.37"
+    },
+    {
+      "company": "acme-industries",
+      "rule": "R1",
+      "defect_type": "vendor_didnt_file",
+      "period": "2026-08",
+      "amount": "74627.28",
+      "target": "row",
+      "register": "books",
+      "cumulative": "106111847.65"
+    },
+    {
+      "company": "vertex-components",
+      "rule": "R1",
+      "defect_type": "vendor_didnt_file",
+      "period": "2026-08",
+      "amount": "89705.04",
+      "target": "row",
+      "register": "books",
+      "cumulative": "106201552.69"
+    },
+    {
+      "company": "vertex-components",
+      "rule": "R4",
+      "defect_type": "vendor_stopped_filing",
+      "period": "2026-08",
+      "amount": "96797.70",
+      "target": "row",
+      "register": "books",
+      "cumulative": "106298350.39"
+    },
+    {
+      "company": "acme-industries",
+      "rule": "R1",
+      "defect_type": "vendor_didnt_file",
+      "period": "2026-08",
+      "amount": "102278.68",
+      "target": "row",
+      "register": "books",
+      "cumulative": "106400629.07"
+    },
+    {
+      "company": "acme-industries",
+      "rule": "R6",
+      "defect_type": "unidentified_deposit",
+      "period": "2026-08",
+      "amount": "104253.00",
+      "target": "row",
+      "register": "bank",
+      "cumulative": "106504882.07"
+    },
+    {
+      "company": "acme-industries",
+      "rule": "R3",
+      "defect_type": "duplicate_invoice",
+      "period": "2026-08",
+      "amount": "104992.65",
+      "target": "row",
+      "register": "books",
+      "cumulative": "106609874.72"
+    },
+    {
+      "company": "vertex-components",
+      "rule": "R3",
+      "defect_type": "duplicate_invoice",
+      "period": "2026-08",
+      "amount": "119545.80",
+      "target": "row",
+      "register": "books",
+      "cumulative": "106729420.52"
+    },
+    {
+      "company": "vertex-components",
+      "rule": "R1",
+      "defect_type": "vendor_didnt_file",
+      "period": "2026-08",
+      "amount": "172665.08",
+      "target": "row",
+      "register": "books",
+      "cumulative": "106902085.60"
+    },
+    {
+      "company": "acme-industries",
+      "rule": "R6",
+      "defect_type": "unidentified_deposit",
+      "period": "2026-08",
+      "amount": "247777.00",
+      "target": "row",
+      "register": "bank",
+      "cumulative": "107149862.60"
+    },
+    {
+      "company": "vertex-components",
+      "rule": "R6",
+      "defect_type": "unidentified_deposit",
+      "period": "2026-08",
+      "amount": "265588.00",
+      "target": "row",
+      "register": "bank",
+      "cumulative": "107415450.60"
+    },
+    {
+      "company": "acme-industries",
+      "rule": "R3",
+      "defect_type": "duplicate_invoice",
+      "period": "2026-08",
+      "amount": "297827.28",
+      "target": "row",
+      "register": "books",
+      "cumulative": "107713277.88"
+    },
+    {
+      "company": "vertex-components",
+      "rule": "R6",
+      "defect_type": "unidentified_deposit",
+      "period": "2026-08",
+      "amount": "415621.00",
+      "target": "row",
+      "register": "bank",
+      "cumulative": "108128898.88"
+    },
+    {
+      "company": "vertex-components",
+      "rule": "R3",
+      "defect_type": "duplicate_invoice",
+      "period": "2026-08",
+      "amount": "442592.04",
+      "target": "row",
+      "register": "books",
+      "cumulative": "108571490.92"
+    },
+    {
+      "company": "vertex-components",
+      "rule": "R6",
+      "defect_type": "unidentified_deposit",
+      "period": "2026-08",
+      "amount": "541972.00",
+      "target": "row",
+      "register": "bank",
+      "cumulative": "109113462.92"
+    },
+    {
+      "company": "acme-industries",
+      "rule": "R6",
+      "defect_type": "unidentified_deposit",
+      "period": "2026-08",
+      "amount": "599624.00",
+      "target": "row",
+      "register": "bank",
+      "cumulative": "109713086.92"
+    },
+    {
+      "company": "acme-industries",
+      "rule": "R5",
+      "defect_type": "bank_timing_gap",
+      "period": "2026-08",
+      "amount": "1264515.40",
+      "target": "row",
+      "register": "bank",
+      "cumulative": "110977602.32"
+    },
+    {
+      "company": "vertex-components",
+      "rule": "R5",
+      "defect_type": "bank_timing_gap",
+      "period": "2026-08",
+      "amount": "1486075.72",
+      "target": "row",
+      "register": "bank",
+      "cumulative": "112463678.04"
+    },
+    {
+      "company": "acme-industries",
+      "rule": "R7",
+      "defect_type": "concentration_spike",
+      "period": "2026-08",
+      "amount": "43314780.00",
+      "target": "period",
+      "register": null,
+      "cumulative": "155778458.04"
+    },
+    {
+      "company": "vertex-components",
+      "rule": "R7",
+      "defect_type": "concentration_spike",
+      "period": "2026-08",
+      "amount": "48670182.40",
+      "target": "period",
+      "register": null,
+      "cumulative": "204448640.44"
+    }
+  ],
   "example": {
     "company": "Acme Industries",
     "file": "seed/acme-industries/feeds/tally_purchase_register.csv",

@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { inr } from "../lib/format";
 import aggregates from "./aggregates.json";
 import { Leash } from "./Leash";
 import { Population } from "./Population";
@@ -141,31 +142,48 @@ export default function ProductPage() {
         </div>
       </header>
 
-      {/* The deck and the total sit on one line of sight: the claim on the
-          left, and on the right the figure that claim is about, footed. */}
-      <section className="grid gap-x-10 gap-y-10 py-12 lg:grid-cols-paper">
-        <p aria-hidden className="hidden font-mono text-data text-ink-soft lg:block">
-          A
+      {/* The page opens on the sum, not on a sentence.
+          It used to open on the headline, with the figure the headline is
+          about set small in the top right corner, and the first thing a
+          reader met was a paragraph. This product's argument is a number
+          somebody can be shown; leading with it is the layout agreeing with
+          the argument. The workings stay directly beneath it, footed, so the
+          figure never appears without the two lines it is made of. */}
+      <section className="py-14">
+        <p className="font-mono text-micro uppercase tracking-[0.08em] text-ink-soft">
+          {aggregates.headline.label}
         </p>
-        <div className="min-w-0">
-          <h1 className="max-w-[20ch] text-figure font-semibold leading-[1.05] sm:text-hero">
-            An SME&rsquo;s books, the government&rsquo;s record of them, and the money
-            never agree.
-          </h1>
-          <p className="mt-6 max-w-[54ch] text-body leading-relaxed text-ink-soft">
-            We keep them agreeing, every month, and keep the evidence. Reconciling Tally
-            against GSTR-2B against the bank is manual, monthly, done in Excel, and
-            abandoned when it gets hard. The gaps compound quietly for years, and then
-            surface expensively the first time a lender, an investor or an acquirer needs
-            to trust the numbers.
-          </p>
-        </div>
+        {/* Derived, not typed. It is the sum of the {defects} findings rule R1
+            raises across the seeded companies, computed by the generator from
+            the same answer key the evaluation is scored against. It used to be
+            a literal in this file, which made the largest number on the page
+            the only one that could not be checked. */}
+        <p className="tabular mt-4 font-semibold leading-[0.9] text-exposure text-figure sm:text-hero lg:text-display">
+          {inr(aggregates.headline.amount)}
+        </p>
 
-        {/* The footed column: the product's output in the form the output
-            actually takes — a total with a rule under the workings and a
-            double rule under the total, which is how a ledger says that an
-            account is closed. */}
-        <FootedColumn />
+        {/* Source order is reading order: the claim, then the workings that
+            support it. On a wide screen the grid puts the workings in the
+            right-hand column without the DOM having to lie about which comes
+            first, which is what an `order` class would have been doing. */}
+        <div className="mt-8 grid gap-x-10 gap-y-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
+          <div className="min-w-0">
+            <h1 className="max-w-[26ch] text-lede font-semibold leading-tight sm:text-figure">
+              An SME&rsquo;s books, the government&rsquo;s record of them, and the money
+              never agree.
+            </h1>
+            <p className="mt-5 max-w-[54ch] text-body leading-relaxed text-ink-soft">
+              We keep them agreeing, every month, and keep the evidence. Reconciling Tally
+              against GSTR-2B against the bank is manual, monthly, done in Excel, and
+              abandoned when it gets hard. The gaps compound quietly for years, and then
+              surface expensively the first time a lender, an investor or an acquirer
+              needs to trust the numbers.
+            </p>
+          </div>
+          <div className="min-w-0">
+            <Workings />
+          </div>
+        </div>
       </section>
 
       <Sheet>
@@ -390,7 +408,7 @@ function Claim({
       </p>
       <div className="min-w-0">{children}</div>
       {note && (
-        <p className="border-l border-rule-hair pl-3 text-micro leading-relaxed text-ink-faint lg:border-0 lg:pl-0">
+        <p className="break-all border-l border-rule-hair pl-3 text-micro leading-relaxed text-ink-faint lg:border-0 lg:pl-0">
           {mark && <span className="mr-2 font-mono text-ink-soft lg:hidden">{mark}</span>}
           {note}
         </p>
@@ -409,40 +427,69 @@ function Meta({ term, value }: { term: string; value: string }) {
 }
 
 /**
- * The exposure figure, footed the way a ledger foots a column: a single rule
- * under the workings, a double rule under the total.
+ * A stored deadline, in the form a filing date is written.
  *
- * Right-aligned, because that is where a total sits, and in tabular monospace,
- * because the digits have to line up to be compared. The two rules draw
- * themselves once, in 240ms — the only motion on the page, and it is the act
- * the product performs rather than an entrance.
+ * The generator emits an ISO date because that is what sorts and compares
+ * correctly; nobody writing a working paper writes 2026-11-30.
  */
-function FootedColumn() {
+function deadlineLabel(iso: string): string {
+  const months = [
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+  ];
+  const [year, month, day] = iso.split("-");
+  return `${Number(day)} ${months[Number(month) - 1]} ${year}`;
+}
+
+/**
+ * The workings under the sum.
+ *
+ * The figure itself is now the first thing on the page, so this no longer
+ * sets it large a second time. What it keeps is the footing: a single rule
+ * under the components, the total, and the double rule that says in a ledger
+ * that the account is closed. The point of the block is that the headline
+ * figure never appears without the two lines it is made of.
+ *
+ * Right-aligned and monospace, because that is where a total sits and the
+ * digits have to line up to be compared. The rules draw themselves once, in
+ * 240ms, which is the arithmetic being footed and the only motion here.
+ */
+function Workings() {
   return (
-    <div className="flex justify-end lg:block">
-      <dl className="tabular w-[22rem] max-w-full font-mono">
-        <Entry label="Input tax credit paid, not claimable" value="16,25,635.64" />
-        <Entry label="closing 30 Nov 2026 under Sec 16(4)" value="5,17,412.74" indent />
+    <dl className="tabular w-full max-w-[22rem] font-mono lg:ml-auto">
+      <p className="mb-2 font-sans text-micro uppercase tracking-[0.08em] text-ink-soft">
+        Workings
+      </p>
+      <Entry
+        label={`${aggregates.headline.label}, ${aggregates.headline.defects} findings`}
+        value={inr(aggregates.headline.amount)}
+      />
+      <Entry
+        label={`closing ${deadlineLabel(aggregates.headline.before_next_deadline.deadline)} under Sec 16(4)`}
+        value={inr(aggregates.headline.before_next_deadline.amount)}
+        indent
+      />
 
-        <div aria-hidden className="foot-rule mt-2 h-px bg-rule-strong" />
+      <div aria-hidden className="foot-rule mt-2 h-px bg-rule-strong" />
 
-        <div className="mt-2 flex items-baseline justify-between gap-6">
-          <dt className="font-sans text-micro uppercase tracking-[0.08em] text-ink-soft">
-            Exposed
-          </dt>
-          <dd className="text-figure font-semibold text-exposure">₹16,25,635.64</dd>
-        </div>
+      <div className="mt-2 flex items-baseline justify-between gap-6">
+        <dt className="font-sans text-micro uppercase tracking-[0.08em] text-ink-soft">
+          Exposed
+        </dt>
+        <dd className="text-data font-medium text-exposure">
+          {inr(aggregates.headline.amount)}
+        </dd>
+      </div>
 
-        {/* The double rule: this account is closed. */}
-        <div aria-hidden className="foot-rule foot-rule-final mt-2 h-px bg-ink" />
-        <div aria-hidden className="foot-rule foot-rule-final mt-[3px] h-px bg-ink" />
+      {/* The double rule: this account is closed. */}
+      <div aria-hidden className="foot-rule foot-rule-final mt-2 h-px bg-ink" />
+      <div aria-hidden className="foot-rule foot-rule-final mt-[3px] h-px bg-ink" />
 
-        <p className="mt-3 text-right font-sans text-micro leading-relaxed text-ink-faint">
-          {spell(aggregates.totals.companies, true)} seeded companies, {spell(aggregates.periods)}{" "}
-          periods, every figure traced to a file line.
-        </p>
-      </dl>
-    </div>
+      <p className="mt-3 text-right font-sans text-micro leading-relaxed text-ink-faint">
+        {spell(aggregates.totals.companies, true)} seeded companies,{" "}
+        {spell(aggregates.periods)} periods, every figure traced to a file line.
+      </p>
+    </dl>
   );
 }
 

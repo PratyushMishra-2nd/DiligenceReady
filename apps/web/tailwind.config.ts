@@ -60,6 +60,13 @@ const config: Config = {
         // The one display figure in the product. Used once, on the firm
         // dashboard, and allowed outside the ramp because it is never reused.
         hero: ["3.25rem", { lineHeight: "0.95", letterSpacing: "-0.02em" }],
+        // The landing page opens on the figure rather than on a paragraph,
+        // and at `hero` it read as a heading rather than as a sum. This step
+        // exists for that one number and is not used anywhere else. A
+        // fourteen-character rupee figure at this size is about 740px wide,
+        // which is why it is a large-screen treatment and steps down twice
+        // below it rather than being clipped at the gutter.
+        display: ["5rem", { lineHeight: "0.88", letterSpacing: "-0.03em" }],
       },
       // One grid for the whole working paper: the tick-mark gutter, the
       // measure, and the cross-reference margin. It is a token because the

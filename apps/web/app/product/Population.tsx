@@ -31,10 +31,18 @@ import aggregates from "./aggregates.json";
  * No client JavaScript, no canvas, no animation. The route stays static.
  */
 
-const COLUMNS = 120;
-const PITCH = 4;
-const CELL = 2.5;
-const MARK = 4;
+// Sized so the field reads as a field. The first cut was 120 columns of
+// 2.5px cell at #B3BEBB, which is 1.76:1 against paper: at that weight the
+// three registers rendered as flat grey rectangles and the band with no
+// marks in it looked like a box that had failed to load. A picture whose
+// argument is "this many records" has to look like many records.
+const COLUMNS = 96;
+const PITCH = 5;
+const CELL = 3.5;
+const MARK = 5;
+// 3.25:1 against paper. Dense enough to read as population, light enough
+// that the marks still sit on top of it rather than in it.
+const FIELD = "#7C8C87";
 const LABEL_HEIGHT = 15;
 const BAND_GAP = 20;
 const WIDTH = COLUMNS * PITCH;
@@ -76,7 +84,7 @@ export function Population() {
             height={PITCH}
             patternUnits="userSpaceOnUse"
           >
-            <rect width={CELL} height={CELL} fill="#B3BEBB" />
+            <rect width={CELL} height={CELL} fill={FIELD} />
           </pattern>
         </defs>
 
@@ -136,6 +144,13 @@ export function Population() {
                   width={MARK}
                   height={MARK}
                   fill="#9E2B25"
+                  // Vermillion is 6.85:1 on paper and about 2:1 on the field,
+                  // so a mark sitting inside the field needs separating from
+                  // it. A hairline of the paper colour around each one does
+                  // that without a second hue and without making the mark
+                  // larger than the record it stands for.
+                  stroke="#F4F6F5"
+                  strokeWidth={1}
                 />
               ))}
               <rect

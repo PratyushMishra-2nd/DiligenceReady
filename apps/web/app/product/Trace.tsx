@@ -139,7 +139,9 @@ function Step({
         <h3 className="font-mono text-micro uppercase tracking-[0.08em] text-ink">
           {step.stage}
         </h3>
-        <p className="font-mono text-micro text-ink-faint">{step.reference}</p>
+        {/* A file path has no spaces in it, so it will not wrap on its own
+            and at phone width it pushed the whole document sideways. */}
+        <p className="break-all font-mono text-micro text-ink-faint">{step.reference}</p>
       </div>
       <div className="mt-2">{children}</div>
     </li>
