@@ -94,21 +94,21 @@ export function UploadPanel({ companyId }: { companyId: string }) {
   }
 
   return (
-    <section className="border-b border-rule-strong py-8">
-      <h2 className="text-data font-semibold">Add a document</h2>
-      <p className="mt-2 max-w-[70ch] text-body leading-relaxed text-ink-soft">
+    <section className="border-b border-graphite-soft py-8">
+      <h2 className="text-ident font-semibold">Add a document</h2>
+      <p className="mt-2 max-w-[70ch] text-prose leading-relaxed text-graphite">
         A register from Tally, Busy, Marg, Zoho or Vyapar, a GSTR-2B download, or a bank
         statement. Column names differ between packages and are resolved on the way in;
         if one cannot be, the error says which and what the file calls it instead.
       </p>
 
       <div className="mt-4 flex flex-wrap items-center gap-3">
-        <label className="text-body">
+        <label className="text-prose">
           <span className="sr-only">Document type</span>
           <select
             value={kind}
             onChange={(event) => setKind(event.target.value)}
-            className="border border-rule-strong bg-sheet px-3 py-2 text-body focus:border-ink focus:outline-none"
+            className="border border-graphite-soft bg-sunk px-3 py-2 text-prose focus:border-agreed focus:outline-none"
           >
             {KINDS.map((entry) => (
               <option key={entry.value} value={entry.value}>
@@ -127,24 +127,24 @@ export function UploadPanel({ companyId }: { companyId: string }) {
             const file = event.target.files?.[0];
             if (file) void send(file);
           }}
-          className="text-body file:mr-3 file:cursor-pointer file:border file:border-ink file:bg-transparent file:px-3 file:py-1.5 file:text-body file:font-medium hover:file:bg-ink hover:file:text-paper"
+          className="text-prose file:mr-3 file:cursor-pointer file:border file:border-agreed file:bg-transparent file:px-3 file:py-1.5 file:text-prose file:font-medium hover:file:bg-agreed hover:file:text-stock"
         />
 
-        {busy && <span className="text-micro text-ink-soft">Reading…</span>}
+        {busy && <span className="text-ident text-graphite">Reading…</span>}
       </div>
 
       {outcome && (
         <div
           role="status"
-          className={`mt-4 border px-4 py-3 text-data leading-relaxed ${
+          className={`mt-4 border px-4 py-3 text-ident leading-relaxed ${
             outcome.ok
-              ? "border-reconciled/30 bg-reconciled-wash text-ink"
-              : "border-exposure/30 bg-exposure-wash text-ink"
+              ? "border-agreed/30 bg-agreed-wash text-agreed"
+              : "border-statute/30 bg-statute-wash text-agreed"
           }`}
         >
           <p className="font-medium">{outcome.message}</p>
           {outcome.detail && (
-            <p className="mt-1.5 whitespace-pre-wrap text-ink-soft">{outcome.detail}</p>
+            <p className="mt-1.5 whitespace-pre-wrap text-graphite">{outcome.detail}</p>
           )}
         </div>
       )}

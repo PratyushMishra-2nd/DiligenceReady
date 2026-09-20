@@ -56,6 +56,13 @@ const config: Config = {
         // Code and quoted source sit on a slightly sunk plate rather than on
         // white, which on a bone ground reads as a hole punched in the paper.
         sunk: "#EDE9DE",
+        // Washes. A row is tinted, not outlined, because a coloured border
+        // round a row is the card cliche and a tint is what a highlighter
+        // does to a printed sheet. Each is its ink at low saturation over
+        // bone, so text on it keeps the contrast it had on the paper.
+        "statute-wash": "#F6E7E3",
+        "books-wash": "#E6E9F0",
+        "agreed-wash": "#E8E5DC",
         hairline: "#D6D0C0",
         plate: "#12100E",
         "stock-soft": "#C9C3B2",

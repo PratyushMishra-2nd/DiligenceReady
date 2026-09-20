@@ -122,35 +122,41 @@ samp {
 
 html,
 body {
-  background: theme("colors.paper");
-  color: theme("colors.ink");
+  background: theme("colors.stock");
+  color: theme("colors.agreed");
   -webkit-font-smoothing: antialiased;
 }
 
-/* Every figure in this product is compared against the figure above it, so the
-   digits have to sit in a column.
-   They already do, and not because of this rule: Plex sets every digit on the
-   same 600/1000 advance in both the sans and the mono, so there is nothing for
-   `tabular-nums` to correct and neither face ships a `tnum` feature to carry
-   it. The declaration is kept because it states the requirement, and a face
-   swapped in later without uniform digits would then be corrected rather than
-   silently wrong.
-   What is NOT kept is the `font-feature-settings: "tnum" 1` that used to sit
-   here. That property does not merge with the one inherited from `body` — it
-   replaces it — so a rule asking for an inert feature on exactly the elements
-   that show money would have switched the slashed zero back off on every
-   figure in the product. */
+/* A magnitude, and therefore Anek.
+   The type system's rule is that a figure which came out of SQL is set in the
+   display face, prose is set in Newsreader, and anything that points at a row
+   rather than measuring one stays in the mono. `.tabular` already marks every
+   magnitude in the interface, so the rule is written once here rather than as
+   a `font-anek` on forty call sites that would drift apart.
+   The `:not(.font-mono)` is the exemption: a GSTIN and a sha256 are tabular
+   because their characters have to line up in a column, and they are still
+   identifiers. Two classes beat one, so this loses to nothing.
+   Width 88 is the set width for figures: condensed enough to hold a
+   fourteen-character rupee amount inside a table cell, open enough to read at
+   14px. The digits are already uniform in both faces, so `tabular-nums` is
+   declaring the requirement rather than fixing anything. */
 .tabular {
   font-variant-numeric: tabular-nums;
 }
 
+.tabular:not(.font-mono) {
+  font-family: "Anek Latin", var(--font-plex-sans), system-ui, sans-serif;
+  font-stretch: 88%;
+  font-feature-settings: "zero" 1;
+}
+
 /* A hairline, not a shadow. Working papers are ruled, not floated. */
 .ruled {
-  border-bottom: 1px solid theme("colors.rule");
+  border-bottom: 1px solid theme("colors.hairline");
 }
 
 :focus-visible {
-  outline: 2px solid theme("colors.ink");
+  outline: 2px solid theme("colors.agreed");
   outline-offset: 2px;
 }
 
@@ -249,7 +255,7 @@ summary::-webkit-details-marker {
     max-height: none;
     overflow: visible;
     border-left: 0;
-    border-top: 1px solid theme("colors.rule-strong");
+    border-top: 1px solid theme("colors.graphite-soft");
   }
 
   thead {
@@ -264,6 +270,6 @@ summary::-webkit-details-marker {
   a[href^="/"]::after {
     content: " (" attr(href) ")";
     font-size: 9pt;
-    color: theme("colors.ink-faint");
+    color: theme("colors.graphite-soft");
   }
 }

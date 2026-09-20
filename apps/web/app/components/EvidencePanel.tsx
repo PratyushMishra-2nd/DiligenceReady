@@ -124,15 +124,15 @@ export function EvidencePanel({
       ref={panel}
       tabIndex={-1}
       role="region"
-      className="panel-in sticky top-0 min-w-0 max-h-screen self-start overflow-y-auto border-t border-rule-strong bg-sheet focus:outline-none lg:border-l lg:border-t-0"
+      className="panel-in sticky top-0 min-w-0 max-h-screen self-start overflow-y-auto border-t border-graphite-soft bg-sunk focus:outline-none lg:border-l lg:border-t-0"
       aria-label={`Evidence for ${risk.rule_code}`}
     >
-      <div className="flex items-start justify-between gap-4 border-b border-rule px-6 py-4">
+      <div className="flex items-start justify-between gap-4 border-b border-hairline px-6 py-4">
         <div>
-          <p className="text-micro text-ink-soft">
+          <p className="text-ident text-graphite">
             <span className="font-mono">{risk.rule_code}</span> · {risk.title}
           </p>
-          <h2 className="mt-1 text-lede font-semibold">{risk.rule_text}</h2>
+          <h2 className="mt-1 text-intro font-semibold">{risk.rule_text}</h2>
         </div>
         {/* Named for what it closes, because a list of sixty findings can have
             put this panel a long way from the row that opened it, and "Close"
@@ -143,7 +143,7 @@ export function EvidencePanel({
           type="button"
           onClick={onClose}
           aria-label={`Close the evidence for ${risk.rule_code}`}
-          className="no-print shrink-0 border border-rule px-2 py-1 text-micro text-ink-soft hover:border-ink hover:text-ink"
+          className="no-print shrink-0 border border-hairline px-2 py-1 text-ident text-graphite hover:border-agreed hover:text-agreed"
         >
           Close
         </button>
@@ -151,8 +151,8 @@ export function EvidencePanel({
 
       <div className="space-y-8 px-6 py-6">
         <Block title="The arithmetic">
-          <p className="tabular font-mono text-data leading-relaxed">{risk.calculation}</p>
-          <p className="mt-2 text-micro text-ink-faint">
+          <p className="tabular font-mono text-ident leading-relaxed">{risk.calculation}</p>
+          <p className="mt-2 text-ident text-graphite-soft">
             A SQL aggregate over the match table. No model produced this figure.
           </p>
         </Block>
@@ -166,8 +166,8 @@ export function EvidencePanel({
             {Object.entries(risk.metrics ?? {})
               .filter(([, value]) => value !== null && typeof value !== "object")
               .map(([key, value]) => (
-                <div key={key} className="flex gap-4 text-data">
-                  <dt className="w-[44%] shrink-0 text-ink-soft">{key.replace(/_/g, " ")}</dt>
+                <div key={key} className="flex gap-4 text-ident">
+                  <dt className="w-[44%] shrink-0 text-graphite">{key.replace(/_/g, " ")}</dt>
                   <dd className="tabular font-mono break-all">{String(value)}</dd>
                 </div>
               ))}
@@ -178,9 +178,9 @@ export function EvidencePanel({
           <Block title="Evidence">
             <ul className="space-y-1.5">
               {detail.evidence.map((item) => (
-                <li key={item.evidence_id} className="text-data">
-                  <span className="text-ink-soft">{item.record_type.replace(/_/g, " ")}</span>
-                  {item.note && <span className="ml-2 font-mono text-ink">{item.note}</span>}
+                <li key={item.evidence_id} className="text-ident">
+                  <span className="text-graphite">{item.record_type.replace(/_/g, " ")}</span>
+                  {item.note && <span className="ml-2 font-mono text-agreed">{item.note}</span>}
                 </li>
               ))}
             </ul>
@@ -190,7 +190,7 @@ export function EvidencePanel({
         {source && <SourceView source={source} />}
         {sourceError && (
           <Block title="Source document">
-            <p className="text-data text-exposure">
+            <p className="text-ident text-statute">
               The stored document could not be read: {sourceError}
             </p>
           </Block>
@@ -209,8 +209,8 @@ export function EvidencePanel({
         <Block title="Explanation">
           {explanation ? (
             <>
-              <p className="max-w-[60ch] text-data leading-relaxed">{explanation.text}</p>
-              <p className="mt-2 text-micro text-ink-faint">
+              <p className="max-w-[60ch] text-ident leading-relaxed">{explanation.text}</p>
+              <p className="mt-2 text-ident text-graphite-soft">
                 {explanation.source === "model"
                   ? `Written by ${explanation.model ?? "the model"} from the finding above. Every figure it used was checked against the finding before this was shown.`
                   : explanation.source === "stored"
@@ -224,11 +224,11 @@ export function EvidencePanel({
                 type="button"
                 onClick={runExplain}
                 disabled={explaining}
-                className="border border-ink px-3 py-1.5 text-data font-medium hover:bg-ink hover:text-paper disabled:opacity-50"
+                className="border border-agreed px-3 py-1.5 text-ident font-medium hover:bg-agreed hover:text-stock disabled:opacity-50"
               >
                 {explaining ? "Writing…" : "Explain this finding"}
               </button>
-              <p className="mt-2 max-w-[54ch] text-micro leading-relaxed text-ink-faint">
+              <p className="mt-2 max-w-[54ch] text-ident leading-relaxed text-graphite-soft">
                 The model is handed the finished finding, never a document and never a table.
                 It writes the sentence. It cannot produce a number.
               </p>
@@ -243,7 +243,7 @@ export function EvidencePanel({
 function Block({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section>
-      <h3 className="mb-2 text-micro font-semibold text-ink-soft">{title}</h3>
+      <h3 className="mb-2 text-ident font-semibold text-graphite">{title}</h3>
       {children}
     </section>
   );
@@ -255,7 +255,7 @@ function MatchBlock({ match }: { match: NonNullable<RiskDetail["match"]> }) {
   if (match.status === "duplicate") {
     return (
       <Block title="Why there is no counterpart">
-        <p className="max-w-[56ch] text-data leading-relaxed">
+        <p className="max-w-[56ch] text-ident leading-relaxed">
           One GSTR-2B record exists for this supplier and document number, and another
           row in the register already matched it. Matching is one-to-one, so this row is
           the second booking rather than a missing document.
@@ -275,18 +275,18 @@ function MatchBlock({ match }: { match: NonNullable<RiskDetail["match"]> }) {
 
   return (
     <Block title="Match score">
-      <table className="w-full text-data">
+      <table className="w-full text-ident">
         <tbody>
           {Object.keys(weights).map((key) => {
             const component = Number(parts[key] ?? 0);
             const contribution = (component * weights[key]).toFixed(2);
             return (
-              <tr key={key} className="border-b border-rule-hair last:border-0">
-                <td className="py-1 text-ink-soft">{labels[key]}</td>
+              <tr key={key} className="border-b border-hairline last:border-0">
+                <td className="py-1 text-graphite">{labels[key]}</td>
                 <td className="tabular py-1 text-right font-mono">
                   {component === 1 ? "exact" : component === 0 ? "no candidate" : component.toFixed(2)}
                 </td>
-                <td className="tabular py-1 pl-4 text-right font-mono text-ink-faint">
+                <td className="tabular py-1 pl-4 text-right font-mono text-graphite-soft">
                   {contribution}
                 </td>
               </tr>
@@ -301,7 +301,7 @@ function MatchBlock({ match }: { match: NonNullable<RiskDetail["match"]> }) {
           </tr>
         </tbody>
       </table>
-      <p className="mt-2 max-w-[56ch] text-micro leading-relaxed text-ink-faint">
+      <p className="mt-2 max-w-[56ch] text-ident leading-relaxed text-graphite-soft">
         A deterministic score, not a probability, which is why it is never called
         confidence, and why the components always ship with it.
       </p>
@@ -312,31 +312,31 @@ function MatchBlock({ match }: { match: NonNullable<RiskDetail["match"]> }) {
 function SourceView({ source }: { source: SourceLine }) {
   return (
     <section>
-      <h3 className="mb-2 text-micro font-semibold text-ink-soft">Source document</h3>
-      <p className="text-data">
+      <h3 className="mb-2 text-ident font-semibold text-graphite">Source document</h3>
+      <p className="text-ident">
         <span className="font-mono">{source.filename}</span>
-        <span className="text-ink-soft"> · row </span>
+        <span className="text-graphite"> · row </span>
         <span className="tabular font-mono">{source.source_row}</span>
       </p>
-      <p className="mt-0.5 font-mono text-micro text-ink-faint">
+      <p className="mt-0.5 font-mono text-ident text-graphite-soft">
         sha256 {source.sha256?.slice(0, 32)}…
       </p>
 
-      <div className="mt-3 overflow-x-auto border border-rule bg-paper">
-        <table className="w-max min-w-full border-collapse font-mono text-micro">
+      <div className="mt-3 overflow-x-auto border border-hairline bg-stock">
+        <table className="w-max min-w-full border-collapse font-mono text-ident">
           <tbody>
             {source.header && (
-              <tr className="border-b border-rule text-ink-faint">
-                <td className="select-none border-r border-rule px-2 py-1 text-right">—</td>
+              <tr className="border-b border-hairline text-graphite-soft">
+                <td className="select-none border-r border-hairline px-2 py-1 text-right">—</td>
                 <td className="whitespace-pre px-3 py-1">{source.header}</td>
               </tr>
             )}
             {source.context.map((line) => (
               <tr
                 key={line.row}
-                className={line.is_target ? "bg-marked font-medium text-ink" : "text-ink-soft"}
+                className={line.is_target ? "bg-agreed-wash font-medium text-agreed" : "text-graphite"}
               >
-                <td className="tabular select-none border-r border-rule px-2 py-1 text-right text-ink-faint">
+                <td className="tabular select-none border-r border-hairline px-2 py-1 text-right text-graphite-soft">
                   {line.row}
                 </td>
                 <td className="whitespace-pre px-3 py-1">{line.text}</td>
@@ -351,13 +351,13 @@ function SourceView({ source }: { source: SourceLine }) {
 
 export function PanelPlaceholder({ period }: { period: string }) {
   return (
-    <aside className="hidden border-l border-rule-strong bg-sheet lg:block">
+    <aside className="hidden border-l border-graphite-soft bg-sunk lg:block">
       <div className="px-6 py-10">
-        <p className="max-w-[34ch] text-body leading-relaxed text-ink-soft">
+        <p className="max-w-[34ch] text-prose leading-relaxed text-graphite">
           Select a finding to see the arithmetic behind it, the records it came from, and
           the line of the original file that produced the figure.
         </p>
-        <p className="mt-3 text-micro text-ink-faint">{periodLabel(period)}</p>
+        <p className="mt-3 text-ident text-graphite-soft">{periodLabel(period)}</p>
       </div>
     </aside>
   );

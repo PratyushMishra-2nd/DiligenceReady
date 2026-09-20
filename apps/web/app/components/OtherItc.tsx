@@ -36,13 +36,13 @@ export function OtherItc({ other }: { other: OtherItcSummary }) {
     <Disclosure
       title="Other credit in this 2B"
       headline={
-        <p className="tabular text-micro text-ink-soft">
+        <p className="tabular text-ident text-graphite">
           {other.groups.length} section{other.groups.length === 1 ? "" : "s"} ·{" "}
-          <span className="font-medium text-ink">{inrShort(other.claimable_tax)}</span>
+          <span className="font-medium text-agreed">{inrShort(other.claimable_tax)}</span>
         </p>
       }
     >
-      <p className="max-w-[70ch] text-body leading-relaxed text-ink-soft">
+      <p className="max-w-[70ch] text-prose leading-relaxed text-graphite">
         Sections of the statement that carry credit without carrying a document the
         purchase register would hold. They are excluded from the match figures above
         deliberately, and shown here so nothing in the statement goes unaccounted for.
@@ -52,20 +52,20 @@ export function OtherItc({ other }: { other: OtherItcSummary }) {
         {other.groups.map((group) => (
           <div
             key={`${group.section}-${group.note_type ?? ""}`}
-            className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 border-b border-rule-hair pb-2 last:border-0"
+            className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 border-b border-hairline pb-2 last:border-0"
           >
-            <dt className="text-body">
-              <span className="font-mono text-micro text-ink-faint">{group.section}</span>
+            <dt className="text-prose">
+              <span className="font-mono text-ident text-graphite-soft">{group.section}</span>
               <span className="ml-3">{group.label}</span>
             </dt>
-            <dd className="tabular flex shrink-0 items-baseline gap-6 text-data">
-              <span className="text-ink-faint">
+            <dd className="tabular flex shrink-0 items-baseline gap-6 text-ident">
+              <span className="text-graphite-soft">
                 {group.documents} doc{group.documents === 1 ? "" : "s"}
               </span>
               <span className="w-32 text-right">
                 <span className="block font-medium">{inrShort(group.tax)}</span>
                 {inrExact(group.tax) && (
-                  <span className="block text-micro text-ink-faint">
+                  <span className="block text-ident text-graphite-soft">
                     {inrExact(group.tax)}
                   </span>
                 )}
@@ -76,12 +76,12 @@ export function OtherItc({ other }: { other: OtherItcSummary }) {
       </dl>
 
       {adjustment !== 0 && (
-        <p className="tabular mt-4 text-body">
+        <p className="tabular mt-4 text-prose">
           Net effect of notes on the claim:{" "}
-          <span className={adjustment < 0 ? "font-medium text-exposure" : "font-medium"}>
+          <span className={adjustment < 0 ? "font-medium text-statute" : "font-medium"}>
             {inr(other.net_note_adjustment)}
           </span>
-          <span className="ml-2 text-micro text-ink-soft">
+          <span className="ml-2 text-ident text-graphite">
             {adjustment < 0
               ? "credit notes reduce what can be claimed"
               : "debit notes increase it"}

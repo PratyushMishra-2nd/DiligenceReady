@@ -23,27 +23,27 @@ import Link from "next/link";
 export default function NotFound() {
   return (
     <main className="mx-auto max-w-[70ch] px-6 py-24">
-      <p className="font-mono text-micro uppercase tracking-[0.08em] text-ink-faint">404</p>
-      <h1 className="mt-2 text-lede font-semibold tracking-tight">
+      <p className="font-mono text-stub uppercase tracking-[0.08em] text-graphite-soft">404</p>
+      <h1 className="mt-2 text-intro font-semibold tracking-tight">
         Nothing is filed at that address
       </h1>
       {/* Said plainly, and said to be not an error. The engine-offline notice
           on the dashboard is the page for something having gone wrong, and a
           reader who confuses the two goes looking for a service to restart. */}
-      <p className="mt-3 text-body leading-relaxed text-ink-soft">
+      <p className="mt-3 text-prose leading-relaxed text-graphite">
         Either the address is wrong, or the company it names is not one this firm carries.
         Nothing has failed: a page that does not exist is not a page that would not load.
       </p>
-      <p className="mt-8 flex flex-wrap gap-x-8 gap-y-2 text-micro">
+      <p className="mt-8 flex flex-wrap gap-x-8 gap-y-2 text-ident">
         <Link
           href="/"
-          className="underline decoration-rule-strong underline-offset-4 hover:decoration-ink"
+          className="underline decoration-graphite-soft underline-offset-4 hover:decoration-agreed"
         >
           All client companies
         </Link>
         <Link
           href="/product"
-          className="underline decoration-rule-strong underline-offset-4 hover:decoration-ink"
+          className="underline decoration-graphite-soft underline-offset-4 hover:decoration-agreed"
         >
           What this is
         </Link>

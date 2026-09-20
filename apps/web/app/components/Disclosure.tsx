@@ -23,13 +23,13 @@ export function Disclosure({
   defaultOpen?: boolean;
 }) {
   return (
-    <details open={defaultOpen} className="group border-b border-rule-strong">
+    <details open={defaultOpen} className="group border-b border-graphite-soft">
       <summary className="flex cursor-pointer flex-wrap items-baseline justify-between gap-x-8 gap-y-1 py-4">
-        <h2 className="flex items-baseline gap-2 text-data font-semibold">
+        <h2 className="flex items-baseline gap-2 text-ident font-semibold">
           <svg
             viewBox="0 0 8 10"
             aria-hidden
-            className="h-2.5 w-2 shrink-0 text-ink-faint transition-transform group-open:rotate-90"
+            className="h-2.5 w-2 shrink-0 text-graphite-soft transition-transform group-open:rotate-90"
           >
             <path d="M1 1l5 4-5 4" fill="none" stroke="currentColor" strokeWidth="1.5" />
           </svg>

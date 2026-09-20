@@ -66,9 +66,9 @@ export default async function FirmDashboard() {
   return (
     <main className="mx-auto max-w-[1100px] px-6 py-10 sm:px-10">
       <header className="ruled flex flex-wrap items-baseline justify-between gap-x-8 gap-y-2 pb-4">
-        <h1 className="text-lede font-semibold tracking-tight">{user.firm}</h1>
+        <h1 className="text-intro font-semibold tracking-tight">{user.firm}</h1>
         <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1">
-          <p className="text-data text-ink-soft">
+          <p className="text-ident text-graphite">
             Financial readiness across {companies.length} client{" "}
             {companies.length === 1 ? "company" : "companies"}
           </p>
@@ -79,15 +79,15 @@ export default async function FirmDashboard() {
       {/* The first thing a CA should see is not a coverage percentage. It is
           money with a statutory deadline attached — the figure that makes them
           pick up the phone. */}
-      <section className="border-b border-rule-strong py-10">
-        <p className="text-data text-ink-soft">Input tax credit with no GSTR-2B counterpart</p>
+      <section className="border-b border-graphite-soft py-10">
+        <p className="text-ident text-graphite">Input tax credit with no GSTR-2B counterpart</p>
         {/* A fourteen-character rupee figure at 52px is wider than a phone.
             The display size is the large-screen treatment; below that it drops
             to the figure step rather than being clipped at the gutter. */}
-        <p className="tabular mt-3 text-figure font-semibold text-exposure sm:text-hero">
+        <p className="tabular mt-3 text-amount font-semibold text-statute sm:text-opener">
           {inr(exposure)}
         </p>
-        <p className="mt-5 max-w-[62ch] text-body leading-relaxed text-ink-soft">
+        <p className="mt-5 max-w-[62ch] text-prose leading-relaxed text-graphite">
           Already paid to suppliers and not yet claimable.
           {cutoff && (
             <>
@@ -96,9 +96,9 @@ export default async function FirmDashboard() {
                   calendar date is the label for the deadline, not the urgency
                   in it, and a sentence that bolds every variable emphasises
                   nothing. */}
-              <span className="tabular font-medium text-ink">{inr(dueNow)}</span> of it sits
+              <span className="tabular font-medium text-agreed">{inr(dueNow)}</span> of it sits
               on invoices whose Sec 16(4) window closes {cutoff.label},{" "}
-              <span className="tabular font-medium text-ink">{cutoff.days} days</span> away,
+              <span className="tabular font-medium text-agreed">{cutoff.days} days</span> away,
               across {dueNowFindings} findings. After that date the credit stops being a
               receivable and becomes a cost.
             </>
@@ -108,21 +108,21 @@ export default async function FirmDashboard() {
 
       <section className="pt-8">
         <div className="flex items-baseline justify-between">
-          <h2 className="text-data font-semibold">Client companies</h2>
-          <p className="tabular text-data text-ink-soft">{openRisks} open findings</p>
+          <h2 className="text-ident font-semibold">Client companies</h2>
+          <p className="tabular text-ident text-graphite">{openRisks} open findings</p>
         </div>
 
         {/* A GSTIN is fifteen unbreakable monospace characters and there are
             six columns beside it. Without this the table pushes the whole
             document sideways on a phone instead of scrolling itself. */}
         <div className="mt-4 overflow-x-auto">
-          <table className="w-full min-w-[760px] border-collapse text-data">
+          <table className="w-full min-w-[760px] border-collapse text-ident">
             <caption className="sr-only">
               Reconciliation state for every client company the firm carries, soonest Sec
               16(4) cut-off first
             </caption>
-            <thead className="sticky top-0 z-10 bg-paper">
-              <tr className="border-y border-rule-strong text-left text-micro text-ink-soft">
+            <thead className="sticky top-0 z-10 bg-stock">
+              <tr className="border-y border-graphite-soft text-left text-ident text-graphite">
                 <th scope="col" className="py-2 pr-4 font-medium">
                   Company
                 </th>
@@ -157,23 +157,23 @@ export default async function FirmDashboard() {
                 return (
                   <tr
                     key={company.company_id}
-                    className={`ruled align-baseline ${due ? "bg-exposure-wash/40" : ""}`}
+                    className={`ruled align-baseline ${due ? "bg-statute-wash/40" : ""}`}
                   >
                     <td className="py-3 pr-4">
                       <Link
                         href={`/companies/${company.company_id}`}
-                        className="font-medium text-ink underline decoration-rule-strong underline-offset-4 hover:decoration-ink"
+                        className="font-medium text-agreed underline decoration-graphite-soft underline-offset-4 hover:decoration-agreed"
                       >
                         {company.name}
                       </Link>
-                      <span className="mt-0.5 block font-mono text-micro text-ink-soft">
+                      <span className="mt-0.5 block font-mono text-ident text-graphite">
                         {company.gstin}
                       </span>
                     </td>
                     <td className="py-3 pr-4">
                       <Closes iso={company.next_sec_16_4_deadline} />
                     </td>
-                    <td className="tabular py-3 pr-4 text-ink-soft">
+                    <td className="tabular py-3 pr-4 text-graphite">
                       {periodLabel(company.period)}
                     </td>
                     <td className="tabular py-3 pr-4 text-right">
@@ -185,12 +185,12 @@ export default async function FirmDashboard() {
                     <td className="tabular py-3 pr-4 text-right">
                       {company.open_risks}
                       {company.high_risks > 0 && (
-                        <span className="ml-2 border border-exposure/30 bg-exposure-wash px-1.5 py-0.5 text-micro font-medium text-exposure">
+                        <span className="ml-2 border border-statute/30 bg-statute-wash px-1.5 py-0.5 text-ident font-medium text-statute">
                           {company.high_risks} high
                         </span>
                       )}
                     </td>
-                    <td className="tabular py-3 text-right font-medium text-exposure">
+                    <td className="tabular py-3 text-right font-medium text-statute">
                       {inrShort(company.itc_at_risk)}
                     </td>
                   </tr>
@@ -200,7 +200,7 @@ export default async function FirmDashboard() {
           </table>
         </div>
 
-        <p className="mt-6 max-w-[70ch] text-micro leading-relaxed text-ink-faint">
+        <p className="mt-6 max-w-[70ch] text-ident leading-relaxed text-graphite-soft">
           Sorted by the soonest Sec 16(4) cut-off, then by the credit at stake.{" "}
           {discriminating && "Shaded rows are the ones the figure above was summed from. "}
           Coverage is the latest period;
@@ -209,10 +209,10 @@ export default async function FirmDashboard() {
           the invoice date, not the month you noticed.
         </p>
 
-        <p className="mt-4 text-micro text-ink-faint">
+        <p className="mt-4 text-ident text-graphite-soft">
           <Link
             href="/product"
-            className="underline decoration-rule-strong underline-offset-4 hover:decoration-ink"
+            className="underline decoration-graphite-soft underline-offset-4 hover:decoration-agreed"
           >
             What this is
           </Link>
@@ -230,12 +230,12 @@ export default async function FirmDashboard() {
  */
 function Closes({ iso }: { iso: string | null }) {
   const cutoff = deadline(iso);
-  if (!cutoff) return <span className="text-ink-faint">—</span>;
+  if (!cutoff) return <span className="text-graphite-soft">—</span>;
   const urgent = cutoff.days <= 30;
   return (
-    <span className={urgent ? "text-exposure" : "text-ink"}>
+    <span className={urgent ? "text-statute" : "text-agreed"}>
       <span className="tabular block font-medium">{cutoff.days} days</span>
-      <span className="tabular mt-0.5 block text-micro text-ink-soft">{cutoff.label}</span>
+      <span className="tabular mt-0.5 block text-ident text-graphite">{cutoff.label}</span>
     </span>
   );
 }
@@ -256,13 +256,13 @@ function Coverage({ value }: { value: string }) {
   const width = Number.isFinite(number) ? Math.max(0, Math.min(100, number)) : 0;
   return (
     <span className="inline-block">
-      <span className={complete ? "text-reconciled" : "text-ink"}>
+      <span className={complete ? "text-agreed" : "text-agreed"}>
         {value}
-        <span className="text-ink-faint">%</span>
+        <span className="text-graphite-soft">%</span>
       </span>
-      <span aria-hidden className="mt-1 block h-px w-12 bg-rule">
+      <span aria-hidden className="mt-1 block h-px w-12 bg-hairline">
         <span
-          className={`block h-px ${complete ? "bg-reconciled" : "bg-ink-soft"}`}
+          className={`block h-px ${complete ? "bg-agreed" : "bg-graphite"}`}
           style={{ width: `${width}%` }}
         />
       </span>
@@ -273,12 +273,12 @@ function Coverage({ value }: { value: string }) {
 function EngineOffline() {
   return (
     <main className="mx-auto max-w-[70ch] px-6 py-24">
-      <h1 className="text-lede font-semibold">The engine is not answering</h1>
-      <p className="mt-3 text-body leading-relaxed text-ink-soft">
+      <h1 className="text-intro font-semibold">The engine is not answering</h1>
+      <p className="mt-3 text-prose leading-relaxed text-graphite">
         The dashboard reads every figure from the reconciliation API at{" "}
-        <span className="font-mono text-ink">{api.base}</span>. Start it, then reload:
+        <span className="font-mono text-agreed">{api.base}</span>. Start it, then reload:
       </p>
-      <pre className="mt-4 overflow-x-auto border border-rule bg-sheet p-4 font-mono text-micro">
+      <pre className="mt-4 overflow-x-auto border border-hairline bg-sunk p-4 font-mono text-ident">
         {`docker compose -f infra/docker-compose.yml up -d
 uv run diligence pipeline
 uv run uvicorn diligence_api.main:app --port 8077`}

@@ -91,7 +91,7 @@ export function Trace() {
         </Step>
 
         <Step step={STEPS[3]} last>
-          <pre className="overflow-x-auto border border-hairline bg-sunk p-3 font-mono text-stub leading-relaxed text-graphite">
+          <pre className="overflow-x-auto border border-hairline bg-sunk p-3 font-mono text-ident leading-relaxed text-graphite">
 {`sum(headline_amount) filter (
   where rule_code = 'R1' and status = 'open'
 )`}
@@ -141,7 +141,7 @@ function Step({
         </h3>
         {/* A file path has no spaces in it, so it will not wrap on its own
             and at phone width it pushed the whole document sideways. */}
-        <p className="break-all font-mono text-stub text-graphite-soft">{step.reference}</p>
+        <p className="break-all font-mono text-ident text-graphite-soft">{step.reference}</p>
       </div>
       <div className="mt-2">{children}</div>
     </li>
@@ -151,7 +151,7 @@ function Step({
 function Fragmentish({ column, value }: { column: string; value: string }) {
   return (
     <>
-      <dt className="font-mono text-stub text-graphite-soft">{column}</dt>
+      <dt className="font-mono text-ident text-graphite-soft">{column}</dt>
       <dd className="font-mono text-ident text-agreed">{value}</dd>
     </>
   );

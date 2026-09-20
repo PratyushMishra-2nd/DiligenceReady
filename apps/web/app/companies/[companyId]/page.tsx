@@ -80,26 +80,26 @@ export default async function CompanyPage({
           Not `no-print`: the firm's name is the only attribution the filed
           sheet carries. The chevron is the part that is a control rather than
           a fact, so that is the part that comes off on paper. */}
-      <nav aria-label="Breadcrumb" className="text-micro text-ink-soft">
+      <nav aria-label="Breadcrumb" className="text-ident text-graphite">
         <Link href="/" className="group inline-flex items-center gap-2">
           <svg
             viewBox="0 0 8 10"
             aria-hidden
-            className="no-print h-2.5 w-2 shrink-0 text-ink-faint group-hover:text-ink"
+            className="no-print h-2.5 w-2 shrink-0 text-graphite-soft group-hover:text-agreed"
           >
             <path d="M6 1L1 5l5 4" fill="none" stroke="currentColor" strokeWidth="1.5" />
           </svg>
-          <span className="underline decoration-rule-strong underline-offset-4 group-hover:decoration-ink">
+          <span className="underline decoration-graphite-soft underline-offset-4 group-hover:decoration-agreed">
             {company.firm_name}
           </span>
-          <span className="text-ink-faint">· all client companies</span>
+          <span className="text-graphite-soft">· all client companies</span>
         </Link>
       </nav>
 
       <header className="mt-3 flex flex-wrap items-end justify-between gap-x-10 gap-y-4">
         <div>
-          <h1 className="text-figure font-semibold">{company.name}</h1>
-          <p className="mt-1 font-mono text-micro text-ink-soft">
+          <h1 className="text-amount font-semibold">{company.name}</h1>
+          <p className="mt-1 font-mono text-ident text-graphite">
             {company.gstin} · PAN {company.pan}
           </p>
         </div>
@@ -107,13 +107,13 @@ export default async function CompanyPage({
           {/* Thirteen open-finding counts, as a shape. Whether a book is
               getting better or worse is the firm's actual question about a
               client, and no single period answers it. */}
-          <div className="flex items-center gap-2 text-ink-soft">
+          <div className="flex items-center gap-2 text-graphite">
             <Sparkline
               points={[...company.periods]
                 .reverse()
                 .map((entry) => ({ period: entry.period, value: entry.open_risks }))}
             />
-            <span className="text-micro text-ink-faint">open findings</span>
+            <span className="text-ident text-graphite-soft">open findings</span>
           </div>
           <PeriodPicker
             companyId={company.company_id}
@@ -128,10 +128,10 @@ export default async function CompanyPage({
           because September's 2B does not exist yet, and a CA who assumes
           otherwise is reading the wrong month. One sentence, no pixels of
           permanent furniture. */}
-      <p className="mt-6 max-w-[70ch] text-data text-ink-soft">
+      <p className="mt-6 max-w-[70ch] text-ident text-graphite">
         Financial readiness · {periodLabel(period)}
         {chosenForYou && (
-          <span className="text-ink-faint">
+          <span className="text-graphite-soft">
             {" "}
             (the latest period with a generated GSTR-2B; a month&rsquo;s 2B generates on
             the 14th of the month after it)
@@ -157,7 +157,7 @@ export default async function CompanyPage({
         canWrite={user?.can_write ?? true}
       />
 
-      <div className="mt-10 border-t border-rule-strong">
+      <div className="mt-10 border-t border-graphite-soft">
         {other && <OtherItc other={other} />}
 
         {ims && <ImsPanel ims={ims} />}
@@ -167,7 +167,7 @@ export default async function CompanyPage({
             that — it cannot be the thing hidden inside a closed drawer. */}
         <UploadPanel companyId={company.company_id} />
 
-        <div className="no-print border-b border-rule-strong py-8">
+        <div className="no-print border-b border-graphite-soft py-8">
           <AskLedger companyId={company.company_id} />
         </div>
 
@@ -206,12 +206,12 @@ function PeriodPicker({
                 ? `${entry.open_risks} open findings`
                 : "GSTR-2B has not generated for this period"
             }
-            className={`tabular border px-2 py-1 text-micro ${
+            className={`tabular border px-2 py-1 text-ident ${
               active
-                ? "border-ink bg-ink text-paper"
+                ? "border-agreed bg-agreed text-stock"
                 : entry.gstr2b_generated
-                  ? "border-rule text-ink-soft hover:border-ink hover:text-ink"
-                  : "border-rule border-dashed text-ink-faint hover:border-ink hover:text-ink"
+                  ? "border-hairline text-graphite hover:border-agreed hover:text-agreed"
+                  : "border-hairline border-dashed text-graphite-soft hover:border-agreed hover:text-agreed"
             }`}
           >
             {periodLabel(entry.period, true)}

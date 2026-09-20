@@ -17,9 +17,9 @@ import { inrExact, inrShort, pct } from "../lib/format";
  */
 export function ReadinessCard({ readiness }: { readiness: Readiness }) {
   return (
-    <section className="grid gap-x-12 gap-y-8 border-y border-rule-strong py-8 md:grid-cols-2">
+    <section className="grid gap-x-12 gap-y-8 border-y border-graphite-soft py-8 md:grid-cols-2">
       <div>
-        <h2 className="text-micro font-semibold text-ink-soft">Reconciled</h2>
+        <h2 className="text-ident font-semibold text-graphite">Reconciled</h2>
         <dl className="mt-4 space-y-4">
           <CoverageRow
             label="Purchase register against GSTR-2B"
@@ -34,8 +34,8 @@ export function ReadinessCard({ readiness }: { readiness: Readiness }) {
         </dl>
       </div>
 
-      <div className="md:border-l md:border-rule md:pl-12">
-        <h2 className="text-micro font-semibold text-exposure">Exposed</h2>
+      <div className="md:border-l md:border-hairline md:pl-12">
+        <h2 className="text-ident font-semibold text-statute">Exposed</h2>
         <dl className="mt-4 space-y-4">
           <ExposureRow
             label="Input tax credit with no 2B counterpart"
@@ -80,19 +80,19 @@ function CoverageRow({
   return (
     <div className="flex items-baseline justify-between gap-6">
       <div className="max-w-[34ch]">
-        <dt className="text-body">{label}</dt>
-        <dd className="tabular mt-0.5 text-micro text-ink-faint">{detail}</dd>
+        <dt className="text-prose">{label}</dt>
+        <dd className="tabular mt-0.5 text-ident text-graphite-soft">{detail}</dd>
       </div>
       <dd className="shrink-0 text-right">
-        <span className="tabular text-figure font-normal text-ink-soft">
+        <span className="tabular text-amount font-normal text-graphite">
           {percent}
-          <span className="text-body text-ink-faint">%</span>
+          <span className="text-prose text-graphite-soft">%</span>
         </span>
         {/* Proportional, so a column of them is comparable without reading the
             digits. Drawn in ink: coverage is progress, and the vermillion in
             this product means money at statutory risk and nothing else. */}
-        <span aria-hidden className="mt-1.5 block h-[3px] w-14 bg-rule">
-          <span className="block h-[3px] bg-reconciled" style={{ width: `${width}%` }} />
+        <span aria-hidden className="mt-1.5 block h-[3px] w-14 bg-hairline">
+          <span className="block h-[3px] bg-agreed" style={{ width: `${width}%` }} />
         </span>
       </dd>
     </div>
@@ -106,14 +106,14 @@ function ExposureRow({ label, amount }: { label: string; amount: string }) {
   // there is nothing to print underneath it.
   const exact = inrExact(amount);
   return (
-    <div className="flex items-baseline justify-between gap-6 border-l-2 border-exposure pl-3">
-      <dt className="max-w-[34ch] text-body">{label}</dt>
+    <div className="flex items-baseline justify-between gap-6 border-l-2 border-statute pl-3">
+      <dt className="max-w-[34ch] text-prose">{label}</dt>
       <dd className="shrink-0 text-right">
-        <span className="tabular block text-figure font-semibold text-exposure">
+        <span className="tabular block text-amount font-semibold text-statute">
           {inrShort(amount)}
         </span>
         {exact && (
-          <span className="tabular mt-0.5 block text-micro text-ink-faint">{exact}</span>
+          <span className="tabular mt-0.5 block text-ident text-graphite-soft">{exact}</span>
         )}
       </dd>
     </div>
@@ -122,9 +122,9 @@ function ExposureRow({ label, amount }: { label: string; amount: string }) {
 
 function PercentRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-baseline justify-between gap-6 border-l-2 border-exposure pl-3">
-      <dt className="max-w-[34ch] text-body">{label}</dt>
-      <dd className="tabular shrink-0 text-figure font-semibold text-exposure">
+    <div className="flex items-baseline justify-between gap-6 border-l-2 border-statute pl-3">
+      <dt className="max-w-[34ch] text-prose">{label}</dt>
+      <dd className="tabular shrink-0 text-amount font-semibold text-statute">
         {pct(value)}
       </dd>
     </div>

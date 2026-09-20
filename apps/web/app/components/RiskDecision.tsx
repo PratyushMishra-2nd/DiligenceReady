@@ -71,8 +71,8 @@ export function RiskDecision({
 
   if (!canWrite) {
     return (
-      <p className="text-data text-ink-soft">
-        Recorded as <span className="font-medium text-ink">{current}</span>. This account
+      <p className="text-ident text-graphite">
+        Recorded as <span className="font-medium text-agreed">{current}</span>. This account
         has read-only access.
       </p>
     );
@@ -91,10 +91,10 @@ export function RiskDecision({
               onClick={() => choose(option.value)}
               disabled={busy !== null}
               aria-pressed={active}
-              className={`border px-2.5 py-1 text-micro transition-colors disabled:opacity-50 ${
+              className={`border px-2.5 py-1 text-ident transition-colors disabled:opacity-50 ${
                 active
-                  ? "border-ink bg-ink text-paper"
-                  : "border-rule text-ink-soft hover:border-ink hover:text-ink"
+                  ? "border-agreed bg-agreed text-stock"
+                  : "border-hairline text-graphite hover:border-agreed hover:text-agreed"
               }`}
             >
               {busy === option.value ? "…" : option.label}
@@ -103,14 +103,14 @@ export function RiskDecision({
         })}
       </div>
 
-      <p className="mt-2 text-micro text-ink-faint">
+      <p className="mt-2 text-ident text-graphite-soft">
         {current === "open"
           ? "No decision recorded yet."
           : `Recorded as ${current}. Click it again to reopen.`}{" "}
         Every change is written to the firm&rsquo;s audit trail with who made it.
       </p>
 
-      {error && <p className="mt-2 text-micro text-exposure">{error}</p>}
+      {error && <p className="mt-2 text-ident text-statute">{error}</p>}
     </div>
   );
 }

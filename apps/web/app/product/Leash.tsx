@@ -51,7 +51,7 @@ export function Leash() {
       <p className="font-mono text-stub uppercase tracking-[0.08em] text-graphite">
         What the tools returned
       </p>
-      <pre className="mt-2 overflow-x-auto border border-hairline bg-sunk p-3 font-mono text-stub leading-relaxed text-graphite">
+      <pre className="mt-2 overflow-x-auto border border-hairline bg-sunk p-3 font-mono text-ident leading-relaxed text-graphite">
         {TOOL_OUTPUT}
       </pre>
 
@@ -85,7 +85,7 @@ export function Leash() {
               {/* The verdict is a word, not a colour. Vermillion is doing the
                   same job twice here and neither time is it doing it alone. */}
               <dd
-                className={`font-mono text-stub sm:text-right ${
+                className={`font-mono text-ident sm:text-right ${
                   refused ? "text-statute-deep" : "text-agreed"
                 }`}
               >

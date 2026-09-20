@@ -50,23 +50,23 @@ export function SignInForm({ next }: { next: string }) {
       {/* The way back to the page that sent them. Signing in is now something
           a reader chooses from the landing page rather than something they
           are dropped into, and a choice they cannot reverse is not one. */}
-      <nav aria-label="Breadcrumb" className="text-micro text-ink-soft">
+      <nav aria-label="Breadcrumb" className="text-ident text-graphite">
         <Link href="/product" className="group inline-flex items-center gap-2">
           <svg
             viewBox="0 0 8 10"
             aria-hidden
-            className="h-2.5 w-2 shrink-0 text-ink-faint group-hover:text-ink"
+            className="h-2.5 w-2 shrink-0 text-graphite-soft group-hover:text-agreed"
           >
             <path d="M6 1L1 5l5 4" fill="none" stroke="currentColor" strokeWidth="1.5" />
           </svg>
-          <span className="underline decoration-rule-strong underline-offset-4 group-hover:decoration-ink">
+          <span className="underline decoration-graphite-soft underline-offset-4 group-hover:decoration-agreed">
             What this is
           </span>
         </Link>
       </nav>
 
-      <h1 className="mt-6 text-lede font-semibold tracking-tight">DiligenceReady</h1>
-      <p className="mt-1 text-body text-ink-soft">Sign in to your firm&rsquo;s workspace.</p>
+      <h1 className="mt-6 text-intro font-semibold tracking-tight">DiligenceReady</h1>
+      <p className="mt-1 text-prose text-graphite">Sign in to your firm&rsquo;s workspace.</p>
 
       <form onSubmit={submit} className="mt-8 space-y-5">
         <Field
@@ -85,7 +85,7 @@ export function SignInForm({ next }: { next: string }) {
         />
 
         {error && (
-          <p role="alert" className="border border-exposure/30 bg-exposure-wash px-3 py-2 text-data text-exposure">
+          <p role="alert" className="border border-statute/30 bg-statute-wash px-3 py-2 text-ident text-statute">
             {error}
           </p>
         )}
@@ -93,15 +93,15 @@ export function SignInForm({ next }: { next: string }) {
         <button
           type="submit"
           disabled={busy || !email || !password}
-          className="w-full border border-ink bg-ink px-4 py-2.5 text-body font-medium text-paper hover:bg-transparent hover:text-ink disabled:opacity-40 disabled:hover:bg-ink disabled:hover:text-paper"
+          className="w-full border border-agreed bg-agreed px-4 py-2.5 text-prose font-medium text-stock hover:bg-transparent hover:text-agreed disabled:opacity-40 disabled:hover:bg-agreed disabled:hover:text-stock"
         >
           {busy ? "Signing in…" : "Sign in"}
         </button>
       </form>
 
-      <p className="mt-8 max-w-[38ch] text-micro leading-relaxed text-ink-faint">
+      <p className="mt-8 max-w-[38ch] text-ident leading-relaxed text-graphite-soft">
         No account yet? A firm owner creates one with{" "}
-        <span className="font-mono text-ink-soft">diligence user create</span>. There is no
+        <span className="font-mono text-graphite">diligence user create</span>. There is no
         self-service signup, because there is no self-service client data.
       </p>
     </main>
@@ -123,13 +123,13 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="text-micro font-medium text-ink-soft">{label}</span>
+      <span className="text-ident font-medium text-graphite">{label}</span>
       <input
         type={type}
         value={value}
         autoComplete={autoComplete}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-1.5 w-full border border-rule-strong bg-sheet px-3 py-2 text-body focus:border-ink focus:outline-none"
+        className="mt-1.5 w-full border border-graphite-soft bg-sunk px-3 py-2 text-prose focus:border-agreed focus:outline-none"
       />
     </label>
   );
