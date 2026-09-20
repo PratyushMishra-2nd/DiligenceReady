@@ -32,17 +32,21 @@ import aggregates from "./aggregates.json";
  */
 
 // Sized so the field reads as a field. The first cut was 120 columns of
-// 2.5px cell at #B3BEBB, which is 1.76:1 against paper: at that weight the
+// 2.5px cell at #8C857A, which is 1.76:1 against paper: at that weight the
 // three registers rendered as flat grey rectangles and the band with no
 // marks in it looked like a box that had failed to load. A picture whose
 // argument is "this many records" has to look like many records.
-const COLUMNS = 96;
+// Wider than it is tall, because the three registers stacked at 96 columns
+// ran to most of a screen each and the section became a scroll rather than a
+// picture. At 160 the whole population is about the height of the paragraph
+// describing it, which is the proportion a figure should have to its caption.
+const COLUMNS = 160;
 const PITCH = 5;
 const CELL = 3.5;
-const MARK = 5;
+const MARK = 5.5;
 // 3.25:1 against paper. Dense enough to read as population, light enough
 // that the marks still sit on top of it rather than in it.
-const FIELD = "#7C8C87";
+const FIELD = "#8C857A";
 const LABEL_HEIGHT = 15;
 const BAND_GAP = 20;
 const WIDTH = COLUMNS * PITCH;
@@ -100,8 +104,8 @@ export function Population() {
               <text
                 x={0}
                 y={top + 10}
-                className="fill-ink-soft font-mono"
-                fontSize="7"
+                className="fill-graphite font-mono"
+                fontSize="9"
                 letterSpacing="0.08em"
               >
                 {register.label.toUpperCase()}
@@ -110,8 +114,8 @@ export function Population() {
                 x={WIDTH}
                 y={top + 10}
                 textAnchor="end"
-                className="fill-ink-faint font-mono"
-                fontSize="7"
+                className="fill-graphite-soft font-mono"
+                fontSize="9"
               >
                 {register.count.toLocaleString("en-IN")}
               </text>
@@ -143,13 +147,13 @@ export function Population() {
                   y={gridTop + Math.floor(index / COLUMNS) * PITCH - (MARK - CELL) / 2}
                   width={MARK}
                   height={MARK}
-                  fill="#9E2B25"
+                  fill="#C4291B"
                   // Vermillion is 6.85:1 on paper and about 2:1 on the field,
                   // so a mark sitting inside the field needs separating from
                   // it. A hairline of the paper colour around each one does
                   // that without a second hue and without making the mark
                   // larger than the record it stands for.
-                  stroke="#F4F6F5"
+                  stroke="#F4F1E8"
                   strokeWidth={1}
                 />
               ))}
@@ -158,7 +162,7 @@ export function Population() {
                 y={gridTop + bandHeight + 2}
                 width={WIDTH}
                 height={0.5}
-                fill="#D5DCDA"
+                fill="#D6D0C0"
               />
             </g>
           );
@@ -167,7 +171,7 @@ export function Population() {
 
       <figcaption
         id="population-caption"
-        className="mt-4 max-w-[64ch] text-micro leading-relaxed text-ink-faint"
+        className="opsz-prose mt-5 max-w-[72ch] font-news text-ident leading-relaxed text-graphite"
       >
         Every record of both seeded companies across twelve periods:{" "}
         <Count n={totals.purchase_register} /> purchase invoices,{" "}
@@ -188,7 +192,7 @@ export function Population() {
 }
 
 function Count({ n }: { n: number }) {
-  return <span className="tabular text-ink-soft">{n.toLocaleString("en-IN")}</span>;
+  return <span className="tabular text-graphite">{n.toLocaleString("en-IN")}</span>;
 }
 
 function Marked() {
@@ -196,9 +200,9 @@ function Marked() {
     <span className="whitespace-nowrap">
       <span
         aria-hidden
-        className="mr-1 inline-block h-2 w-2 translate-y-[1px] bg-exposure"
+        className="mr-1 inline-block h-2 w-2 translate-y-[1px] bg-statute"
       />
-      <span className="tabular text-ink-soft">{aggregates.cells_drawn}</span>
+      <span className="tabular text-graphite">{aggregates.cells_drawn}</span>
     </span>
   );
 }

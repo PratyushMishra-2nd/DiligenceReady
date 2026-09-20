@@ -25,8 +25,8 @@ import csv
 import json
 import sys
 from collections import defaultdict
-from decimal import Decimal
 from datetime import date
+from decimal import Decimal
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -442,7 +442,6 @@ def main() -> None:
             "false_positives": sum(c["evaluation"]["false_positives"] for c in companies),
         },
     }
-
 
     for c in companies:
         del c["_defects"]

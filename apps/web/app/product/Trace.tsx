@@ -59,52 +59,52 @@ export function Trace() {
 
   return (
     <div className="mt-6 max-w-[64ch]">
-      <ol className="border-l border-exposure/40 pl-5">
+      <ol className="border-l border-statute/40 pl-5">
         <Step step={STEPS[0]}>
           <dl className="grid grid-cols-[8rem_minmax(0,1fr)] gap-x-4 gap-y-1">
             {Object.entries(columns).map(([column, value]) => (
               <Fragmentish key={column} column={column} value={value} />
             ))}
           </dl>
-          <p className="mt-2 text-micro leading-relaxed text-ink-faint">
+          <p className="mt-2 text-ident leading-relaxed text-graphite-soft">
             A line of a Tally export, as exported. Nothing is written back to it.
           </p>
         </Step>
 
         <Step step={STEPS[1]}>
-          <p className="font-mono text-data text-ink">
-            {columns["Voucher No"]} <span className="text-ink-faint">reduces to</span>{" "}
+          <p className="font-mono text-ident text-agreed">
+            {columns["Voucher No"]} <span className="text-graphite-soft">reduces to</span>{" "}
             {example.normalised_number}
           </p>
-          <p className="mt-2 text-micro leading-relaxed text-ink-faint">
+          <p className="mt-2 text-ident leading-relaxed text-graphite-soft">
             The voucher series is written by hand and the portal is not. The document
             number both systems would agree on is what the match is attempted against.
           </p>
         </Step>
 
         <Step step={STEPS[2]}>
-          <p className="text-data leading-relaxed text-ink">{example.note}</p>
-          <p className="mt-2 text-micro leading-relaxed text-ink-faint">
+          <p className="text-ident leading-relaxed text-agreed">{example.note}</p>
+          <p className="mt-2 text-ident leading-relaxed text-graphite-soft">
             Searched across every period, not only {example.period}, because a supplier who
             files late files into a different month.
           </p>
         </Step>
 
         <Step step={STEPS[3]} last>
-          <pre className="overflow-x-auto border border-rule bg-sheet p-3 font-mono text-micro leading-relaxed text-ink-soft">
+          <pre className="overflow-x-auto border border-hairline bg-sunk p-3 font-mono text-stub leading-relaxed text-graphite">
 {`sum(headline_amount) filter (
   where rule_code = 'R1' and status = 'open'
 )`}
           </pre>
-          <div className="mt-3 flex items-baseline justify-between gap-6 border-t border-rule pt-2">
-            <p className="text-micro uppercase tracking-[0.08em] text-ink-soft">
+          <div className="mt-3 flex items-baseline justify-between gap-6 border-t border-hairline pt-2">
+            <p className="text-stub uppercase tracking-[0.08em] text-graphite">
               Credit at risk, this invoice
             </p>
-            <p className="tabular font-mono text-data font-medium text-exposure">
+            <p className="tabular font-mono text-ident font-medium text-statute-deep">
               ₹{formatInr(example.amount)}
             </p>
           </div>
-          <p className="mt-2 text-micro leading-relaxed text-ink-faint">
+          <p className="mt-2 text-ident leading-relaxed text-graphite-soft">
             The tax, not the invoice value: ₹{formatInr(columns["Invoice Value"])} was
             paid, of which ₹{formatInr(example.amount)} is credit that cannot be claimed
             while the supplier has not filed. One of the {ruleOneFindings} findings rule{" "}
@@ -133,15 +133,15 @@ function Step({
           passing through each stage instead of running past them. */}
       <span
         aria-hidden
-        className="absolute -left-[23px] top-[6px] h-1.5 w-1.5 bg-exposure"
+        className="absolute -left-[23px] top-[6px] h-1.5 w-1.5 bg-statute"
       />
       <div className="flex flex-wrap items-baseline justify-between gap-x-4">
-        <h3 className="font-mono text-micro uppercase tracking-[0.08em] text-ink">
+        <h3 className="font-mono text-stub uppercase tracking-[0.08em] text-agreed">
           {step.stage}
         </h3>
         {/* A file path has no spaces in it, so it will not wrap on its own
             and at phone width it pushed the whole document sideways. */}
-        <p className="break-all font-mono text-micro text-ink-faint">{step.reference}</p>
+        <p className="break-all font-mono text-stub text-graphite-soft">{step.reference}</p>
       </div>
       <div className="mt-2">{children}</div>
     </li>
@@ -151,8 +151,8 @@ function Step({
 function Fragmentish({ column, value }: { column: string; value: string }) {
   return (
     <>
-      <dt className="font-mono text-micro text-ink-faint">{column}</dt>
-      <dd className="font-mono text-data text-ink">{value}</dd>
+      <dt className="font-mono text-stub text-graphite-soft">{column}</dt>
+      <dd className="font-mono text-ident text-agreed">{value}</dd>
     </>
   );
 }

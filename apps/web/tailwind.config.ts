@@ -45,6 +45,17 @@ const config: Config = {
         "statute-deep": "#A32014",
         agreed: "#16080A",
         graphite: "#4A453D",
+        // Captions and second-rank labels. 5.11:1, so it clears AA at the
+        // 12px the stub is set at, which `graphite` alone was overqualified
+        // for and the old palette's `ink-faint` did not reach.
+        "graphite-soft": "#6B655C",
+        // The population field: eleven thousand records as a texture. 3.23:1,
+        // which is dense enough to read as a field and light enough that a
+        // vermillion mark still sits on top of it rather than in it.
+        field: "#8C857A",
+        // Code and quoted source sit on a slightly sunk plate rather than on
+        // white, which on a bone ground reads as a hole punched in the paper.
+        sunk: "#EDE9DE",
         hairline: "#D6D0C0",
         plate: "#12100E",
         "stock-soft": "#C9C3B2",
