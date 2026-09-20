@@ -15,13 +15,18 @@
  */
 
 export type Register = {
+  label: string;
   count: number;
   marks: number[];
   period_runs: { period: string; at: number }[];
 };
 
+export type Band = { label: string; count: number; top: number; height: number };
+
 export type Scene = {
   draw: (phase: number, month?: number) => void;
+  /** Where each register sits, in CSS pixels, for labelling in the DOM. */
+  bands: () => Band[];
   resize: () => void;
   destroy: () => void;
 };
@@ -67,8 +72,7 @@ void main() {
   // for the whole year, or a month's index, and anything outside the chosen
   // month recedes rather than disappearing — the denominator has to stay
   // visible or the selection is a filter rather than a comparison.
-  float chosen = uMonth < 0.0 ? 1.0 : step(abs(aPeriod - uMonth), 0.001);
-  float focus = mix(0.22, 1.0, chosen);
+  float chosen = step(abs(aPeriod - uMonth), 0.001);
 
   vec2 start = vec2(aFinal.x, -0.25 * uRes.y - aSeed * uRes.y * 0.9);
   vec2 pos = mix(start, aFinal, fall);
@@ -77,7 +81,20 @@ void main() {
   // white through a multiply is not the same curve as fading toward
   // transparent, and at 0.22 the settled field printed so faintly that the
   // denominator the picture exists to show had almost gone.
-  vAlpha = fall * mix(1.0, mix(0.45, 1.0, aMarked), settle) * focus;
+  // What a settled record is worth when the whole year is shown.
+  float year = mix(1.0, mix(0.45, 1.0, aMarked), settle);
+
+  // Choosing a month PROMOTES it rather than only receding the rest. The
+  // first cut multiplied everything outside the selection by 0.22, which on
+  // top of the 0.45 a settled record already carries left the chosen month
+  // at the same weight it had before and the other eleven at a tenth of it -
+  // so selecting read as "the picture went faint" rather than as "this is
+  // the month". The selected month is now printed at full ink, which is
+  // heavier than any record is at rest, and the rest drop far enough to be
+  // ground rather than figure.
+  float month = mix(year * 0.30, 1.0, chosen);
+
+  vAlpha = fall * (uMonth < 0.0 ? year : month);
   vMarked = aMarked;
   gl_PointSize = uCell * uDpr * mix(1.0, mix(0.86, 1.5, aMarked), settle);
 
@@ -195,6 +212,7 @@ export function createScene(
   };
 
   let cell = 4;
+  const bandBoxes: Band[] = [];
 
   /**
    * Where every record sits, with each month starting on a fresh row.
@@ -230,9 +248,16 @@ export function createScene(
     const gaps = (registers.length - 1) * BAND_GAP * h;
     const rowHeight = Math.max((h - gaps) / totalRows, 1);
 
+    bandBoxes.length = 0;
     let cursor = 0;
     let top = 0;
     registers.forEach((register, band) => {
+      bandBoxes.push({
+        label: register.label,
+        count: register.count,
+        top,
+        height: rows[band] * rowHeight,
+      });
       const markSet = new Set(register.marks);
       const runs = register.period_runs;
       let row = 0;
@@ -324,6 +349,9 @@ export function createScene(
       gl.uniform1f(uCell, cell * 0.72);
       gl.uniform1f(uMonth, month);
       gl.drawArrays(gl.POINTS, 0, total);
+    },
+    bands() {
+      return bandBoxes.map((b) => ({ ...b }));
     },
     resize() {
       layout();

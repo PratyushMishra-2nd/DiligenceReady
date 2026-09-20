@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import aggregates from "../aggregates.json";
 import { Population } from "../Population";
 
-import { createScene, monthsOf, type Scene } from "./reconcile-gl";
+import { createScene, monthsOf, type Band, type Scene } from "./reconcile-gl";
 
 /**
  * The population, reconciling.
@@ -39,6 +39,7 @@ export function Reconcile() {
   const canvas = useRef<HTMLCanvasElement | null>(null);
   const [live, setLive] = useState(false);
   const [month, setMonth] = useState(-1);
+  const [bands, setBands] = useState<Band[]>([]);
   // The draw loop is created once and must not be torn down every time the
   // selection changes, so the chosen month is read through a ref rather than
   // captured in the effect's closure.
@@ -127,11 +128,13 @@ export function Reconcile() {
     const onResize = () => {
       size();
       scene?.resize();
+      if (scene) setBands(scene.bands());
       last = -1;
       schedule();
     };
 
     scene.draw(phaseNow(), chosen.current);
+    setBands(scene.bands());
 
     redraw.current = () => {
       forced = true;
@@ -164,34 +167,45 @@ export function Reconcile() {
   return (
     <div ref={holder} className="relative mt-10 h-[260vh]">
       <div className="sticky top-0 flex h-screen flex-col justify-center py-10">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-3">
+        {/* The registers are named beside the bands themselves now, so this
+            row carries only what the figure is and how much of it there is.
+            It keeps one shape whether or not a month is selected: the picker
+            sits on its own line beneath, rather than displacing the count to
+            a second row when it appears. */}
+        {/* The registers are named beside the bands themselves now, so this
+            row carries only what the figure is and how much of it there is.
+            It holds one shape whether or not a month is selected: the picker
+            sits on its own line beneath, rather than displacing the count to
+            a second row the moment it appears. */}
+        <div className="flex items-baseline justify-between gap-x-6">
           <p className="font-mono text-stub uppercase text-graphite">
-            Books · GSTR-2B · Bank
+            Every record, three registers
           </p>
-          {/* The month as a control rather than as something the picture
-              performs. These are real buttons: the canvas is `aria-hidden`
-              and carries no interaction of its own, so everything a reader
-              can do here is reachable from the keyboard and has a name.
-              Choosing a month recedes the rest instead of hiding it, because
-              the denominator is the argument and a filter that removes it
-              answers a different question. */}
-          {live && (
-            <nav aria-label="Period" className="flex flex-wrap gap-1">
-              <MonthButton label="All" active={month < 0} onSelect={() => choose(-1)} />
-              {months.map((name, index) => (
-                <MonthButton
-                  key={name}
-                  label={shortMonth(name)}
-                  active={month === depthFor(index, months.length)}
-                  onSelect={() => choose(depthFor(index, months.length))}
-                />
-              ))}
-            </nav>
-          )}
           <p className="tabular font-mono text-stub uppercase text-graphite">
             {read.toLocaleString("en-IN")} records
           </p>
         </div>
+
+        {/* The month as a control rather than as something the picture
+            performs. These are real buttons: the canvas is aria-hidden and
+            carries no interaction of its own, so everything a reader can do
+            here is reachable from the keyboard and has a name. Choosing a
+            month prints it at full ink and drops the rest to ground, rather
+            than hiding them — the denominator is the argument, and a filter
+            that removes it answers a different question. */}
+        {live && (
+          <nav aria-label="Period" className="mt-3 flex flex-wrap gap-1">
+            <MonthButton label="All" active={month < 0} onSelect={() => choose(-1)} />
+            {months.map((name, index) => (
+              <MonthButton
+                key={name}
+                label={shortMonth(name)}
+                active={month === depthFor(index, months.length)}
+                onSelect={() => choose(depthFor(index, months.length))}
+              />
+            ))}
+          </nav>
+        )}
 
         <div className="relative mt-4 min-h-0 flex-1">
           {/* The canvas is always in the layout, even before it is known to
@@ -201,6 +215,30 @@ export function Reconcile() {
               pixel. It is transparent until something is drawn into it, so
               leaving it in costs nothing. */}
           <canvas ref={canvas} aria-hidden className="h-full w-full" />
+
+          {/* One stub per band, in the DOM rather than in the shader.
+              The names used to sit in a single inline row above a figure
+              made of three stacked blocks, so a reader could not tell which
+              band was which without reading the caption — and the no-WebGL
+              SVG fallback, which labels each band beside it, was the more
+              legible of the two. This is that pattern ported to the canvas.
+              Real text: selectable, findable, and not something a GPU has
+              to draw. */}
+          {live &&
+            bands.map((band) => (
+              <div
+                key={band.label}
+                className="pointer-events-none absolute left-0 right-0 flex items-baseline justify-between"
+                style={{ top: band.top }}
+              >
+                <span className="bg-stock pr-2 font-mono text-stub uppercase text-graphite">
+                  {band.label}
+                </span>
+                <span className="tabular bg-stock pl-2 font-mono text-stub text-graphite-soft">
+                  {band.count.toLocaleString("en-IN")}
+                </span>
+              </div>
+            ))}
 
           {/* The server renders this, and the canvas covers it only once it
               has proved it can draw. Anyone who never gets the canvas gets
