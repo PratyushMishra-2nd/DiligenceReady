@@ -30,8 +30,24 @@ const config: Config = {
         // existing statutory colour pushed one step brighter so it survives
         // being overprinted.
         //
-        // There is no third hue. No semantic green, no amber. A thing is
-        // agreed, or it is at risk, and there is no other state.
+        // There is no third hue. No semantic green, no amber.
+        //
+        // Indigo marks the record that reconciled, which is worth stating
+        // plainly because it is a widening of the original rule rather than
+        // an application of it. "Books" and "agreed with the statute" are
+        // not the same set, and the coverage figures on the company screen
+        // are the second one. Setting them in `agreed` would have been more
+        // literal and would have printed the two halves of that screen in
+        // near-black and vermillion, which is a pair a reader has to work to
+        // separate.
+        //
+        // The risk being accepted is that indigo drifts into meaning "good",
+        // which is the semantic green this palette exists without. What
+        // holds it back is that the reconciled state is never carried by
+        // hue alone: the coverage figure is indigo AND light AND sits over a
+        // proportional bar, and exposure is vermillion AND semibold AND
+        // behind a rule. Either channel survives a monochrome print or a
+        // red-green colourblind reader on its own.
         //
         // Ratios against `stock`, computed: books 10.84, statute 5.05,
         // statute-deep 6.70, agreed 17.33, graphite 8.41. On `plate`:

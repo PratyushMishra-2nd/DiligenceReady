@@ -30,8 +30,8 @@
 export function Overprint({
   children,
   className = "",
-  offset = "0.022em",
-  drop = "0.014em",
+  offset = "max(1.5px, 0.022em)",
+  drop = "max(1px, 0.014em)",
 }: {
   children: React.ReactNode;
   className?: string;
@@ -43,7 +43,7 @@ export function Overprint({
       <span
         aria-hidden
         className="absolute inset-0 text-books mix-blend-multiply"
-        style={{ transform: `translate(-${offset}, -${drop})` }}
+        style={{ transform: `translate(calc(-1 * ${offset}), calc(-1 * ${drop}))` }}
       >
         {children}
       </span>
