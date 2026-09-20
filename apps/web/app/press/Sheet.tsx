@@ -268,6 +268,26 @@ export function slipFor(section: SectionId): number {
 }
 
 /**
+ * The size each opener is actually set at, as its own clamp.
+ *
+ * `Overprint` puts its ghost layers inside its own wrapper and the size class
+ * lives on the span INSIDE it, so an `em` written at this call site resolves
+ * against an inherited 16px rather than against the 116px the heading is set
+ * at — measured once at 0.026em, which came out as 0.42px. The fix is not to
+ * abandon proportion and hard-code pixels; it is to write the proportion
+ * against the same clamp the type step uses, which resolves to real pixels at
+ * every viewport and stays a constant fraction of the letterform.
+ *
+ * These two strings mirror `fontSize.opener` and `fontSize["opener-tight"]`
+ * in tailwind.config.ts. If a third opener size is ever added, it belongs
+ * here too, and an unknown size falls back to `1em` rather than to silence.
+ */
+const RAMP: Record<string, string> = {
+  "text-opener": "clamp(56px, 8vw, 116px)",
+  "text-opener-tight": "clamp(44px, 5.6vw, 84px)",
+};
+
+/**
  * A section heading, printed slightly out of register.
  *
  * The overprint existed on exactly one number on the whole site, and the
@@ -331,16 +351,33 @@ export function Opener({
           as 0.42px. The unit that works is the one the value is meant to be
           in. The openers are clamped between 56px and 116px, a range of about
           two, so a fixed pixel slip reads correctly across the whole ramp. */}
-      {/* 10.0, not 6.0. With ten sections the ladder steps in tenths, so
-          this coefficient prints the openers at exactly 10, 9, 8 … 1px and
-          the last one is still a pixel rather than the 0.60px it used to be
-          — which is to say, still visible rather than not printed at all.
-          Ten pixels at the head is an order of magnitude under the 0.055em
-          that `Overprint` rejects by name as reading like an extrusion
-          rather than a slip. */}
+      {/* Proportional to the heading, and under the threshold this codebase
+          already set.
+
+          This was a flat pixel coefficient, and a flat pixel offset across a
+          ramp that runs from 44px to 116px is the wrong unit twice over: too
+          small at the foot of the page and far too large at the head. It was
+          6.0, which put the first opener at 6px on a 116px heading — 0.052em,
+          sitting exactly on the 0.055em that `Overprint` rejects by name as
+          reading like a 3D extrusion rather than a press slip. Then it was
+          raised to 10.0 to rescue the last three steps from rendering at half
+          a pixel, which took the head of the ladder to 0.086em: three fully
+          separate, fully saturated copies of every section heading, which is
+          not a misregistration, it is unreadable.
+
+          So the offset tracks the heading's own clamp instead. 0.022em is the
+          hero figure's value — the one the component argues for at length and
+          the one that actually reads as two impressions rather than as an
+          effect — and every opener is now that fraction, scaled by its slip.
+          The floor is half a pixel, not a whole one: a whole pixel flattens
+          the last four steps of the ladder into one value and the document
+          stops closing exactly where it is meant to be arriving. Below a
+          pixel the slip renders as a softened edge rather than as a second
+          impression, which is the right thing for it to look like at the
+          foot of the sheet. */}
       <Overprint
-        offset={`${(10.0 * slip).toFixed(2)}px`}
-        drop={`${(6.0 * slip).toFixed(2)}px`}
+        offset={`max(0.5px, calc(${(0.022 * slip).toFixed(4)} * ${RAMP[size] ?? "1em"}))`}
+        drop={`max(0.3px, calc(${(0.013 * slip).toFixed(4)} * ${RAMP[size] ?? "1em"}))`}
       >
         {head}
       </Overprint>
