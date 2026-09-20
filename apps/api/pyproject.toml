@@ -7,13 +7,17 @@ dependencies = [
     "diligence-engine",
     "fastapi>=0.115",
     "uvicorn[standard]>=0.32",
-    # The model is reached through Amazon Bedrock. There is no second
-    # provider: the no-key path is the deterministic template, not another
-    # vendor.
+    # The model is reached through Amazon Bedrock first. The no-key path is
+    # the deterministic template, never another vendor's hosted API.
     "boto3>=1.35",
     # AWS's open-source agent SDK. "Ask the ledger" runs on it, over
     # read-only engine tools.
     "strands-agents>=1.0",
+    # The local model provider. A brand-new AWS account cannot invoke a
+    # Bedrock foundation model until a billing cycle closes, so the fallback
+    # is open weights served by Ollama on the API instance itself — still
+    # AWS compute, still inside the VPC. Small pure-Python client.
+    "ollama>=0.4",
     "python-multipart>=0.0.20",
 ]
 

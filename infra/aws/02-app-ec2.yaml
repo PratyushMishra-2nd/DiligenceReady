@@ -34,7 +34,43 @@ Parameters:
 
   InstanceType:
     Type: String
-    Default: t3.small
+    Default: m7i-flex.large
+    Description: >-
+      Eight GiB, because this instance now serves the model as well as the
+      API and a quantised 3B model needs about two of them resident. The
+      obvious answer was four vCPUs (c6i.xlarge), and this account cannot
+      launch one: an account on the AWS Free Tier plan is refused any
+      instance type that is not free-tier eligible, with "The specified
+      instance type is not eligible for Free Tier" at CreateInstance. Of the
+      eight types it will launch, m7i-flex.large is the only one with the
+      memory, so the shape of this deployment is set by an account plan
+      rather than by the workload. It is also not burstable in the t3 sense,
+      which matters: sustained inference on a t3 spends CPU credits until
+      the balance is gone and then runs at a fraction of a core.
+
+  RootVolumeSizeGb:
+    Type: Number
+    Default: 30
+    Description: >-
+      The default 8 GiB does not hold Amazon Linux, Docker, the application
+      image and a quantised model at the same time. 30 is the ceiling the
+      free tier covers, and it fits all four with room to spare.
+
+  LlmProvider:
+    Type: String
+    Default: auto
+    AllowedValues: ["auto", "bedrock", "ollama", "none"]
+    Description: >-
+      auto tries Bedrock first and the local model second. Pin it to ollama
+      to skip the Bedrock attempt while the account hold is in force, or to
+      none to run the deterministic templates alone.
+
+  LocalModelId:
+    Type: String
+    Default: qwen2.5:3b
+    Description: >-
+      The open-weights model this instance serves. Small enough to answer on
+      CPU, and chosen for tool calling, which "Ask the ledger" needs.
 
   LatestAmiId:
     Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
@@ -199,6 +235,13 @@ Resources:
           - !Split [",", Fn::ImportValue: !Sub "${ProjectName}-PublicSubnetIds"]
       SecurityGroupIds:
         - !Ref AppSecurityGroup
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: !Ref RootVolumeSizeGb
+            VolumeType: gp3
+            Encrypted: true
+            DeleteOnTermination: true
       Tags:
         - Key: Name
           Value: !Sub "${ProjectName}-api"
@@ -209,6 +252,76 @@ Resources:
             set -euo pipefail
             dnf install -y docker
             systemctl enable --now docker
+            # -- the model server ----------------------------------------
+            #
+            # This is here because Amazon Bedrock will not answer for this
+            # account. A new AWS account cannot invoke any foundation model
+            # until a billing cycle closes; until then every id in the
+            # catalogue returns `ValidationException: Operation not allowed`.
+            # The alternative was a free hosted API, which would have moved
+            # the only inference in an AWS project off AWS. This keeps it on
+            # the same instance, in the same VPC, billed as EC2 hours the
+            # account's credits already cover.
+            #
+            # Loopback only. The model server has no authentication of its
+            # own; the API container runs with --net=host and reaches it at
+            # 127.0.0.1, and nothing outside this instance has any business
+            # talking to it. The security group would allow it. The bind
+            # address does not.
+            curl -fsSL https://ollama.com/install.sh | sh
+            mkdir -p /etc/systemd/system/ollama.service.d
+            cat > /etc/systemd/system/ollama.service.d/override.conf <<'UNIT'
+            [Service]
+            Environment="OLLAMA_HOST=127.0.0.1:11434"
+            # Keep the weights resident. Reloading two gigabytes from disk
+            # between tool calls turns one agent question into minutes, and
+            # the agent loop makes several calls per question by design.
+            Environment="OLLAMA_KEEP_ALIVE=30m"
+            Environment="OLLAMA_MAX_LOADED_MODELS=1"
+            Environment="OLLAMA_NUM_PARALLEL=1"
+            UNIT
+            systemctl daemon-reload
+            systemctl enable --now ollama
+            # The pull is slow and the API must not wait for it: a request
+            # that arrives first gets the deterministic sentence and says
+            # so, which is what the product already does when no model is
+            # reachable.
+            #
+            # It runs as its own unit rather than as a backgrounded subshell
+            # for two reasons, both learned the hard way on this instance. A
+            # child of the boot script is killed when the boot script exits,
+            # so the first version of this line left an instance with a
+            # model server and no model. And `ollama pull` reads HOME to
+            # find its model directory, which cloud-init does not set — it
+            # panics with "$HOME is not defined" and exits 2, which as a
+            # backgrounded subshell is a failure nobody sees.
+            cat > /etc/systemd/system/ollama-pull.service <<'PULL'
+            [Unit]
+            Description=Pull the local model
+            After=ollama.service network-online.target
+            Wants=ollama.service network-online.target
+
+            [Service]
+            Type=oneshot
+            RemainAfterExit=yes
+            Environment=HOME=/root
+            Environment=OLLAMA_HOST=127.0.0.1:11434
+            ExecStartPre=/bin/bash -c 'until curl -sf http://127.0.0.1:11434/api/version >/dev/null; do sleep 2; done'
+            ExecStart=/usr/local/bin/ollama pull ${LocalModelId}
+            # A pull that fails on a flaky network should be retried, not
+            # mourned. The unit is idempotent: a model already on disk
+            # returns immediately.
+            Restart=on-failure
+            RestartSec=30
+
+            [Install]
+            WantedBy=multi-user.target
+            PULL
+            systemctl daemon-reload
+            systemctl enable --now ollama-pull.service
+
+            # -- the API -------------------------------------------------
+
             aws ecr get-login-password --region ${AWS::Region} | docker login --username AWS --password-stdin ${RepoHost}
             docker pull ${RepoUri}:${ImageTag}
             docker run -d --name api --restart always --net=host \
@@ -224,6 +337,9 @@ Resources:
               -e DB_SECRET_ARN=${DbSecretArn} \
               -e BEDROCK_MODEL_ID=${BedrockModelId} \
               -e BEDROCK_REGION=${EffectiveBedrockRegion} \
+              -e LLM_PROVIDER=${LlmProvider} \
+              -e OLLAMA_HOST=http://127.0.0.1:11434 \
+              -e OLLAMA_MODEL=${LocalModelId} \
               -e CORS_ORIGINS=${CorsOrigins} \
               -e PORT=8080 \
               ${RepoUri}:${ImageTag}
@@ -243,6 +359,24 @@ Resources:
             DbSecretArn: !ImportValue
               Fn::Sub: "${ProjectName}-DbSecretArn"
             EffectiveBedrockRegion: !If [HasBedrockRegion, !Ref BedrockRegion, !Ref "AWS::Region"]
+
+  # The instance's address, held by the account rather than by the instance.
+  #
+  # Amplify's rewrite proxy is configured with this address as its upstream,
+  # in an environment variable that only takes effect on a rebuild. An
+  # auto-assigned public IP changes every time the instance is replaced —
+  # and changing the instance type or the boot script replaces it — so
+  # without this, every change to the API host is also a frontend rebuild,
+  # with a window in between where the dashboard is talking to an address
+  # that no longer exists.
+  ApiAddress:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      InstanceId: !Ref ApiInstance
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-api"
 
   # ── the nightly reconciliation ─────────────────────────────────────────────
 
@@ -468,14 +602,16 @@ Outputs:
       The API's HTTP endpoint on the EC2 instance. Used by the Next.js server
       as the upstream for its /api/* rewrite proxy. NOT called by the browser
       directly — browsers call the Amplify HTTPS URL which proxies here.
-    Value: !Sub "http://${ApiInstance.PublicDnsName}:8080"
+    Value: !Sub "http://${ApiAddress}:8080"
 
   ApiPublicIp:
-    Description: The EC2 instance's public IP address.
-    Value: !GetAtt ApiInstance.PublicIp
+    Description: >-
+      The API's Elastic IP. Stable across instance replacement, which is what
+      lets the Amplify upstream be set once.
+    Value: !Ref ApiAddress
 
   HealthUrl:
-    Value: !Sub "http://${ApiInstance.PublicDnsName}:8080/api/health"
+    Value: !Sub "http://${ApiAddress}:8080/api/health"
 
   StateMachineArn:
     Value: !Ref PipelineStateMachine

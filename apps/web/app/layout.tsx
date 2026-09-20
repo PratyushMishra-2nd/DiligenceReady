@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 
 import { PrintExpander } from "./components/PrintExpander";
+import { SITE_URL } from "./lib/site";
 import "./globals.css";
 
 /**
@@ -73,10 +74,51 @@ const plexMono = localFont({
   fallback: ["ui-monospace", "SFMono-Regular", "Consolas", "monospace"],
 });
 
+/**
+ * What a link to this product looks like before anyone has opened it.
+ *
+ * This was a title and a description and nothing else, which meant every paste
+ * of the URL into WhatsApp or LinkedIn — the two channels an Indian CA firm
+ * actually hears about software through — rendered as a blank card with a
+ * hostname under it. `metadataBase` is what makes the rest of it resolvable:
+ * a crawler is not on this origin, so a relative image path is not an image.
+ *
+ * `og.png` is photographed from the `/og` route in the page's own two faces
+ * rather than drawn by the OG renderer, for the reason written in that file.
+ */
 export const metadata: Metadata = {
-  title: "DiligenceReady",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "DiligenceReady: reconciliation for CA firms",
+    template: "%s · DiligenceReady",
+  },
   description:
-    "Continuous reconciliation of books, GST and bank data for Indian SMEs, built for the CA firms who do the work.",
+    "Books, GSTR-2B and bank, reconciled every month, with the evidence kept. Built for the CA firms who do the work.",
+  applicationName: "DiligenceReady",
+  openGraph: {
+    type: "website",
+    siteName: "DiligenceReady",
+    locale: "en_IN",
+    url: "/",
+    title: "Three systems. One truth.",
+    description:
+      "Books, GSTR-2B and bank, reconciled every month, with the evidence kept. Built for the CA firms who do the work.",
+    images: [
+      {
+        url: "/og.png",
+        width: 1200,
+        height: 630,
+        alt: "DiligenceReady — three systems, one truth. ₹16,25,635.64 of input tax credit paid and not yet claimable across two client companies.",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Three systems. One truth.",
+    description:
+      "Books, GSTR-2B and bank, reconciled every month, with the evidence kept. Built for the CA firms who do the work.",
+    images: ["/og.png"],
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

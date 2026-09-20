@@ -108,7 +108,7 @@ export function UploadPanel({ companyId }: { companyId: string }) {
           <select
             value={kind}
             onChange={(event) => setKind(event.target.value)}
-            className="border border-graphite-soft bg-sunk px-3 py-2 text-prose focus:border-agreed focus:outline-none"
+            className="border border-graphite-soft bg-sunk px-3 py-2 text-prose focus:border-agreed"
           >
             {KINDS.map((entry) => (
               <option key={entry.value} value={entry.value}>

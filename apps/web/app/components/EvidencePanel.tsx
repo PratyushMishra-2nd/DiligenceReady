@@ -124,7 +124,7 @@ export function EvidencePanel({
       ref={panel}
       tabIndex={-1}
       role="region"
-      className="panel-in sticky top-0 min-w-0 max-h-screen self-start overflow-y-auto border-t border-graphite-soft bg-sunk focus:outline-none lg:border-l lg:border-t-0"
+      className="panel-in sticky top-0 min-w-0 max-h-screen self-start overflow-y-auto border-t border-graphite-soft bg-sunk lg:border-l lg:border-t-0"
       aria-label={`Evidence for ${risk.rule_code}`}
     >
       <div className="flex items-start justify-between gap-4 border-b border-hairline px-6 py-4">

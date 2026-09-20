@@ -113,7 +113,7 @@ export function CommandPalette({ commands }: { commands: Command[] }) {
           onChange={(event) => setQuery(event.target.value)}
           placeholder="Go to a finding, a period or another company"
           aria-label="Search commands"
-          className="w-full border-b border-hairline bg-sunk px-4 py-3 text-prose text-agreed placeholder:text-graphite-soft focus:outline-none"
+          className="w-full border-b border-hairline bg-sunk px-4 py-3 text-prose text-agreed placeholder:text-graphite-soft"
           onKeyDown={(event) => {
             if (event.key === "ArrowDown" || (event.ctrlKey && event.key === "n")) {
               event.preventDefault();

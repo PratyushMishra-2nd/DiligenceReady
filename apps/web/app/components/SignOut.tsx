@@ -15,7 +15,7 @@ export function SignOut({ name, role }: { name: string; role: string }) {
     try {
       await api.signOut();
     } finally {
-      router.push("/sign-in");
+      router.push("/");
       router.refresh();
     }
   }

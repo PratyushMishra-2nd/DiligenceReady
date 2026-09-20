@@ -2,7 +2,7 @@
 
 **Continuous reconciliation of books, GST and bank data for Indian SMEs — built for the CA firms who do the work.**
 
-[![CI](https://github.com/PratyushMishra-2nd/DiligenceReady/actions/workflows/ci.yml/badge.svg)](../../actions/workflows/ci.yml)
+[![CI](https://github.com/Spiritsfuse/DiligenceReady/actions/workflows/ci.yml/badge.svg)](../../actions/workflows/ci.yml)
 &nbsp;![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-1B2A2F)
 &nbsp;![Next.js 14](https://img.shields.io/badge/next.js-14-1B2A2F)
 &nbsp;![AWS](https://img.shields.io/badge/AWS-EC2%20%C2%B7%20Lambda%20%C2%B7%20Bedrock-FF9900)
@@ -86,16 +86,17 @@ firm owner creates each account, and every account belongs to exactly one firm.
 Every service below is load-bearing — nothing is here to be counted.
 
 ```
-  Amplify Hosting (HTTPS)        EC2 (in-VPC API)            RDS Postgres 17
+  Amplify Hosting (HTTPS)        EC2 (in-VPC API + model)    RDS Postgres 17
   ┌───────────────────────┐      ┌──────────────────────┐   ┌──────────────┐
-  │  Next.js 14 Dashboard │───►  │  EC2 t3.small        │──►│  private     │
+  │  Next.js 14 Dashboard │───►  │  m7i-flex.large      │──►│  private     │
   │  SSR Rewrite Proxy    │ HTTP │  FastAPI + Cedar     │   │  subnets     │
-  └───────────────────────┘      └──────────┬───────────┘   └──────▲───────┘
+  └───────────────────────┘      │  Ollama on loopback  │   └──────▲───────┘
+                                 └──────────┬───────────┘          │
                                             │                      │
                              ┌──────────────┼───────────────┐      │
                              ▼              ▼               ▼      │
                        S3 (documents)    Bedrock       Secrets Manager
-                       gateway VPCe      Claude        (DB password)
+                       gateway VPCe      (first choice) (DB password)
                                          + Strands
                                                                    │
   EventBridge ──► Step Functions ──► Lambda × 4 ───────────────────┘
@@ -105,11 +106,12 @@ Every service below is load-bearing — nothing is here to be counted.
 
 | Service | What it does here | Why this one |
 | --- | --- | --- |
-| **EC2 + Next.js proxy** | Serves the FastAPI engine and the dashboard | EC2 runs inside the VPC, so the database socket is direct and needs no connector; Next.js on Amplify proxies `/api/*` server-side, so the browser only ever speaks HTTPS to Amplify and no TLS certificate is needed on the API host |
+| **EC2 + Next.js proxy** | Serves the FastAPI engine, the model, and the dashboard | EC2 runs inside the VPC, so the database socket is direct and needs no connector; Next.js on Amplify proxies `/api/*` server-side, so the browser only ever speaks HTTPS to Amplify and no TLS certificate is needed on the API host. An Elastic IP keeps that upstream address stable when the instance is replaced |
 | **Lambda** (container) | The four nightly pipeline stages | Runs minutes a night and scales to zero between — the opposite workload to the API, and the same image |
 | **Step Functions** | Orchestrates the stages | Stages fail for different reasons; a retry should redo the failed stage, not the month. The execution history is the run log |
 | **EventBridge Scheduler** | Fires it at 01:00 IST | The word "continuous" in the first sentence |
-| **Amazon Bedrock** | Claude, for explanations and the agent | The only model path. No second provider |
+| **Amazon Bedrock** | Claude, for explanations and the agent | First choice. This account cannot invoke one yet, so the same code falls through to the model below |
+| **Open weights on the API instance** | The model that actually answers today | A new AWS account is held back from Bedrock foundation models until a billing cycle closes. Self-hosting keeps the inference on AWS compute in the same VPC rather than moving it to someone else's free API |
 | **Strands Agents SDK** | "Ask the ledger" | AWS's open-source agent SDK, over read-only engine tools |
 | **Cedar** | The tenant boundary | AWS's open-source policy language. See below |
 | **RDS Postgres 17** | Every figure | The product's claim is that each rupee is a SQL aggregate. DynamoDB cannot make that claim |
@@ -158,16 +160,56 @@ sentence in a prompt:
 3. Every number in the answer must appear in a tool result, or the answer is
    **refused and shown as refused**.
 
-### The model layer is allowed to be absent
+### The model layer is allowed to be absent, and twice it had to be
 
-The first deploy of this stack chose a Bedrock model that had reached its end of
-life ten days earlier — a model past its end of life is still in the catalogue, and
-the deploy script was not filtering on lifecycle. The stack came up green with a
-model layer that had never answered once. The application now resolves a live model
-id at start-up rather than trusting one chosen at deploy time, drops a model that
-returns a permanent error and takes the next, and reports what Bedrock actually
-said rather than the class of the exception —
-[`bedrock.py`](apps/api/src/diligence_api/bedrock.py).
+Two failures, a week apart, both in the model layer, both invisible from the
+infrastructure.
+
+**The first was a retired model id.** The first deploy chose a Bedrock model that
+had reached its end of life ten days earlier — a model past its end of life is
+still in the catalogue, and the deploy script was not filtering on lifecycle. The
+stack came up green with a model layer that had never answered once. The
+application now resolves a live model id at start-up rather than trusting one
+chosen at deploy time, drops a model that returns a permanent error and takes the
+next, and reports what Bedrock actually said rather than the class of the
+exception — [`bedrock.py`](apps/api/src/diligence_api/bedrock.py).
+
+**The second was the whole account.** Every id then started answering the same
+thing:
+
+```
+ValidationException: Operation not allowed
+```
+
+Every model. Anthropic, Amazon Nova, Titan, Meta, Mistral. Two regions. The
+listing calls still worked, which is what makes it so slow to diagnose: the
+account can enumerate thirty-two inference profiles it is not allowed to call.
+The console's Model access page is retired, and the use-case form answers "Your
+account is not authorized to perform this action." It is an automatic hold that
+AWS places on foundation-model invocation for new accounts until a billing cycle
+closes. Promotional credits do not close one.
+
+So the model moved onto our own instance. Not to a free hosted API — that would
+have taken the only inference in an AWS project off AWS — but to **open weights
+served by Ollama on the API instance itself**, on loopback, inside the same VPC,
+billed as EC2 hours. The provider layer is
+[`llm.py`](apps/api/src/diligence_api/llm.py): Bedrock first, the local model
+second, and the day the hold lifts the deployment takes Claude back without a
+redeploy.
+
+What did not change is everything that matters. The numeric guard, the closure
+that binds the agent to one company, and the tool set are provider-agnostic,
+because none of them ever trusted the model. A 3B model on two vCPUs is a worse
+writer than Claude. It is exactly as incapable of putting an unverified rupee on
+screen, and the guard rejects its arithmetic at the same rate it rejected
+anyone's.
+
+The instance shape was set by a third constraint rather than by the workload. An
+account on the AWS Free Tier plan cannot launch an instance type that is not
+free-tier eligible — `c6i.xlarge` is refused at CreateInstance — so the model runs
+on the largest type the account is allowed, `m7i-flex.large` (2 vCPU, 8 GiB). That
+is the difference between a four-second answer and a twenty-second one, and it is
+an account plan, not an architecture.
 
 When no model is reachable at all, explanations fall back to the deterministic
 template, the interface says so in those words, and every figure on the page is
@@ -248,16 +290,17 @@ packages/engine/     the reconciliation engine. Imports no model client, by desi
   seedgen/           the generated firm, and the ground truth
   aws_lambda.py      the pipeline as Step Functions stages
 apps/api/            FastAPI. The only place a model is called
-  explain.py         one finding, through Bedrock
+  explain.py         one finding, through whichever model answers
   agent.py           "Ask the ledger", on Strands
-  bedrock.py         which model id to call, resolved at run time
+  llm.py             which provider answers: Bedrock, then the local model
+  bedrock.py         which Bedrock model id to call, resolved at run time
   numeric_guard.py   the rule all of them obey
 apps/web/            Next.js 14 dashboard, server components
 migrations/sql/      hash-tracked schema migrations
 infra/aws/           CloudFormation, deploy and teardown
 ```
 
-~12,400 lines of Python, ~2,400 of TypeScript, ~730 of SQL, **246 tests**.
+~12,400 lines of Python, ~2,400 of TypeScript, ~730 of SQL, **262 tests**.
 
 CI runs ruff, the full test suite against a real Postgres, the whole pipeline, and a
 TypeScript build, and fails if the evaluation's recall drops below 1.00. Tests that
@@ -266,9 +309,12 @@ a green tick that skipped the tests that matter is worse than no CI at all.
 
 ## Contributors
 
-- **Dhruv Sharma** — [@Spiritsfuse](https://github.com/Spiritsfuse)
-- **Anushika Chauhan** — [@Anushika06](https://github.com/Anushika06)
-- **Pratyush Mishra** — [@PratyushMishra-2nd](https://github.com/PratyushMishra-2nd)
+- **Dhruv Sharma** — [@Spiritsfuse](https://github.com/Spiritsfuse) — team lead:
+  architecture, the reconciliation engine, AWS deployment
+- **Pratyush Mishra** — implementation across the API, the dashboard and the
+  data layer
+- **Anushika Chauhan** — [@Anushika06](https://github.com/Anushika06) — QA and
+  the test suite, CI, code review, documentation, the demo video
 
 ## Licence
 

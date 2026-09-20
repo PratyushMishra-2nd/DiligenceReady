@@ -28,6 +28,27 @@ const nextConfig = {
    * cookie jar sees the cookie as coming from the Amplify origin (correct),
    * and Next.js forwards the Cookie header upstream automatically.
    */
+  /**
+   * The addresses this app used to answer on.
+   *
+   * The landing page moved from `/product` to `/`, and the dashboard from `/`
+   * to `/app`, so the canonical URL of the thing we ask people to share is a
+   * 200 rather than a redirect through a password box. Anything already
+   * pasted into a chat or a bookmark still resolves: `/product` is permanent,
+   * because that page is not coming back to that address, and the old company
+   * URLs carry their id across.
+   */
+  async redirects() {
+    return [
+      { source: "/product", destination: "/", permanent: true },
+      {
+        source: "/companies/:companyId",
+        destination: "/app/companies/:companyId",
+        permanent: true,
+      },
+    ];
+  },
+
   async rewrites() {
     const upstream =
       process.env.NEXT_PUBLIC_API_UPSTREAM ?? "http://localhost:8077";

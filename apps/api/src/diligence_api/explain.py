@@ -23,21 +23,26 @@ ways rather than asserted:
     rounded differently, fails the check and the explanation is rejected
     rather than shown.
 
-The model is reached through **Amazon Bedrock**, using the Converse API. There
-is no second provider. When Bedrock is not configured or the call fails, the
-deterministic fallback is used and the result is labelled `template` — never
-passed off as model prose. That fallback is what makes the repository runnable
-by someone who clones it without an AWS account: the product works, the
-sentences are plainer, and the interface says which it is showing.
+The model is reached through `llm.py`, which tries **Amazon Bedrock** first and
+an **open-weights model served on the API instance itself** second. The second
+provider is not a hedge, it is the deployment we actually run: a new AWS
+account cannot invoke any Bedrock foundation model until a billing cycle
+closes, so the inference moved onto EC2 rather than off AWS. See `llm.py`.
+
+Neither provider is trusted any differently. When no model is reachable at
+all, the deterministic fallback is used and the result is labelled
+`template` — never passed off as model prose. That fallback is what makes the
+repository runnable by someone who clones it without an AWS account: the
+product works, the sentences are plainer, and the interface says which it is
+showing.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 
-from diligence_api import bedrock
+from diligence_api import llm
 from diligence_api.numeric_guard import check
-from diligence_engine.config import settings
 
 # Generous enough for three sentences with room to spare, small enough that a
 # runaway generation is cheap. The guard below rejects long prose anyway.
@@ -53,6 +58,11 @@ TEMPERATURE = 0.2
 # connection back to the pool.
 TIMEOUT_SECONDS = 30
 MAX_ATTEMPTS = 2
+
+# The local server gets longer. Four vCPUs with no GPU generate single-digit
+# tokens a second, so three sentences is tens of seconds; 30 seconds would
+# time out the provider that is actually answering on this deployment.
+LOCAL_TIMEOUT_SECONDS = 180
 
 SYSTEM_PROMPT = """You explain financial reconciliation findings to a chartered \
 accountant in practice in India.
@@ -127,93 +137,73 @@ def deterministic_explanation(risk: dict) -> str:
     )
 
 
-# ── Bedrock ─────────────────────────────────────────────────────────────────
-
-
-def bedrock_client():
-    """A Bedrock runtime client with this module's timeouts.
-
-    Not cached: the client is cheap next to a model call, and caching it
-    across a config change during a deploy is a debugging session nobody
-    needs. Credentials come from the instance role.
-    """
-    import boto3
-    from botocore.config import Config
-
-    return boto3.client(
-        "bedrock-runtime",
-        region_name=settings().bedrock_region or None,
-        config=Config(
-            read_timeout=TIMEOUT_SECONDS,
-            connect_timeout=5,
-            retries={"max_attempts": MAX_ATTEMPTS, "mode": "standard"},
-        ),
-    )
-
-
-def _text_of(message: dict) -> str:
-    """Join the text blocks of a Converse reply, ignoring everything else.
-
-    A reasoning-capable model returns `reasoningContent` blocks alongside the
-    answer. Those are the model's working, not its output, and concatenating
-    them into the shown prose would put unchecked numbers on a CA's screen.
-    """
-    parts = [block["text"] for block in message.get("content", []) if "text" in block]
-    return "".join(parts).strip()
+# ── the model ───────────────────────────────────────────────────────────────
 
 
 def explain(risk: dict) -> Explanation:
     """Write the explanation for one finished risk."""
     facts = render_facts(risk)
 
-    available = bedrock.candidates()
+    available = llm.plan()
     if not available:
         return Explanation(
             text=deterministic_explanation(risk),
             source="template",
             rejected_reason=(
-                "no Bedrock model is configured or reachable; run "
-                "`diligence bedrock models` to see what this account can call"
+                "no model is configured or reachable; run "
+                "`diligence bedrock models` to see what this account can call, "
+                "or set OLLAMA_HOST to use the model on this instance"
             ),
         )
 
-    # Try each candidate once. A model that is retired, unapproved, or only
-    # reachable through an inference profile is dropped for the life of the
-    # process rather than retried on every finding — see `bedrock.py` for the
-    # retired model id that is the reason this is a loop.
-    client = bedrock_client()
-    response = None
+    # Try each candidate once, Bedrock before the local server. A model that
+    # is retired, unapproved, blocked by the account hold, or simply not
+    # pulled locally is dropped for the life of the process rather than
+    # retried on every finding.
+    completion = None
     model_id = ""
     failure = ""
+    # A throttle or a timeout is a property of the provider, not of the model
+    # id, so the rest of that provider's catalogue is behind the same wall.
+    # Walking all of it costs a 30-second read timeout per id before the
+    # reader gets the plain sentence that was already correct.
+    stalled: set[str] = set()
     for candidate in available:
+        if candidate.provider in stalled:
+            continue
         try:
-            response = client.converse(
-                modelId=candidate,
-                system=[{"text": SYSTEM_PROMPT}],
-                messages=[{"role": "user", "content": [{"text": facts}]}],
-                inferenceConfig={"maxTokens": MAX_TOKENS, "temperature": TEMPERATURE},
+            completion = llm.complete(
+                candidate,
+                system=SYSTEM_PROMPT,
+                user=facts,
+                max_tokens=MAX_TOKENS,
+                temperature=TEMPERATURE,
+                timeout_seconds=TIMEOUT_SECONDS
+                if candidate.provider == llm.BEDROCK
+                else LOCAL_TIMEOUT_SECONDS,
+                max_attempts=MAX_ATTEMPTS,
             )
         except Exception as error:  # noqa: BLE001 - the UI must degrade, not 500
-            failure = f"Bedrock call failed: {bedrock.describe(error)}"
-            if bedrock.is_dead(error):
-                bedrock.retire(candidate)
+            failure = f"{candidate} call failed: {llm.describe(error)}"
+            if llm.is_dead(candidate, error):
+                llm.retire(candidate)
                 continue
-            # Throttled, timed out, or a network fault. Another model would
-            # hit the same wall, and the plain sentence is already correct.
-            break
-        model_id = candidate
+            # Throttled, timed out, or a network fault. The other provider is
+            # still worth a try, because on this deployment the two fail for
+            # unrelated reasons, but the rest of this one's ids are not.
+            stalled.add(candidate.provider)
+            continue
+        model_id = str(candidate)
         break
 
-    if response is None:
+    if completion is None:
         return Explanation(
             text=deterministic_explanation(risk),
             source="template",
-            rejected_reason=failure or "no Bedrock model answered",
+            rejected_reason=failure or "no model answered",
         )
 
-    stop_reason = response.get("stopReason")
-
-    if stop_reason == "max_tokens":
+    if completion.stop_reason == "max_tokens":
         # Truncated mid-sentence. Shipping half a paragraph under a model
         # attribution is worse than shipping the plain version.
         return Explanation(
@@ -222,14 +212,14 @@ def explain(risk: dict) -> Explanation:
             rejected_reason="model response hit the token limit and was cut off",
         )
 
-    if stop_reason in ("content_filtered", "guardrail_intervened"):
+    if completion.stop_reason in ("content_filtered", "guardrail_intervened"):
         return Explanation(
             text=deterministic_explanation(risk),
             source="template",
-            rejected_reason=f"Bedrock stopped the response ({stop_reason})",
+            rejected_reason=f"the provider stopped the response ({completion.stop_reason})",
         )
 
-    generated = _text_of(response.get("output", {}).get("message", {}))
+    generated = completion.text
 
     if not generated:
         return Explanation(

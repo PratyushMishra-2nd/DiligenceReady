@@ -100,6 +100,15 @@ class Settings:
     bedrock_region: str
     bedrock_model_id: str
 
+    # The model layer. Bedrock is the first choice and the local server is
+    # the second, because a brand-new AWS account cannot invoke a foundation
+    # model at all until a billing cycle has closed — every model id in the
+    # catalogue answers `ValidationException: Operation not allowed`. See
+    # `diligence_api.llm` for what that cost us and what it bought.
+    llm_provider: str
+    ollama_host: str
+    ollama_model: str
+
 
 @lru_cache(maxsize=1)
 def settings() -> Settings:
@@ -131,4 +140,13 @@ def settings() -> Settings:
         s3_prefix=os.environ.get("S3_PREFIX", "documents"),
         bedrock_region=os.environ.get("BEDROCK_REGION", "") or region,
         bedrock_model_id=os.environ.get("BEDROCK_MODEL_ID", ""),
+        # "auto" tries Bedrock and falls through to the local server when
+        # Bedrock refuses permanently. "bedrock" and "ollama" pin one of
+        # them; "none" is the deterministic templates and nothing else,
+        # which is what CI runs.
+        llm_provider=os.environ.get("LLM_PROVIDER", "auto").strip().lower(),
+        # Empty means "there is no local model here", which is the right
+        # default for a laptop and for CI. The deployed instance sets it.
+        ollama_host=os.environ.get("OLLAMA_HOST", "").strip(),
+        ollama_model=os.environ.get("OLLAMA_MODEL", "").strip(),
     )
