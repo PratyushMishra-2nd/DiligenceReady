@@ -168,6 +168,59 @@ def defect_rows(slug: str, defects: list[dict]) -> dict[str, list[int]]:
     return {k: sorted(set(v)) for k, v in found.items()}
 
 
+def bank_period(raw: str) -> str | None:
+    """The month of a bank line. The statement writes dd/mm/yyyy.
+
+    A different format from the purchase register's dd-Mon-yyyy, and that is
+    the point of having two readers rather than one clever one: these are
+    exports from two different systems and they do not agree about anything,
+    including how to write a date.
+    """
+    parts = raw.strip().split("/")
+    if len(parts) != 3:
+        return None
+    return f"{parts[2]}-{parts[1]}"
+
+
+def period_runs(slug: str, periods: list[str]) -> dict[str, list[tuple[str, int]]]:
+    """Where each period starts, per register, as run boundaries.
+
+    Depth in the landing page figure carries period, and period has to come
+    from the feeds rather than from an assumption. Every feed here happens to
+    be chronological, so a run per period is enough and the alternative -
+    a period index for each of eleven thousand records - would put 40KB of
+    JSON in the repository to say the same thing.
+
+    Emitted as (period, first row index) so the reader can reconstruct the
+    spans without also trusting a count.
+    """
+    feeds = SEED / slug / "feeds"
+    runs: dict[str, list[tuple[str, int]]] = {}
+
+    def collect(rows: list[str | None], key: str) -> None:
+        out: list[tuple[str, int]] = []
+        for i, value in enumerate(rows):
+            if value and (not out or out[-1][0] != value):
+                out.append((value, i))
+        runs[key] = out
+
+    purchase = list(csv.DictReader((feeds / "tally_purchase_register.csv").open(encoding="utf-8")))
+    collect([tally_period(r["Date"]) for r in purchase], "books")
+
+    bank = list(csv.DictReader((feeds / "bank_statement.csv").open(encoding="utf-8")))
+    collect([bank_period(r["Txn Date"]) for r in bank], "bank")
+
+    # GSTR-2B needs no dates read: it arrives as one file per period, so the
+    # boundaries are where one file's documents end and the next begin.
+    gst: list[str | None] = []
+    for path in sorted(feeds.glob("gstr2b_*.json")):
+        period = path.stem.replace("gstr2b_", "").replace("_", "-")
+        gst.extend([period] * sum(count_gstr2b(path).values()))
+    collect(gst, "gstr2b")
+
+    return runs
+
+
 def company(slug: str) -> dict:
     feeds = SEED / slug / "feeds"
     answers = SEED / slug / "answers"
@@ -192,6 +245,7 @@ def company(slug: str) -> dict:
         "slug": slug,
         "name": key["company"],
         "defect_rows": rows,
+        "_runs": period_runs(slug, periods),
         "_defects": key["defects"],
         "gstin": key["gstin"],
         "periods": len(periods),
@@ -273,11 +327,29 @@ def main() -> None:
     for name, register in registers.items():
         offset = 0
         marks: list[int] = []
+        bounds: list[int] = []
         for c in companies:
             marks.extend(offset + row for row in c["defect_rows"].get(name, []))
             offset += c["records"][register["field"]]
+            # Where one company's feed ends and the next begins. The picture
+            # needs this to separate the two ledgers in depth: without it the
+            # third axis would be counting rows, which is a quantity the flat
+            # picture already shows, rather than naming a source, which it
+            # cannot.
+            bounds.append(offset)
         register["count"] = offset
         register["marks"] = sorted(marks)
+        register["company_bounds"] = bounds
+
+        # Period runs for the combined register, with each company's rows
+        # offset by everything before them.
+        starts: list[dict] = []
+        cursor = 0
+        for c in companies:
+            for period, at in c["_runs"][name]:
+                starts.append({"period": period, "at": cursor + at})
+            cursor += c["records"][register["field"]]
+        register["period_runs"] = starts
 
     # One planted defect, carried through to the page in full, so the trace
     # strip quotes a line of a real file rather than a plausible-looking one.
@@ -445,6 +517,7 @@ def main() -> None:
 
     for c in companies:
         del c["_defects"]
+        del c["_runs"]
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8", newline="\n")
