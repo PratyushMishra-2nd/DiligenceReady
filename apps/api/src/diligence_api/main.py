@@ -31,6 +31,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from sqlalchemy import text
 
+from diligence_api import bedrock
 from diligence_api.agent import ask
 from diligence_api.deps import (
     bearer_token,
@@ -55,8 +56,8 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
     A deployment where the policy engine failed to load is a deployment with
     no tenant boundary. Finding that out on the first cross-firm request is
-    too late; App Runner marking the deployment unhealthy and rolling it back
-    is exactly the right outcome.
+    too late; the health check failing, and the deployment being marked
+    unhealthy and rolled back, is exactly the right outcome.
     """
     authz.self_test()
     yield
@@ -126,11 +127,18 @@ def health() -> dict:
     health check alone, and it names no secret — the model id and region are
     configuration, the connection string and credentials are not.
     """
+    # The model line reports the id the next call will *use*, which is not
+    # always the id that was configured: a retired model is dropped at the
+    # first failure and the next candidate takes over. Reporting the
+    # configured id instead is how this deployment spent ten days claiming a
+    # model that had stopped answering.
+    available = _model_candidates()
     detail: dict[str, object] = {
         "status": "ok",
         "storage_backend": settings().storage_backend,
         "region": settings().aws_region or None,
-        "model": settings().bedrock_model_id or None,
+        "model": available[0] if available else None,
+        "model_fallbacks": max(len(available) - 1, 0),
         "agent": "strands" if _strands_available() else None,
     }
     try:
@@ -151,6 +159,18 @@ def health() -> dict:
         # A load balancer reads the status code, not the body.
         raise HTTPException(status_code=503, detail=detail)
     return detail
+
+
+def _model_candidates() -> list[str]:
+    """The model ids this process will try, in order. Never raises.
+
+    The health check is what a load balancer reads. A catalogue lookup that
+    throws must not be the reason a healthy deployment is marked down.
+    """
+    try:
+        return bedrock.candidates()
+    except Exception:  # noqa: BLE001 - see docstring
+        return [settings().bedrock_model_id] if settings().bedrock_model_id else []
 
 
 @lru_cache(maxsize=1)

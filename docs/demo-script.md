@@ -245,9 +245,11 @@ Open the Step Functions console on a succeeded execution.
 > GSTR-1 late and the invoice lands in next month's 2B. On this dataset twelve
 > invoices per company match only that way."
 
-> "The API is App Runner, so it holds a Postgres connection pool. The nightly
-> job is Lambda, so it scales to zero. Same container image, two entry points —
-> so the overnight run and the dashboard cannot disagree about a rounding rule."
+> "The API is a container on EC2 inside the VPC, so it holds a Postgres
+> connection pool and the database has no route in from the internet. The
+> nightly job is Lambda, so it scales to zero. Same container image, two entry
+> points — so the overnight run and the dashboard cannot disagree about a
+> rounding rule."
 
 Cedar is worth thirty seconds if the audience is technical:
 

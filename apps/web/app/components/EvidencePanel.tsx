@@ -8,7 +8,8 @@ import { RiskDecision } from "./RiskDecision";
 import { ValueDiff } from "./ValueDiff";
 
 /**
- * The evidence card (§13), and the moment the demo stops being a slide.
+ * The evidence card (§13), and the moment a dashboard figure stops being
+ * an assertion.
  *
  * Three things stack here, in descending order of "would you bet money on
  * this": the arithmetic the engine performed, the seven parameters GSTN scores

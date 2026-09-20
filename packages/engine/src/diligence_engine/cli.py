@@ -598,18 +598,32 @@ def bedrock_models(region: str | None, show_all: bool) -> None:
     models = client.list_foundation_models().get("modelSummaries", [])
     click.echo("\non-demand foundation models:")
     found = False
+    hidden = 0
     for model in models:
         identifier = model.get("modelId", "")
         if not show_all and not identifier.startswith("anthropic."):
             continue
         if "ON_DEMAND" not in (model.get("inferenceTypesSupported") or []):
             continue
+        status = (model.get("modelLifecycle") or {}).get("status", "")
+        # LEGACY is Bedrock's word for "announced for retirement", and a
+        # legacy id is still returned by this call on the morning it stops
+        # answering. One of them was this deployment's configured model on
+        # 10 September 2026. Hiding them by default is the difference
+        # between choosing a model and being handed one.
+        if status != "ACTIVE" and not show_all:
+            hidden += 1
+            continue
         found = True
-        click.echo(f"  {identifier:60} {model.get('modelLifecycle', {}).get('status', '')}")
+        warning = "" if status == "ACTIVE" else "   <- retiring, do not use"
+        click.echo(f"  {identifier:60} {status}{warning}")
     if not found:
         click.echo("  (none — grant model access in the Bedrock console first)")
+    if hidden:
+        click.echo(f"  ({hidden} legacy or retiring model(s) hidden; --all shows them)")
 
-    click.echo("\nSet the chosen id as BEDROCK_MODEL_ID. Nothing else in the app needs to change.")
+    click.echo("\nSet the chosen id as BEDROCK_MODEL_ID, or leave it unset and let the")
+    click.echo("application pick a live id at start-up. Nothing else needs to change.")
 
 
 @cli.command("doctor")
@@ -670,6 +684,10 @@ def doctor_cmd() -> None:
     else:
         report("object store", True, f"local disk at {config.storage_local_path}")
 
+    # A real Converse call, not a listing. A retired model is still in the
+    # catalogue, still allowed by IAM and still named by /api/health on the
+    # morning it stops answering; the only check that catches it is one that
+    # asks it something.
     if config.bedrock_model_id:
         try:
             import boto3
@@ -682,11 +700,15 @@ def doctor_cmd() -> None:
             report("bedrock", True, f"{config.bedrock_model_id} answered")
         except Exception as error:  # noqa: BLE001
             report("bedrock", False, f"{type(error).__name__}: {error}")
+            click.echo(
+                "        the application falls through to the next model this "
+                "account offers; `diligence bedrock models` lists the live ones"
+            )
     else:
         report(
             "bedrock",
-            False,
-            "BEDROCK_MODEL_ID unset - explanations fall back to the template (fine locally)",
+            True,
+            "BEDROCK_MODEL_ID unset - the application discovers a live id at start-up",
         )
 
     try:

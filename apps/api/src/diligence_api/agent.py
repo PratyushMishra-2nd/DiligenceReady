@@ -38,6 +38,7 @@ from dataclasses import dataclass, field
 from decimal import Decimal
 from typing import Any
 
+from diligence_api import bedrock
 from diligence_api.numeric_guard import check
 from diligence_engine import reporting
 from diligence_engine.config import settings
@@ -232,14 +233,14 @@ def ask(company_id: str, question: str) -> LedgerAnswer:
             rejected_reason=f"question is longer than {QUESTION_LIMIT} characters",
         )
 
-    model_id = settings().bedrock_model_id
-    if not model_id:
+    available = bedrock.candidates()
+    if not available:
         return LedgerAnswer(
             text="",
             source="unavailable",
             rejected_reason=(
-                "no BEDROCK_MODEL_ID configured; run `diligence bedrock models` "
-                "to see what this account can call"
+                "no Bedrock model is configured or reachable; run "
+                "`diligence bedrock models` to see what this account can call"
             ),
         )
 
@@ -251,33 +252,52 @@ def ask(company_id: str, question: str) -> LedgerAnswer:
             text="", source="unavailable", rejected_reason="strands-agents is not installed"
         )
 
-    recorder: list[str] = []
     try:
-        tools = build_tools(company_id, recorder)
+        build_tools(company_id, [])
     except ValueError:
         return LedgerAnswer(text="", source="refused", rejected_reason="company_id is not a uuid")
 
-    model = BedrockModel(
-        model_id=model_id,
-        region_name=settings().bedrock_region or None,
-        max_tokens=MAX_TOKENS,
-        temperature=TEMPERATURE,
-        streaming=False,
-    )
-    agent = Agent(
-        model=model,
-        tools=tools,
-        system_prompt=SYSTEM_PROMPT,
-        callback_handler=None,  # nothing is printed to the server's stdout
-    )
+    # One attempt per candidate model, newest and cheapest first. A model id
+    # that Bedrock has retired fails every call identically, and before this
+    # loop existed that failure was the whole feature going dark — see
+    # `bedrock.py`. The recorder is rebuilt per attempt: a half-finished run
+    # must not widen the set of numbers the next attempt is allowed to quote.
+    result = None
+    model_id = ""
+    recorder: list[str] = []
+    failure = ""
+    for candidate in available:
+        recorder = []
+        agent = Agent(
+            model=BedrockModel(
+                model_id=candidate,
+                region_name=settings().bedrock_region or None,
+                max_tokens=MAX_TOKENS,
+                temperature=TEMPERATURE,
+                streaming=False,
+            ),
+            tools=build_tools(company_id, recorder),
+            system_prompt=SYSTEM_PROMPT,
+            callback_handler=None,  # nothing is printed to the server's stdout
+        )
+        try:
+            result = agent(question)
+        except Exception as error:  # noqa: BLE001 - the panel degrades, it does not 500
+            failure = f"agent run failed: {bedrock.describe(error)}"
+            if bedrock.is_dead(error):
+                bedrock.retire(candidate)
+                continue
+            # Throttled, timed out, or the tool loop itself broke. Another
+            # model reaches the same wall.
+            break
+        model_id = candidate
+        break
 
-    try:
-        result = agent(question)
-    except Exception as error:  # noqa: BLE001 - the panel degrades, it does not 500
+    if result is None:
         return LedgerAnswer(
             text="",
             source="unavailable",
-            rejected_reason=f"agent run failed: {type(error).__name__}",
+            rejected_reason=failure or "no Bedrock model answered",
         )
 
     called = sorted({name for name in _tool_names(result)})

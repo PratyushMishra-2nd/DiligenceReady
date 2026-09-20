@@ -8,8 +8,20 @@
 &nbsp;![AWS](https://img.shields.io/badge/AWS-EC2%20%C2%B7%20Lambda%20%C2%B7%20Bedrock-FF9900)
 &nbsp;![License MIT](https://img.shields.io/badge/license-MIT-1B2A2F)
 
-> **Live Deployed Application (AWS Amplify)**: [https://main.d2iuitbi6z0hry.amplifyapp.com](https://main.d2iuitbi6z0hry.amplifyapp.com)  
-> **Demo Account**: `ca@mehta.example` | **Password**: `b5Lsnz0Hcj2hXKtq3UX3c1GF`
+## Open it
+
+### → **[main.d2iuitbi6z0hry.amplifyapp.com](https://main.d2iuitbi6z0hry.amplifyapp.com)**
+
+| | |
+| --- | --- |
+| **Email** | `ca@mehta.example` |
+| **Password** | `b5Lsnz0Hcj2hXKtq3UX3c1GF` |
+
+That signs you into **Mehta & Associates**, a sample firm carrying two client
+companies — Acme Industries and Vertex Components — with twelve months of books,
+GST returns and bank statements behind each. The records are generated rather than
+real, and [that is deliberate](#why-generated-books-are-the-point-not-a-shortcut):
+it is the only way to know in advance what the engine is supposed to find.
 
 ---
 
@@ -17,7 +29,7 @@ An SME's financial truth lives in three systems that never agree: the books (Tal
 the government's record (GSTR-2B), and the money (the bank). Reconciling them is
 manual, monthly, done in Excel, and abandoned when it gets hard.
 
-The consequence is a number. On the two seeded companies in this repository,
+The consequence is a number. Across the two companies in that workspace,
 **₹16,25,635.64** of input tax credit has been paid to suppliers and cannot yet be
 claimed, because the supplier's filing and the client's books disagree.
 **₹5,17,412.74** of it sits on invoices whose Section 16(4) window closes on
@@ -53,10 +65,25 @@ A CA firm, not an SME. An SME owner does not reconcile anything; their chartered
 accountant does, monthly, and is already paid for it. One firm carries thirty to
 eighty companies. The first screen is therefore the **firm's**, not a company's.
 
+There is no self-service signup, because there is no self-service client data. A
+firm owner creates each account, and every account belongs to exactly one firm.
+
+## What you can do in it
+
+| Screen | What it answers |
+| --- | --- |
+| **Firm dashboard** | Which of my clients needs attention this month, and how much money is on the line for each |
+| **Company → Readiness** | How much of the purchase register reconciles against GSTR-2B and the bank, and what does not |
+| **Findings** | Every exception the rule engine raised, by severity and by rupee value, each with the calculation behind it |
+| **Evidence drill-down** | The original file, the row inside it, and the match that produced the figure |
+| **IMS decisions** | Accept, reject or leave pending — and what "leave pending" is worth in rupees if GSTR-3B is filed first |
+| **Ask the ledger** | A question in English, answered from the engine's own aggregates, with the queries it ran shown beside the answer |
+| **Upload** | Drop a Tally, GSTR-2B or bank export in and the same pipeline reads it |
+| **Lender package** | The whole month as one printable document |
+
 ## Where AWS fits
 
-Deployed on the **Ship It** stack. Every service below is load-bearing — nothing is
-here to be counted.
+Every service below is load-bearing — nothing is here to be counted.
 
 ```
   Amplify Hosting (HTTPS)        EC2 (in-VPC API)            RDS Postgres 17
@@ -78,7 +105,7 @@ here to be counted.
 
 | Service | What it does here | Why this one |
 | --- | --- | --- |
-| **EC2 + Next.js Proxy** | Serves the FastAPI engine & dashboard | EC2 runs inside the VPC (direct in-VPC DB socket, no connectors); Next.js on Amplify proxies `/api/*` server-side to eliminate cross-origin mixed content without requiring custom domain TLS or CloudFront verification |
+| **EC2 + Next.js proxy** | Serves the FastAPI engine and the dashboard | EC2 runs inside the VPC, so the database socket is direct and needs no connector; Next.js on Amplify proxies `/api/*` server-side, so the browser only ever speaks HTTPS to Amplify and no TLS certificate is needed on the API host |
 | **Lambda** (container) | The four nightly pipeline stages | Runs minutes a night and scales to zero between — the opposite workload to the API, and the same image |
 | **Step Functions** | Orchestrates the stages | Stages fail for different reasons; a retry should redo the failed stage, not the month. The execution history is the run log |
 | **EventBridge Scheduler** | Fires it at 01:00 IST | The word "continuous" in the first sentence |
@@ -98,7 +125,7 @@ The government's copy changes underneath you:
 
 - A supplier files GSTR-1 on the 13th for an invoice dated the 2nd. It appears in
   next month's GSTR-2B, and an invoice that was unmatched yesterday is matched
-  today. **On the seeded set, 12 invoices per company match only this way.**
+  today. **On this data set, 12 invoices per company match only this way.**
 - GSTN recomputes Rule 37A reversals as suppliers file — or fail to file — GSTR-3B.
 - An IMS record nobody actioned moves one day closer to being deemed accepted.
 
@@ -131,9 +158,22 @@ sentence in a prompt:
 3. Every number in the answer must appear in a tool result, or the answer is
    **refused and shown as refused**.
 
+### The model layer is allowed to be absent
+
+Bedrock retired the model this deployment was configured with on 10 September 2026,
+which is a thing that will happen again. The application now resolves a live model
+id at start-up rather than trusting one chosen at deploy time, drops a model that
+returns a permanent error and takes the next, and reports what Bedrock actually
+said rather than the class of the exception —
+[`bedrock.py`](apps/api/src/diligence_api/bedrock.py).
+
+When no model is reachable at all, explanations fall back to the deterministic
+template, the interface says so in those words, and every figure on the page is
+unaffected, because no figure ever came from a model.
+
 ## What it found
 
-On the seeded evaluation set, both companies:
+On the evaluation set, both companies:
 
 ```
 planted               41
@@ -143,18 +183,18 @@ row-level rules    precision 1.00   (35/35 findings keyed, 0 false positives)
 period-level rules  6/6 planted found
 ```
 
-Synthetic and seeded, and disclosed as such. Ground truth lets the engine be
-*measured* instead of asserted — these figures describe a dataset we designed, and
-they are not a production accuracy claim. CI fails the build if recall drops.
+Generated and disclosed as such. Ground truth lets the engine be *measured* instead
+of asserted — these figures describe a data set we designed, and they are not a
+production accuracy claim. CI fails the build if recall drops.
 
 Precision is measured on row-level rules only, where a finding is a property of one
 record and the key is complete by construction. Period-level rules compare a month
 against a threshold, so a firing the key does not list is a judgement call, not a
 false positive; every firing is printed instead.
 
-### Why synthetic data is the point, not a shortcut
+### Why generated books are the point, not a shortcut
 
-Nobody hands a weekend project a real firm's ledgers. So the data is generated — and
+Nobody hands a new product a real firm's ledgers. So the data is generated — and
 because it is generated, **every defect in it is known in advance**: 41 per company,
 planted deliberately, each with a type, a period and an expected rupee value.
 
@@ -170,120 +210,11 @@ not to lower the rule's threshold to make a test pass.
 | --- | --- |
 | **GSTR-2B is sixteen tables, not one** | Modelling it as a flat invoice list flags legitimate amendments as duplicates and drops ISD, imports and e-commerce supplies entirely. The [reading order](packages/engine/src/diligence_engine/ingest/gstr2b_shape.py) lives in one place, walked by both the ingester and the drill-down |
 | **Matching has seven parameters** | GSTIN, document type, number, date, taxable value and the four tax heads — with a per-head tolerance of 0 to 10 |
-| **IMS went live in October 2024** | Inaction is now an action: an untouched record is *deemed accepted* when GSTR-3B is filed. The dashboard reports what that is worth in rupees — **₹3.03 Cr** on one seeded company |
+| **IMS went live in October 2024** | Inaction is now an action: an untouched record is *deemed accepted* when GSTR-3B is filed. The dashboard reports what that is worth in rupees — **₹3.03 Cr** on one company in the sample workspace |
 | **Rejecting a credit note is a commercial act** | It raises the supplier's liability, and the supplier can see who did it. Any recommendation to reject carries that warning |
 | **Never recommend what the portal refuses** | Pending is barred for original credit notes. A database CHECK enforces it, so an impossible recommendation cannot be stored |
 | **Section 16(4)** | Credit lapses on 30 November following the financial year. The clock runs from the invoice date, not the month you noticed |
 | **Money is `Decimal`, always** | `ROUND_HALF_UP`, never a float, and amounts cross the API as strings so JavaScript cannot round them |
-
-## Running it locally
-
-No AWS account required. Without Bedrock configured, explanations fall back to the
-deterministic template — correct, just plainer — and the interface says which it is
-showing.
-
-Requires Docker, Python 3.12+ with [uv](https://docs.astral.sh/uv/), and Node 20+.
-
-```bash
-docker compose -f infra/docker-compose.yml up -d    # Postgres on 5544
-cp .env.example .env
-uv sync
-
-uv run diligence pipeline      # migrate, generate, ingest, reconcile, rules, evaluate
-uv run diligence user create --email you@firm.example --name "Your Name" --role owner
-
-uv run uvicorn diligence_api.main:app --host :: --port 8077
-cd apps/web && npm install && npm run dev           # http://localhost:3000
-```
-
-> `--host ::` is not optional. Node resolves `localhost` to `::1` first and does not
-> fall back to IPv4, so an API bound only to `127.0.0.1` is reachable from the browser
-> and **not** from Next's server components: sign-in works and every page then reports
-> that the engine is not answering.
-
-There is no self-service signup, because there is no self-service client data — a
-firm owner creates accounts with `diligence user create`.
-
-`diligence pipeline` is idempotent. Run it as often as you like; documents are keyed
-by content hash and risks by a deterministic key, so nothing duplicates.
-
-### The commands
-
-| Command | What it does |
-| --- | --- |
-| `diligence migrate` | Apply pending SQL migrations (hash-checked) |
-| `diligence tables` | Every table with its row count |
-| `diligence seed` | Generate two synthetic companies, their feeds, and the answer key |
-| `diligence ingest` | Load the feeds into typed tables with provenance |
-| `diligence reconcile` | Recompute every match |
-| `diligence ims` | Compute the recommended accept / reject / pending for every IMS record |
-| `diligence rule list / enable / disable` | Read or change the rule registry |
-| `diligence rules` | Run every enabled rule over every period |
-| `diligence evaluate` | Score the engine against the planted answer key |
-| `diligence doctor` | Check every dependency a deployment needs, and say which is wrong |
-| `diligence bedrock models` | List the Bedrock models this AWS account can invoke |
-| `diligence tally probe / export` | Read a live Tally company over its XML gateway |
-| `diligence user create / list` | Manage the people who can sign in |
-| `diligence audit` | The audit trail, newest first |
-| `diligence pipeline` | The whole thing, in order |
-
-## Deploying to AWS
-
-```bash
-aws configure                 # or: aws sso login
-./infra/aws/deploy.sh         # ~20 minutes on a cold account
-./infra/aws/teardown.sh       # deletes everything, including the NAT gateway
-```
-
-The script is idempotent: run it again after a code change and it rebuilds, pushes
-and waits for the rollout. It discovers a Bedrock model id by asking the account
-rather than hard-coding one, because the id differs by region and a wrong guess
-fails at the worst possible moment.
-
-The API runs on **EC2 (t3.small)**, listening on HTTP port 8080 inside the VPC.
-The frontend (Amplify) uses Next.js server-side rewrites to proxy `/api/*` requests
-to the EC2 instance — so the browser always talks HTTPS to Amplify and never makes
-a direct HTTP call. No CDN layer is needed and no TLS certificate is required on the
-API server.
-
-Postgres has no route in from outside the VPC. That is the right call for other
-people's books, and it also means there is no psql session from a laptop — so the
-demo bootstrap runs *inside* the VPC, in the same container image, as a one-off
-Lambda invoke.
-
-After `deploy.sh` finishes, set these **two** environment variables in the Amplify
-console **before** the first build, then connect the GitHub repository:
-
-| Key | Value |
-| --- | --- |
-| `NEXT_PUBLIC_API_BASE` | *(empty string — leave the value blank)* |
-| `NEXT_PUBLIC_API_UPSTREAM` | the EC2 HTTP URL printed by `deploy.sh` |
-
-Roughly **$2–3/day** while it is up. The two line items that bill whether or not
-anyone visits are the NAT gateway and the RDS instance; `teardown.sh` removes both.
-
-## Layout
-
-```
-packages/engine/     the reconciliation engine. Imports no model client, by design
-  normalise/         GSTIN, invoice number and party-name normalisation
-  ingest/            typed loaders with row-level provenance; S3 or local disk
-  matching/          GST, bank and IMS matchers; the scoring function
-  rules/             the rule registry — R1..R13, each toggleable
-  authz/             Cedar policy. The tenant boundary, as policy
-  eval/              scores the engine against the planted answer key
-  seedgen/           the synthetic firm, and the ground truth
-  aws_lambda.py      the pipeline as Step Functions stages
-apps/api/            FastAPI. The only place a model is called
-  explain.py         one finding, through Bedrock
-  agent.py           "Ask the ledger", on Strands
-  numeric_guard.py   the rule both of them obey
-apps/web/            Next.js 14 dashboard, server components
-migrations/sql/      hash-tracked schema migrations
-infra/aws/           CloudFormation, deploy and teardown
-```
-
-~12,200 lines of Python, ~2,400 of TypeScript, ~730 of SQL, **228 tests**.
 
 ## Security
 
@@ -297,32 +228,45 @@ infra/aws/           CloudFormation, deploy and teardown
 - Failed logins are recorded, and recorded on their own connection so the refusal's
   rollback cannot discard them
 - Login is constant-time against unknown addresses (measured 1.01×, previously ~40×)
+- Postgres has no route in from outside the VPC
 - S3: TLS enforced by bucket policy, SSE-AES256, public access blocked
 - Encryption at rest is a deployment property. RDS and S3 are encrypted by the
   templates here; the application does not claim to provide it
+
+## Layout
+
+```
+packages/engine/     the reconciliation engine. Imports no model client, by design
+  normalise/         GSTIN, invoice number and party-name normalisation
+  ingest/            typed loaders with row-level provenance; S3 or local disk
+  matching/          GST, bank and IMS matchers; the scoring function
+  rules/             the rule registry — R1..R13, each toggleable
+  authz/             Cedar policy. The tenant boundary, as policy
+  eval/              scores the engine against the planted answer key
+  seedgen/           the generated firm, and the ground truth
+  aws_lambda.py      the pipeline as Step Functions stages
+apps/api/            FastAPI. The only place a model is called
+  explain.py         one finding, through Bedrock
+  agent.py           "Ask the ledger", on Strands
+  bedrock.py         which model id to call, resolved at run time
+  numeric_guard.py   the rule all of them obey
+apps/web/            Next.js 14 dashboard, server components
+migrations/sql/      hash-tracked schema migrations
+infra/aws/           CloudFormation, deploy and teardown
+```
+
+~12,400 lines of Python, ~2,400 of TypeScript, ~730 of SQL, **244 tests**.
+
+CI runs ruff, the full test suite against a real Postgres, the whole pipeline, and a
+TypeScript build, and fails if the evaluation's recall drops below 1.00. Tests that
+need a database skip silently without one, which is precisely why CI provides one —
+a green tick that skipped the tests that matter is worse than no CI at all.
 
 ## Contributors
 
 - **Dhruv Sharma** — [@Spiritsfuse](https://github.com/Spiritsfuse)
 - **Anushika Chauhan** — [@Anushika06](https://github.com/Anushika06)
 - **Pratyush Mishra** — [@PratyushMishra-2nd](https://github.com/PratyushMishra-2nd)
-
-Built for the [WeMakeDevs × AWS First Commit](https://www.wemakedevs.org/aws) hackathon.
-
-## Contributing
-
-`docs/demo-script.md` walks the product end to end. Before opening a pull request:
-
-```bash
-uv run ruff check . && uv run ruff format --check .
-uv run pytest
-cd apps/web && npx tsc --noEmit && npm run build
-```
-
-CI runs all of it against a real Postgres, plus the full pipeline, and fails if the
-evaluation's recall drops below 1.00. Tests that need a database skip silently
-without one, which is precisely why CI provides one — a green tick that skipped the
-tests that matter is worse than no CI at all.
 
 ## Licence
 

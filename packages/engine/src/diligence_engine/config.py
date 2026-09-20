@@ -27,8 +27,9 @@ def _secret_password() -> str:
 
     RDS was created with `ManageMasterUserPassword`, so AWS owns the
     password and nothing has to template it into a task definition or a
-    parameter. One mechanism serves both compute surfaces: App Runner and
-    Lambda each get `DB_SECRET_ARN` and neither gets a password.
+    parameter. One mechanism serves both compute surfaces: the API instance
+    and the pipeline Lambdas each get `DB_SECRET_ARN`, and neither gets a
+    password.
 
     Read once per process. The trade is explicit: a rotation while a process
     is alive is not picked up until it restarts. For a deployment that

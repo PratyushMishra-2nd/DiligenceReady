@@ -35,6 +35,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from diligence_api import bedrock
 from diligence_api.numeric_guard import check
 from diligence_engine.config import settings
 
@@ -134,7 +135,7 @@ def bedrock_client():
 
     Not cached: the client is cheap next to a model call, and caching it
     across a config change during a deploy is a debugging session nobody
-    needs. Credentials come from the App Runner instance role.
+    needs. Credentials come from the instance role.
     """
     import boto3
     from botocore.config import Config
@@ -164,30 +165,50 @@ def _text_of(message: dict) -> str:
 def explain(risk: dict) -> Explanation:
     """Write the explanation for one finished risk."""
     facts = render_facts(risk)
-    model_id = settings().bedrock_model_id
 
-    if not model_id:
+    available = bedrock.candidates()
+    if not available:
         return Explanation(
             text=deterministic_explanation(risk),
             source="template",
             rejected_reason=(
-                "no BEDROCK_MODEL_ID configured; run `diligence bedrock models` "
-                "to see what this account can call"
+                "no Bedrock model is configured or reachable; run "
+                "`diligence bedrock models` to see what this account can call"
             ),
         )
 
-    try:
-        response = bedrock_client().converse(
-            modelId=model_id,
-            system=[{"text": SYSTEM_PROMPT}],
-            messages=[{"role": "user", "content": [{"text": facts}]}],
-            inferenceConfig={"maxTokens": MAX_TOKENS, "temperature": TEMPERATURE},
-        )
-    except Exception as error:  # noqa: BLE001 - the UI must degrade, not 500
+    # Try each candidate once. A model that is retired, unapproved, or only
+    # reachable through an inference profile is dropped for the life of the
+    # process rather than retried on every finding — see `bedrock.py` for the
+    # September 2026 outage that is the reason this is a loop.
+    client = bedrock_client()
+    response = None
+    model_id = ""
+    failure = ""
+    for candidate in available:
+        try:
+            response = client.converse(
+                modelId=candidate,
+                system=[{"text": SYSTEM_PROMPT}],
+                messages=[{"role": "user", "content": [{"text": facts}]}],
+                inferenceConfig={"maxTokens": MAX_TOKENS, "temperature": TEMPERATURE},
+            )
+        except Exception as error:  # noqa: BLE001 - the UI must degrade, not 500
+            failure = f"Bedrock call failed: {bedrock.describe(error)}"
+            if bedrock.is_dead(error):
+                bedrock.retire(candidate)
+                continue
+            # Throttled, timed out, or a network fault. Another model would
+            # hit the same wall, and the plain sentence is already correct.
+            break
+        model_id = candidate
+        break
+
+    if response is None:
         return Explanation(
             text=deterministic_explanation(risk),
             source="template",
-            rejected_reason=f"Bedrock call failed: {type(error).__name__}",
+            rejected_reason=failure or "no Bedrock model answered",
         )
 
     stop_reason = response.get("stopReason")

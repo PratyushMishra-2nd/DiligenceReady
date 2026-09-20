@@ -9,7 +9,7 @@ import { API_BASE } from "../lib/api";
  * Upload an export.
  *
  * Until this existed, the only way to get data into the system was the
- * seed generator — which made it a demo rather than a tool.
+ * seed generator — which made it an exhibit rather than a tool.
  *
  * The important part is the failure. A CA's first upload is very often the
  * wrong file or the right file from a package we have not seen, and the API

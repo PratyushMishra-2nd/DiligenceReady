@@ -124,8 +124,23 @@ Resources:
               - bedrock:InvokeModel
               - bedrock:InvokeModelWithResponseStream
             Resource:
+              # The wildcard region is not laziness. A cross-region
+              # inference profile runs the call in whichever region has
+              # capacity, and the authorisation is evaluated against the
+              # foundation model in *that* region, not this one.
               - "arn:aws:bedrock:*::foundation-model/*"
               - !Sub "arn:aws:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/*"
+          - Sid: ModelCatalogue
+            Effect: Allow
+            Action:
+              # Read-only listings of what this account can call. The
+              # application uses them to pick a live model at start-up
+              # instead of trusting an id that was chosen at deploy time and
+              # has since been retired. Neither call reads a model, a prompt
+              # or a byte of client data, and neither takes a resource.
+              - bedrock:ListFoundationModels
+              - bedrock:ListInferenceProfiles
+            Resource: "*"
 
   InstanceRole:
     Type: AWS::IAM::Role

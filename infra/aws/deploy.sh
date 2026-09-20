@@ -96,35 +96,48 @@ note "pushed ${REPO_URI}:${IMAGE_TAG}"
 # ── 3. which model this account can actually call ───────────────────────────
 #
 # The model id is not guessable and it differs by region: the same model is
-# `anthropic.claude-...` in one region, reachable only through an
-# `apac.anthropic....` inference profile in another, and simply absent in a
-# third. Hard-coding one is how a deploy discovers, in front of an audience,
-# that the region it landed in does not have it. So ask the account.
+# `anthropic.claude-...` in one region, reachable only through a
+# `global.anthropic....` or `apac.anthropic....` inference profile in
+# another, and simply absent in a third. Hard-coding one is how a deploy
+# discovers, in front of an audience, that the region it landed in does not
+# have it. So ask the account.
+#
+# And ask it the right question. This block used to take
+# `modelSummaries[-1]`, the last on-demand Anthropic model the account
+# listed, with no filter on lifecycle. On 10 September 2026 the id it had
+# picked — Claude 3 Haiku — reached its Bedrock end of life. It stayed in
+# the listing, stayed allowed by IAM, stayed in the health check, and
+# started returning ValidationException on every call. `?modelLifecycle.
+# status=='ACTIVE'` is the whole fix here; the application now also falls
+# through to the next live model at runtime, so the same retirement costs
+# one failed call rather than the model layer.
 
 say "Discovering a Bedrock model"
 BEDROCK_MODEL_ID="${BEDROCK_MODEL_ID:-}"
 if [[ -z "${BEDROCK_MODEL_ID}" ]]; then
   # Inference profiles first: they fail over to another region under load
-  # instead of throttling, and several regions offer the newer Anthropic
-  # models on demand only through one.
+  # instead of throttling, and several regions — ap-south-1 among them —
+  # offer the current Anthropic models only through one.
   BEDROCK_MODEL_ID="$(aws bedrock list-inference-profiles \
     --region "${REGION}" \
-    --query "inferenceProfileSummaries[?contains(inferenceProfileId, 'anthropic')].inferenceProfileId | [0]" \
+    --query "sort_by(inferenceProfileSummaries[?contains(inferenceProfileId, 'anthropic') && status=='ACTIVE'], &inferenceProfileId) | [-1].inferenceProfileId" \
     --output text 2>/dev/null || echo None)"
 
   if [[ "${BEDROCK_MODEL_ID}" == "None" || -z "${BEDROCK_MODEL_ID}" ]]; then
     BEDROCK_MODEL_ID="$(aws bedrock list-foundation-models \
       --region "${REGION}" --by-provider anthropic --by-inference-type ON_DEMAND \
-      --query "modelSummaries[-1].modelId" --output text 2>/dev/null || echo None)"
+      --query "sort_by(modelSummaries[?modelLifecycle.status=='ACTIVE'], &modelId) | [-1].modelId" \
+      --output text 2>/dev/null || echo None)"
   fi
 fi
 
 if [[ "${BEDROCK_MODEL_ID}" == "None" || -z "${BEDROCK_MODEL_ID}" ]]; then
   BEDROCK_MODEL_ID=""
-  note "No Anthropic model is available to this account in ${REGION}."
+  note "No live Anthropic model is available to this account in ${REGION}."
   note "Grant it: Bedrock console -> Model access -> Enable, then re-run."
-  note "Deploying anyway. Explanations fall back to the deterministic text,"
-  note "which is correct, just plainer. The product works without a model."
+  note "Deploying anyway. The application re-asks the account at start-up,"
+  note "and explanations fall back to the deterministic text until one is"
+  note "available — correct, just plainer."
 else
   note "using ${BEDROCK_MODEL_ID}"
 fi

@@ -5,8 +5,8 @@ Description: >-
   image registry. Deployed once and left alone; the application stack on top
   of it is the one that changes.
 
-# Why a VPC at all, when a hackathon could put Postgres on a public endpoint
-# and be done in ten minutes:
+# Why a VPC at all, when a weekend build could put Postgres on a public
+# endpoint and be done in ten minutes:
 #
 # This product's entire proposition is that a CA firm can hand it another
 # business's books. A database reachable from the internet, however strong
@@ -15,7 +15,7 @@ Description: >-
 # subnets with no route in. Nothing outside the VPC can open a socket to it.
 #
 # The cost of that decision is one NAT gateway, about a dollar a day, and it
-# buys the outbound path App Runner and Lambda need for Bedrock. S3 traffic
+# buys the outbound path the API and the pipeline Lambdas need for Bedrock. S3 traffic
 # skips it entirely through a gateway endpoint, which is free — documents are
 # the bulk of the bytes and there is no reason to pay per gigabyte to move
 # them.
@@ -317,7 +317,7 @@ Resources:
             "rules": [
               {
                 "rulePriority": 1,
-                "description": "Keep the ten most recent images; a hackathon rebuilds often.",
+                "description": "Keep the ten most recent images; this repository rebuilds often.",
                 "selection": {
                   "tagStatus": "any",
                   "countType": "imageCountMoreThan",

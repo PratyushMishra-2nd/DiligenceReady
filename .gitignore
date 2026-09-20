@@ -36,8 +36,9 @@ Thumbs.db
 .playwright-mcp/
 shot-*.png
 
-# Hackathon working artefacts. Not part of the public repository: the AWS
-# runbook narrates one account's deploy, the writeup and video script are
-# submission material for the form rather than documentation, and the
-# product explainer duplicates the README for a different audience.
+# Working artefacts, not part of the public repository. The AWS runbook and
+# the engineering notes narrate one account's deploy and carry its live
+# credentials; the testing workflows carry the same; the writeup and the video
+# script are submission material rather than documentation; and the product
+# explainer duplicates the README for a different audience.
 private/
