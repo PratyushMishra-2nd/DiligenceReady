@@ -97,7 +97,7 @@ export default async function FirmDashboard() {
                   in it, and a sentence that bolds every variable emphasises
                   nothing. */}
               <span className="tabular font-medium text-ink">{inr(dueNow)}</span> of it sits
-              on invoices whose Sec 16(4) window closes {cutoff.label} —{" "}
+              on invoices whose Sec 16(4) window closes {cutoff.label},{" "}
               <span className="tabular font-medium text-ink">{cutoff.days} days</span> away,
               across {dueNowFindings} findings. After that date the credit stops being a
               receivable and becomes a cost.
@@ -204,8 +204,8 @@ export default async function FirmDashboard() {
           Sorted by the soonest Sec 16(4) cut-off, then by the credit at stake.{" "}
           {discriminating && "Shaded rows are the ones the figure above was summed from. "}
           Coverage is the latest period;
-          open findings and unmatched credit are the whole book — credit that went
-          unmatched in March is still unclaimed today, and the Sec 16(4) clock runs against
+          open findings and unmatched credit are the whole book. Credit that went unmatched
+          in March is still unclaimed today, and the Sec 16(4) clock runs against
           the invoice date, not the month you noticed.
         </p>
 

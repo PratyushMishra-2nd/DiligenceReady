@@ -74,7 +74,7 @@ export function UploadPanel({ companyId }: { companyId: string }) {
       setOutcome({
         ok: true,
         message: body.already_present
-          ? `${body.filename} was already ingested — nothing changed.`
+          ? `${body.filename} was already ingested. Nothing changed.`
           : `${body.filename}: ${body.rows} rows across ${body.periods.join(", ")}.`,
         detail: body.already_present
           ? "Documents are keyed by content, so uploading the same export twice is a no-op."

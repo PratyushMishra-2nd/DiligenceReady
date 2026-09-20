@@ -41,7 +41,7 @@ export function LenderPackage({
           <span className="tabular font-medium text-ink">{periodsReconciled} months</span>{" "}
           of reconciled history so far, {periodLabel(earliest)} to {periodLabel(latest)},
           every figure linked to the file line behind it. At eighteen months this becomes a
-          diligence pack a lender can take as read — generated from history that already
+          diligence pack a lender can take as read, generated from history that already
           exists rather than assembled in six weeks of scrambling.
         </p>
 

@@ -1,7 +1,12 @@
 import Link from "next/link";
 
+import aggregates from "./aggregates.json";
+import { Leash } from "./Leash";
+import { Population } from "./Population";
+import { Trace } from "./Trace";
+
 export const metadata = {
-  title: "DiligenceReady — reconciliation for CA firms",
+  title: "DiligenceReady: reconciliation for CA firms",
   description:
     "Books, GSTR-2B and bank, reconciled every month, with the evidence kept. Built for the CA firms who do the work.",
 };
@@ -32,16 +37,57 @@ export const metadata = {
  * being footed.
  */
 
+/**
+ * The way into the app, from the page that is now its front door.
+ *
+ * It points at the form rather than at `/` on purpose. An unauthenticated
+ * request to the dashboard is sent back here, so a bare link to `/` would be
+ * a dead click for exactly the reader most likely to take it — the one who
+ * has never signed in. Routing through `/sign-in` costs a reader who does
+ * hold a session one redirect they never see, because that page checks the
+ * session on the server and forwards them straight to `next`. Every link on
+ * this page that goes into the product uses this, so there is no path from
+ * here that bounces a visitor back to where they started.
+ *
+ * `next=/` is the dashboard, written out rather than left to the default so
+ * the link says where it goes.
+ */
+const DASHBOARD = "/sign-in?next=/";
+
+/**
+ * Counts this page writes in words.
+ *
+ * A figure set in digits is one the reader is invited to check against
+ * something; these are neither at risk nor traceable to a row, they are the
+ * shape of the dataset, and spelling them keeps the digits on the page
+ * meaning one thing. Anything not listed falls back to the numeral rather
+ * than being spelled wrongly.
+ */
+const SPELLED: Record<number, string> = {
+  2: "two",
+  4: "four",
+  12: "twelve",
+  41: "forty-one",
+  82: "eighty-two",
+};
+
+/** The same word, at the start of a sentence. */
+function spell(n: number, sentenceStart = false): string {
+  const word = SPELLED[n];
+  if (!word) return String(n);
+  return sentenceStart ? word[0].toUpperCase() + word.slice(1) : word;
+}
+
 /** The marks, as an audit file uses them, and what each one is worth here. */
 const LEGEND: { mark: string; meaning: string; tone?: string }[] = [
   { mark: "T", meaning: "traced to a line of a file kept in the repository" },
   { mark: "R", meaning: "recomputed by the evaluation harness against planted defects" },
   { mark: "A", meaning: "agreed to GSTN's published documentation" },
-  { mark: "P", meaning: "footed — the arithmetic is a SQL aggregate, checked by a test" },
+  { mark: "P", meaning: "footed: the arithmetic is a SQL aggregate, checked by a test" },
   {
     mark: "C",
     meaning:
-      "confirmed with an external party — no claim on this page carries this mark, because no practising CA has reviewed the rule set yet",
+      "confirmed with an external party. No claim on this page carries this mark, because no practising CA has reviewed the rule set yet",
     tone: "text-ink-faint",
   },
 ];
@@ -50,20 +96,54 @@ export default function ProductPage() {
   return (
     <main className="mx-auto max-w-[1080px] px-6 pb-24 sm:px-10">
       {/* The masthead of a working paper: a heavy rule, then who prepared it,
-          for what, and in what state. No navigation bar, because there is
-          nowhere else to go. */}
+          for what, and in what state. It used to stop there, on the reasoning
+          that there is nowhere else to go — but there is, and now it is where
+          everyone starts: an unauthenticated request to any route in the app
+          lands on this page, so this is the front door and the door has to
+          have a handle. The only route into the product used to be the last
+          sentence of the footer, a whole page of scrolling away.
+
+          A working paper does not answer that with a navigation bar. The
+          masthead is already the band a reader checks before reading a paper,
+          and this is the one line of it that is an instruction rather than a
+          fact — so it is set solid, square, and inverting on hover, which is
+          the same block the sign-in form's own submit button is.
+
+          `no-print`: a filed copy is read on paper, where a control is
+          furniture. The footer keeps its link, and that is the one the print
+          rule annotates with its href. */}
       <header className="border-t-2 border-ink pt-3">
-        <dl className="grid grid-cols-2 gap-y-2 font-mono text-micro uppercase tracking-[0.08em] text-ink-soft sm:grid-cols-4">
-          <Meta term="Index" value="W-1" />
-          <Meta term="Subject" value="DiligenceReady" />
-          <Meta term="Prepared" value="Engine v0 · Sep 2026" />
-          <Meta term="Status" value="Pre-review" />
-        </dl>
+        <div className="flex flex-wrap items-start justify-between gap-x-10 gap-y-4">
+          <dl className="grid min-w-0 flex-1 grid-cols-2 gap-x-6 gap-y-2 font-mono text-micro uppercase tracking-[0.08em] text-ink-soft sm:grid-cols-4">
+            <Meta term="Index" value="W-1" />
+            <Meta term="Subject" value="DiligenceReady" />
+            <Meta term="Prepared" value="Engine v0 · Sep 2026" />
+            <Meta term="Status" value="Pre-review" />
+          </dl>
+          <div className="no-print shrink-0">
+            <p className="font-mono text-micro uppercase tracking-[0.08em] text-ink-faint">
+              Access
+            </p>
+            <Link
+              href={DASHBOARD}
+              aria-label="Sign in to the working dashboard"
+              className="mt-1 inline-flex items-center gap-2 border border-ink bg-ink px-4 py-1.5 font-mono text-micro uppercase tracking-[0.08em] text-paper hover:bg-transparent hover:text-ink"
+            >
+              Sign in
+              {/* Drawn here rather than installed, like every other glyph in
+                  this product. `currentColor` is what makes it invert with
+                  the block instead of staying pale on a pale ground. */}
+              <svg viewBox="0 0 8 10" aria-hidden className="h-2.5 w-2 shrink-0">
+                <path d="M2 1l5 4-5 4" fill="none" stroke="currentColor" strokeWidth="1.5" />
+              </svg>
+            </Link>
+          </div>
+        </div>
       </header>
 
       {/* The deck and the total sit on one line of sight: the claim on the
           left, and on the right the figure that claim is about, footed. */}
-      <section className="grid gap-x-10 gap-y-10 py-12 lg:grid-cols-[2.5rem_minmax(0,1fr)_22rem]">
+      <section className="grid gap-x-10 gap-y-10 py-12 lg:grid-cols-paper">
         <p aria-hidden className="hidden font-mono text-data text-ink-soft lg:block">
           A
         </p>
@@ -95,11 +175,12 @@ export default function ProductPage() {
           </h2>
           <p className="mt-3 max-w-[64ch] text-body leading-relaxed text-ink-soft">
             Every figure on screen is a SQL aggregate over a match table. The model is
-            handed a finished finding and writes the sentence explaining it — it never
-            sees a document and cannot produce a number, and any figure it does produce is
-            checked against the finding before you see it. Click any amount and land on
-            the row of the original file that produced it.
+            handed a finished finding and writes the sentence explaining it. It never sees a
+            document and cannot produce a number: any figure it does produce is checked
+            against the finding before you see it. Click any amount and land on the row of
+            the original file that produced it.
           </p>
+          <Leash />
         </Claim>
       </Sheet>
 
@@ -107,15 +188,34 @@ export default function ProductPage() {
         <Claim mark="R" note="diligence evaluate">
           <h2 className="text-lede font-semibold">Measured, not asserted</h2>
           <p className="mt-3 max-w-[64ch] text-body leading-relaxed text-ink-soft">
-            Forty-one defects were planted into a synthetic ledger. The engine found
-            forty-one of them, and invented none.
+            {spell(aggregates.totals.planted, true)} defects were planted across{" "}
+            {spell(aggregates.totals.companies)} synthetic ledgers,{" "}
+            {spell(aggregates.companies[0].evaluation.planted)} in each. The engine found
+            every one of them and raised{" "}
+            {aggregates.totals.false_positives === 0
+              ? "nothing the answer key does not contain"
+              : `${aggregates.totals.false_positives} findings the answer key does not contain`}
+            .
           </p>
-          <Tally />
+          <Population />
           <p className="mt-6 max-w-[64ch] text-body leading-relaxed text-ink-soft">
             Synthetic and seeded, and disclosed as such. Ground truth lets the engine be
             measured instead of asserted. It proves the engine works on data we designed;
             it does not prove it works in production, and the difference matters.
           </p>
+        </Claim>
+      </Sheet>
+
+      <Sheet>
+        <Claim mark="T" note={`${aggregates.example.file}:${aggregates.example.line}`}>
+          <h2 className="text-lede font-semibold">Every figure has a line</h2>
+          <p className="mt-3 max-w-[64ch] text-body leading-relaxed text-ink-soft">
+            One finding, followed from the row of the file it was read out of to the
+            aggregate that puts it on a dashboard. This is the whole product: not that the
+            exception was spotted, but that a CA can hand the working to someone who
+            doubts it.
+          </p>
+          <Trace />
         </Claim>
       </Sheet>
 
@@ -184,8 +284,8 @@ export default function ProductPage() {
             </h2>
             <p className="mt-3 max-w-[54ch] text-body leading-relaxed text-ink-soft">
               We want three firms to use it free and be watched working. The first twenty
-              minutes of that tells us more than another month of building — and it is the
-              only way anything on this page earns a C.
+              minutes of that tells us more than another month of building, and it is the only
+              way anything on this page earns a C.
             </p>
           </div>
 
@@ -243,11 +343,15 @@ export default function ProductPage() {
             Figures on this page and in the product are from a seeded synthetic dataset,
             not a real company. GST rules change by notification; nothing here is tax
             advice.{" "}
+            {/* Named for what it now costs. The dashboard reads a firm's
+                client data and has never been open to a stranger; the link
+                used to say "see" and then hand them a password box for a
+                product it had not named. */}
             <Link
-              href="/"
+              href={DASHBOARD}
               className="underline decoration-rule-strong underline-offset-4 hover:decoration-ink"
             >
-              See the working dashboard
+              Sign in to the working dashboard
             </Link>
             .
           </p>
@@ -280,7 +384,7 @@ function Claim({
   children: React.ReactNode;
 }) {
   return (
-    <div className="grid gap-x-10 gap-y-3 lg:grid-cols-[2.5rem_minmax(0,64ch)_minmax(0,13rem)]">
+    <div className="grid gap-x-10 gap-y-3 lg:grid-cols-paper">
       <p aria-hidden className="hidden font-mono text-data text-ink-soft lg:block">
         {mark}
       </p>
@@ -334,7 +438,8 @@ function FootedColumn() {
         <div aria-hidden className="foot-rule foot-rule-final mt-[3px] h-px bg-ink" />
 
         <p className="mt-3 text-right font-sans text-micro leading-relaxed text-ink-faint">
-          Two seeded companies, thirteen periods, every figure traced to a file line.
+          {spell(aggregates.totals.companies, true)} seeded companies, {spell(aggregates.periods)}{" "}
+          periods, every figure traced to a file line.
         </p>
       </dl>
     </div>
@@ -354,41 +459,6 @@ function Entry({
     <div className={`flex items-baseline justify-between gap-6 py-1 ${indent ? "pl-4" : ""}`}>
       <dt className="font-sans text-micro text-ink-soft">{label}</dt>
       <dd className="text-data text-ink">{value}</dd>
-    </div>
-  );
-}
-
-/**
- * The evaluation, as one mark per defect.
- *
- * Forty-one is a countable quantity, so it is drawn as forty-one countable
- * things rather than as the numeral 41 set large. The second row is the
- * findings the engine invented, and it is empty: the absence is the datum, and
- * an empty rule states it more plainly than a nought does.
- */
-function Tally() {
-  return (
-    <div className="mt-6 max-w-[34rem]">
-      <p className="font-mono text-micro uppercase tracking-[0.08em] text-ink-soft">
-        Planted, and found — 41 of 41
-      </p>
-      {/* Grouped in fives, the way anyone counting by hand groups them, so the
-          reader can verify there are forty-one rather than take the caption's
-          word for it. */}
-      <div aria-hidden className="mt-2 flex flex-wrap gap-[3px]">
-        {Array.from({ length: 41 }, (unused, index) => (
-          <span
-            key={index}
-            className="h-3.5 w-[3px] bg-reconciled"
-            style={index > 0 && index % 5 === 0 ? { marginLeft: "0.5rem" } : undefined}
-          />
-        ))}
-      </div>
-
-      <p className="mt-5 font-mono text-micro uppercase tracking-[0.08em] text-ink-soft">
-        Invented — 0
-      </p>
-      <div aria-hidden className="mt-2 h-3.5 border-b border-dotted border-rule-strong" />
     </div>
   );
 }

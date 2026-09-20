@@ -16,3 +16,14 @@
 *.yaml      text eol=lf
 *.yml       text eol=lf
 Dockerfile  text eol=lf
+
+# The web fonts are IBM's build of Plex, checked in because Google's is
+# stripped of the OpenType features this interface depends on. They are binary
+# and must be stored byte for byte. Git usually infers that, but this
+# repository is developed on Windows and cloned by people whose `core.autocrlf`
+# is not ours to set: a font that has had its CRLFs "fixed" does not fail
+# loudly, it fails as a browser quietly refusing to parse it.
+*.woff2     binary
+*.woff      binary
+*.ttf       binary
+*.otf       binary

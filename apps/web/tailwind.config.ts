@@ -47,16 +47,36 @@ const config: Config = {
       fontSize: {
         micro: ["0.75rem", { lineHeight: "1rem", letterSpacing: "0.005em" }],
         data: ["0.8125rem", { lineHeight: "1.125rem" }],
-        body: ["0.9375rem", { lineHeight: "1.5rem" }],
+        // 16px, lifted from 15. Fifteen is a UI size and this page argues in
+        // paragraphs: the measure runs to 64ch, and at that length 15px asks
+        // the eye to track a line it can barely resolve. The leading stays at
+        // 24px, which is 150% and above the 120-145% a shorter measure would
+        // want. That is deliberate and it is the same reason: leading carries
+        // the eye back to the start of the next line, and the longer the line
+        // the further it has to carry.
+        body: ["1rem", { lineHeight: "1.5rem" }],
         lede: ["1.125rem", { lineHeight: "1.625rem" }],
         figure: ["1.625rem", { lineHeight: "2rem", letterSpacing: "-0.015em" }],
         // The one display figure in the product. Used once, on the firm
         // dashboard, and allowed outside the ramp because it is never reused.
         hero: ["3.25rem", { lineHeight: "0.95", letterSpacing: "-0.02em" }],
       },
-      borderRadius: {
-        sheet: "2px",
+      // One grid for the whole working paper: the tick-mark gutter, the
+      // measure, and the cross-reference margin. It is a token because the
+      // page had two of these written out by hand and they disagreed — the
+      // deck said `22rem` for the margin and every claim below it said
+      // `13rem`, so the right-hand column stepped sideways once, near the top,
+      // for no reason a reader could name. Section rhythm is `py-12` between
+      // sheets and `pt-12` after the last rule; there is no third value.
+      gridTemplateColumns: {
+        paper: "2.5rem minmax(0, 64ch) minmax(0, 13rem)",
       },
+      // Four rule weights, four meanings, and nothing is allowed a fifth:
+      // `rule-hair` divides rows inside a block, `rule` divides blocks,
+      // `rule-strong` divides sections, and a 2px `ink` rule is the masthead.
+      // `borderRadius.sheet` used to sit here at 2px and was never once used;
+      // every surface in this product is square, and a token nothing applies
+      // is an invitation to start rounding things.
     },
   },
   plugins: [],

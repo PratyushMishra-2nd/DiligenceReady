@@ -49,7 +49,7 @@ export function ImsPanel({ ims }: { ims: ImsSummary }) {
           {inrShort(ims.deemed_accepted_value)}
         </span>
         . Inaction is deemed acceptance, so those flow into the return as filed once
-        GSTR-3B goes in — after which no action is possible.
+        GSTR-3B goes in, after which no action is possible.
       </p>
 
       {(ims.reject_raises_liability > 0 || ims.decide > 0 || ims.not_filed > 0) && (

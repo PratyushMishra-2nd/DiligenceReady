@@ -52,19 +52,53 @@ export async function serverGet<T>(path: string): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-/** Fetch, or send the person to sign in. Used by every page that shows data. */
+/** Fetch, or send the person to the front door. Used by every page with data. */
 export async function requireData<T>(path: string): Promise<T> {
   try {
     return await serverGet<T>(path);
   } catch (error) {
     if (error instanceof Unauthorized) {
-      redirect("/sign-in");
+      // The landing page, not the sign-in form.
+      //
+      // A request with no session is far more often a stranger than a CA
+      // whose cookie lapsed, and this used to answer both of them with a
+      // password box for a product it never named. The landing page is the
+      // one surface that explains what the credentials would be for, and it
+      // carries the way in; the form is one deliberate click from it.
+      //
+      // The destination the reader was reaching for is lost at this line, and
+      // that is the price of the choice rather than an oversight: this
+      // function is handed an API path, not the route someone typed, and
+      // Next gives a server component no reliable read of its own URL. The
+      // only honest `next` would be a guess. Where the destination genuinely
+      // is knowable — the links on the landing page that point into the app —
+      // it travels as `/sign-in?next=` and is honoured after the form.
+      redirect("/product");
     }
     throw error;
   }
 }
 
-export async function isSignedIn(): Promise<boolean> {
+/**
+ * Whether the caller holds a session the engine still honours.
+ *
+ * Cookie presence is not the question, which is what this used to test. A
+ * `dr_session` the API has since expired would pass that test, and the one
+ * caller is the sign-in page deciding whether to skip itself — so trusting
+ * the cookie sends a reader with a stale one to a page that bounces them
+ * back, and the two pages pass them between each other forever. Asking the
+ * engine costs a round trip on a page that is otherwise a form, and it is
+ * what makes the answer true. Anything other than a clean 200 — no session,
+ * dead session, engine unreachable — means show the form, which is the
+ * failure everyone can recover from.
+ */
+export async function hasLiveSession(): Promise<boolean> {
   const jar = await cookies();
-  return Boolean(jar.get("dr_session")?.value);
+  if (!jar.get("dr_session")?.value) return false;
+  try {
+    await serverGet("/api/me");
+    return true;
+  } catch {
+    return false;
+  }
 }

@@ -69,9 +69,30 @@ export default async function CompanyPage({
 
   return (
     <main className="mx-auto max-w-[1400px] px-6 py-10 sm:px-10">
-      <nav className="text-micro text-ink-soft">
-        <Link href="/" className="underline decoration-rule-strong underline-offset-4 hover:decoration-ink">
-          {company.firm_name}
+      {/* The way back up, and the only line on this page that names who the
+          paper belongs to. The firm's name alone was already a link here, but
+          a name is not an exit — nothing about it said that clicking it leaves
+          this company, and a reader who came in from the dashboard had no
+          visible route back to it. The destination is now spelled out in the
+          link's own text rather than in an aria-label, so the mouse and the
+          screen reader are told the same thing.
+
+          Not `no-print`: the firm's name is the only attribution the filed
+          sheet carries. The chevron is the part that is a control rather than
+          a fact, so that is the part that comes off on paper. */}
+      <nav aria-label="Breadcrumb" className="text-micro text-ink-soft">
+        <Link href="/" className="group inline-flex items-center gap-2">
+          <svg
+            viewBox="0 0 8 10"
+            aria-hidden
+            className="no-print h-2.5 w-2 shrink-0 text-ink-faint group-hover:text-ink"
+          >
+            <path d="M6 1L1 5l5 4" fill="none" stroke="currentColor" strokeWidth="1.5" />
+          </svg>
+          <span className="underline decoration-rule-strong underline-offset-4 group-hover:decoration-ink">
+            {company.firm_name}
+          </span>
+          <span className="text-ink-faint">· all client companies</span>
         </Link>
       </nav>
 
@@ -112,8 +133,8 @@ export default async function CompanyPage({
         {chosenForYou && (
           <span className="text-ink-faint">
             {" "}
-            — the latest period with a generated GSTR-2B. A month&rsquo;s 2B generates on
-            the 14th of the month after it.
+            (the latest period with a generated GSTR-2B; a month&rsquo;s 2B generates on
+            the 14th of the month after it)
           </span>
         )}
       </p>

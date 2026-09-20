@@ -131,7 +131,7 @@ export function Findings({
         });
         setError(
           failed === targets.length
-            ? "Nothing was recorded — the engine refused the change."
+            ? "Nothing was recorded. The engine refused the change."
             : `${failed} of ${targets.length} could not be recorded, and those rows were put back.`,
         );
       } else {
@@ -281,6 +281,18 @@ export function Findings({
         run: () => router.push(`/companies/${companyId}?period=${entry.period}`),
       });
     }
+    // The palette could reach every company except the page that lists them.
+    // Sideways between clients was one keystroke and upward was a scroll to
+    // the top of the document, which is the one move a reader working a list
+    // of sixty findings is furthest from.
+    items.push({
+      id: "firm-dashboard",
+      group: "Companies",
+      label: "All client companies",
+      hint: "the firm dashboard",
+      keywords: "home up back firm dashboard",
+      run: () => router.push("/"),
+    });
     for (const entry of companies) {
       items.push({
         id: `company-${entry.company_id}`,

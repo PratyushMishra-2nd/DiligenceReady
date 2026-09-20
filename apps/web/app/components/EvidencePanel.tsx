@@ -134,10 +134,16 @@ export function EvidencePanel({
           </p>
           <h2 className="mt-1 text-lede font-semibold">{risk.rule_text}</h2>
         </div>
+        {/* Named for what it closes, because a list of sixty findings can have
+            put this panel a long way from the row that opened it, and "Close"
+            on its own does not say which of the two things on screen goes.
+            `no-print`: the print rules deliberately keep this panel on the
+            filed sheet, where a button that dismisses it is furniture. */}
         <button
           type="button"
           onClick={onClose}
-          className="shrink-0 border border-rule px-2 py-1 text-micro text-ink-soft hover:border-ink hover:text-ink"
+          aria-label={`Close the evidence for ${risk.rule_code}`}
+          className="no-print shrink-0 border border-rule px-2 py-1 text-micro text-ink-soft hover:border-ink hover:text-ink"
         >
           Close
         </button>
@@ -209,7 +215,7 @@ export function EvidencePanel({
                   ? `Written by ${explanation.model ?? "the model"} from the finding above. Every figure it used was checked against the finding before this was shown.`
                   : explanation.source === "stored"
                     ? "Saved from an earlier run. Regenerate it to see how it was produced."
-                    : `Generated from the finding without a model${explanation.reason ? ` — ${explanation.reason}` : ""}.`}
+                    : `Generated from the finding without a model${explanation.reason ? `: ${explanation.reason}` : ""}.`}
               </p>
             </>
           ) : (
@@ -223,7 +229,7 @@ export function EvidencePanel({
                 {explaining ? "Writing…" : "Explain this finding"}
               </button>
               <p className="mt-2 max-w-[54ch] text-micro leading-relaxed text-ink-faint">
-                The model is handed the finished finding — never a document, never a table.
+                The model is handed the finished finding, never a document and never a table.
                 It writes the sentence. It cannot produce a number.
               </p>
             </>
@@ -296,7 +302,7 @@ function MatchBlock({ match }: { match: NonNullable<RiskDetail["match"]> }) {
         </tbody>
       </table>
       <p className="mt-2 max-w-[56ch] text-micro leading-relaxed text-ink-faint">
-        A deterministic score, not a probability — which is why it is never called
+        A deterministic score, not a probability, which is why it is never called
         confidence, and why the components always ship with it.
       </p>
     </Block>

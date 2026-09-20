@@ -11,6 +11,21 @@
   color-scheme: light;
 }
 
+/* Tailwind's preflight sets `font-feature-settings: normal` on `code`, `kbd`,
+   `pre` and `samp`, which would cancel the inherited slashed zero on exactly
+   the three elements in this app that are set in the mono — the shell command
+   on the engine-offline screen, the tool names in the ledger answer, and the
+   key legend. Those would have kept Plex Mono's default dotted zero while the
+   rest of the document had a slashed one, which is two marks for one job. */
+html,
+body,
+code,
+kbd,
+pre,
+samp {
+  font-feature-settings: "zero" 1;
+}
+
 html,
 body {
   background: theme("colors.paper");
@@ -18,11 +33,21 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Every figure in this product is compared against the figure above it.
-   Proportional digits make a column of rupees unreadable. */
+/* Every figure in this product is compared against the figure above it, so the
+   digits have to sit in a column.
+   They already do, and not because of this rule: Plex sets every digit on the
+   same 600/1000 advance in both the sans and the mono, so there is nothing for
+   `tabular-nums` to correct and neither face ships a `tnum` feature to carry
+   it. The declaration is kept because it states the requirement, and a face
+   swapped in later without uniform digits would then be corrected rather than
+   silently wrong.
+   What is NOT kept is the `font-feature-settings: "tnum" 1` that used to sit
+   here. That property does not merge with the one inherited from `body` — it
+   replaces it — so a rule asking for an inert feature on exactly the elements
+   that show money would have switched the slashed zero back off on every
+   figure in the product. */
 .tabular {
   font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum" 1;
 }
 
 /* A hairline, not a shadow. Working papers are ruled, not floated. */

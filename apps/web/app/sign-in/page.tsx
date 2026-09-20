@@ -1,110 +1,57 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { hasLiveSession } from "../lib/session";
+import { SignInForm } from "./SignInForm";
 
-import { api } from "../lib/api";
+export const dynamic = "force-dynamic";
 
 /**
  * Sign in.
  *
- * Two things this page deliberately does not do. It does not tell you
- * whether an address exists — the API returns one message for every kind of
- * failure and this repeats it verbatim, because a friendlier error here is
- * a way to enumerate a firm's staff. And it does not keep the token in
- * JavaScript-reachable storage: the API sets an httpOnly cookie and the
- * browser handles it from there, so a script injected into this page has
- * nothing to steal.
+ * The page is now a gate rather than a form. Two reasons it has to be.
+ *
+ * The landing page is the front door — an unauthenticated request anywhere in
+ * the app is sent there, not here — so the only way onto this route is a
+ * reader choosing it, and a reader who already has a session chose it by
+ * mistake. Showing them a password box for the account they are signed into
+ * is the kind of dead end this whole pass exists to remove; they are sent
+ * where they were going.
+ *
+ * And because the landing page's links into the app all come through here,
+ * this is the one place that knows where someone was heading before they were
+ * asked to identify themselves. `next` carries it across the form.
  */
-export default function SignIn() {
-  const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  async function submit(event: React.FormEvent) {
-    event.preventDefault();
-    setBusy(true);
-    setError(null);
-    try {
-      await api.signIn(email, password);
-      router.push("/");
-      router.refresh();
-    } catch (failure) {
-      setError(failure instanceof Error ? failure.message : "Could not sign in.");
-      setBusy(false);
-    }
-  }
-
-  return (
-    <main className="mx-auto max-w-[27rem] px-6 py-24">
-      <h1 className="text-lede font-semibold tracking-tight">DiligenceReady</h1>
-      <p className="mt-1 text-body text-ink-soft">Sign in to your firm&rsquo;s workspace.</p>
-
-      <form onSubmit={submit} className="mt-8 space-y-5">
-        <Field
-          label="Email"
-          type="email"
-          value={email}
-          onChange={setEmail}
-          autoComplete="username"
-        />
-        <Field
-          label="Password"
-          type="password"
-          value={password}
-          onChange={setPassword}
-          autoComplete="current-password"
-        />
-
-        {error && (
-          <p role="alert" className="border border-exposure/30 bg-exposure-wash px-3 py-2 text-data text-exposure">
-            {error}
-          </p>
-        )}
-
-        <button
-          type="submit"
-          disabled={busy || !email || !password}
-          className="w-full border border-ink bg-ink px-4 py-2.5 text-body font-medium text-paper hover:bg-transparent hover:text-ink disabled:opacity-40 disabled:hover:bg-ink disabled:hover:text-paper"
-        >
-          {busy ? "Signing in…" : "Sign in"}
-        </button>
-      </form>
-
-      <p className="mt-8 max-w-[38ch] text-micro leading-relaxed text-ink-faint">
-        No account yet? A firm owner creates one with{" "}
-        <span className="font-mono text-ink-soft">diligence user create</span>. There is no
-        self-service signup, because there is no self-service client data.
-      </p>
-    </main>
-  );
+export default async function SignInPage({
+  searchParams,
+}: {
+  // Next hands every search param as `string | string[]`, because a query
+  // string is allowed to repeat a key. Declaring it `string` here would be a
+  // type that lies: `?next=/a&next=/b` arrives as an array and the first
+  // string method called on it throws, on the login page of all routes.
+  searchParams: { next?: string | string[] };
+}) {
+  const next = destination(searchParams.next);
+  if (await hasLiveSession()) redirect(next);
+  return <SignInForm next={next} />;
 }
 
-function Field({
-  label,
-  type,
-  value,
-  onChange,
-  autoComplete,
-}: {
-  label: string;
-  type: string;
-  value: string;
-  onChange: (value: string) => void;
-  autoComplete: string;
-}) {
-  return (
-    <label className="block">
-      <span className="text-micro font-medium text-ink-soft">{label}</span>
-      <input
-        type={type}
-        value={value}
-        autoComplete={autoComplete}
-        onChange={(event) => onChange(event.target.value)}
-        className="mt-1.5 w-full border border-rule-strong bg-sheet px-3 py-2 text-body focus:border-ink focus:outline-none"
-      />
-    </label>
-  );
+/**
+ * Where to go after the form, from a parameter anyone can write.
+ *
+ * It ends up in `router.push`, so it is confined to a path inside this app.
+ * One leading slash and not two: `//somewhere.example` is a protocol-relative
+ * URL and the browser reads it as another origin, which is how an open
+ * redirect on a login page becomes a phishing link that starts on the real
+ * one. A backslash is rejected for the same reason — some browsers normalise
+ * `/\evil.example` the same way.
+ */
+function destination(value: string | string[] | undefined): string {
+  if (!value) return "/";
+  // A repeated `next` is nothing a link in this app produces, so it is either
+  // a mangled URL or someone probing. Neither is owed a guess at which of the
+  // two they meant; both get the dashboard.
+  if (typeof value !== "string") return "/";
+  if (!value.startsWith("/")) return "/";
+  if (value.startsWith("//") || value.startsWith("/\\")) return "/";
+  return value;
 }

@@ -165,9 +165,27 @@ export function CommandPalette({ commands }: { commands: Command[] }) {
           </ul>
         )}
 
-        <p className="border-t border-rule px-4 py-2 text-micro text-ink-faint">
-          <Key>↑</Key> <Key>↓</Key> to move · <Key>↵</Key> to go · <Key>esc</Key> to close
-        </p>
+        {/* The footer legend documented the only two ways out — a key and a
+            click on the dimmed ground behind — and both of them are things you
+            have to already know. The palette is opened by a keystroke but also
+            by the "⌘K · keys" button beside the filter row, so a reader can
+            arrive here having touched nothing but a screen, where `esc` does
+            not exist and the ground behind is a place you close things by
+            accident rather than on purpose. One button, in the idiom the
+            evidence panel already uses for the same job. */}
+        <div className="flex items-center justify-between gap-4 border-t border-rule px-4 py-2">
+          <p className="text-micro text-ink-faint">
+            <Key>↑</Key> <Key>↓</Key> to move · <Key>↵</Key> to go · <Key>esc</Key> to close
+          </p>
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            aria-label="Close the command palette"
+            className="shrink-0 border border-rule px-2 py-0.5 text-micro text-ink-soft hover:border-ink hover:text-ink"
+          >
+            Close
+          </button>
+        </div>
       </div>
     </div>
   );
