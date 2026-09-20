@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { API_BASE } from "../lib/api";
 
@@ -34,14 +34,56 @@ type Outcome = {
   detail?: string;
 };
 
+/**
+ * What one kind of upload is supposed to look like, as the engine describes
+ * itself.
+ *
+ * Fetched rather than written here on purpose. The required-column list and
+ * the header row of the file behind `download` are both generated from
+ * `ingest/columns.py`, so a column renamed there is renamed in this panel
+ * without anyone remembering to come back. A copy kept in this file would be
+ * a second source of truth about the one thing a first upload turns on, and
+ * it would be wrong the first time a synonym was added.
+ */
+type TemplateInfo = {
+  kind: string;
+  filename: string;
+  required: string[];
+  notes: string[];
+  download: string;
+};
+
 export function UploadPanel({ companyId }: { companyId: string }) {
   const router = useRouter();
   const input = useRef<HTMLInputElement>(null);
   const [kind, setKind] = useState(KINDS[0].value);
   const [busy, setBusy] = useState(false);
   const [outcome, setOutcome] = useState<Outcome | null>(null);
+  const [templates, setTemplates] = useState<Record<string, TemplateInfo>>({});
 
   const accept = KINDS.find((entry) => entry.value === kind)?.accept ?? ".csv";
+  const template = templates[kind];
+
+  // One request for all six, on mount. If it fails the panel loses the
+  // column list and keeps everything else: the download link below is built
+  // from the kind rather than from this response, so it still resolves.
+  useEffect(() => {
+    let live = true;
+    fetch(`${API_BASE}/api/templates`, { credentials: "include" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((body: { templates?: TemplateInfo[] } | null) => {
+        if (!live || !body?.templates) return;
+        setTemplates(
+          Object.fromEntries(body.templates.map((entry) => [entry.kind, entry])),
+        );
+      })
+      .catch(() => {
+        // Nothing to say. The picker works without this.
+      });
+    return () => {
+      live = false;
+    };
+  }, []);
 
   async function send(file: File) {
     setBusy(true);
@@ -130,8 +172,44 @@ export function UploadPanel({ companyId }: { companyId: string }) {
           className="text-prose file:mr-3 file:cursor-pointer file:border file:border-agreed file:bg-transparent file:px-3 file:py-1.5 file:text-prose file:font-medium hover:file:bg-agreed hover:file:text-stock"
         />
 
+        {/* The answer to "what am I supposed to choose?", beside the control
+            that asks it. A file picker on its own is a question with the
+            answer printed nowhere: this kind's example is one click away and
+            is itself a valid upload, so the shortest path to a working file
+            is download, replace the rows, send it back. */}
+        <a
+          href={`${API_BASE}/api/templates/${kind}/file`}
+          download
+          className="border border-agreed px-3 py-1.5 font-mono text-stub uppercase tracking-[0.06em] text-agreed transition-colors hover:bg-agreed hover:text-stock"
+        >
+          Download template
+        </a>
+
         {busy && <span className="text-ident text-graphite">Reading…</span>}
       </div>
+
+      {template && (
+        <div className="mt-4 max-w-[70ch] border-l-2 border-hairline pl-4">
+          <p className="text-ident text-graphite">
+            <span className="font-mono text-stub uppercase text-graphite-soft">
+              Columns required
+            </span>{" "}
+            {/* Named rather than counted, because the failure this prevents is
+                a file missing exactly one of them. The list is what
+                `resolve()` looks for first; a file calling a column something
+                else is still read, and the error says so by name if it is
+                not. */}
+            <span className="font-mono text-agreed">{template.required.join(", ")}</span>
+          </p>
+          {template.notes.length > 0 && (
+            <ul className="mt-2 space-y-1 text-ident leading-relaxed text-graphite">
+              {template.notes.map((note) => (
+                <li key={note}>{note}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
 
       {outcome && (
         <div

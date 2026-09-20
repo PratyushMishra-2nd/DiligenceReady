@@ -46,6 +46,7 @@ from diligence_engine import auth, authz, reporting
 from diligence_engine.config import settings
 from diligence_engine.db import connect
 from diligence_engine.ingest.columns import UnreadableExport
+from diligence_engine.ingest.templates import TEMPLATES
 from diligence_engine.ingest.upload import UPLOADABLE, UnsupportedUpload, ingest_upload
 from diligence_engine.normalise import ParseError
 
@@ -403,6 +404,59 @@ def evidence_source(
         )
 
     return _jsonable(source)
+
+
+@app.get("/api/templates")
+def list_templates() -> dict:
+    """What each kind of upload is expected to look like.
+
+    Unauthenticated, like `/api/health`, and for the same sort of reason: a
+    blank example of a purchase register contains two invented suppliers and
+    no firm's data, and the person who most needs it is the one deciding
+    whether to sign up at all. Putting it behind a session would hide it from
+    exactly them.
+
+    The required-column lists and the headers in each body are generated from
+    `ingest/columns.py`, so this endpoint cannot describe a format the parser
+    has stopped accepting.
+    """
+    return {
+        "templates": [
+            {
+                "kind": template.kind,
+                "label": template.label,
+                "filename": template.filename,
+                "media_type": template.media_type,
+                "required": list(template.required),
+                "notes": list(template.notes),
+                "download": f"/api/templates/{template.kind}/file",
+            }
+            for template in TEMPLATES.values()
+        ]
+    }
+
+
+@app.get("/api/templates/{kind}/file")
+def download_template(kind: str) -> Response:
+    """The example file itself, as a download.
+
+    It is a real file, not an illustration: each one is pushed through
+    `ingest_upload` by the test suite, so a reader who downloads it, replaces
+    the rows with their own and uploads it gets a file the engine reads. That
+    is the whole point of shipping an example rather than a screenshot of one.
+    """
+    template = TEMPLATES.get(kind)
+    if template is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No template for {kind!r}. Known: {', '.join(sorted(TEMPLATES))}.",
+        )
+
+    return Response(
+        content=template.body,
+        media_type=template.media_type,
+        headers={"content-disposition": f'attachment; filename="{template.filename}"'},
+    )
 
 
 # ── writing ─────────────────────────────────────────────────────────────────
