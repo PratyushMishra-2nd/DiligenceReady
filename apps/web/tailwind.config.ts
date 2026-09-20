@@ -72,6 +72,15 @@ const config: Config = {
         // Code and quoted source sit on a slightly sunk plate rather than on
         // white, which on a bone ground reads as a hole punched in the paper.
         sunk: "#EDE9DE",
+        // The ground a tipped-in plate sits on.
+        //
+        // `sunk` is six units off `stock` and was doing this job, which meant
+        // a screenshot of the product did not read as a photograph pasted onto
+        // the page — it read as more page, smaller and softer, and the run of
+        // three plates sagged into one grey block. This is far enough from the
+        // stock to say "different surface" and still a paper tone rather than
+        // a card.
+        "plate-ground": "#E2DCCC",
         // Washes. A row is tinted, not outlined, because a coloured border
         // round a row is the card cliche and a tint is what a highlighter
         // does to a printed sheet. Each is its ink at low saturation over
@@ -154,7 +163,37 @@ const config: Config = {
         // opens at architectural scale or it does not open.
         register: ["clamp(96px, 17.5vw, 268px)", { lineHeight: "0.82", letterSpacing: "-0.045em" }],
         opener: ["clamp(56px, 8vw, 116px)", { lineHeight: "0.88", letterSpacing: "-0.035em" }],
+        // The opener, one step down, for headings whose word count does not
+        // suit the measure. Not a free dial: two headings on the page need it
+        // and the rest do not. "The model cannot produce a number" broke to a
+        // single six-letter word on its second line with eight hundred pixels
+        // of hole beside it, and "Eight screens, one question each" ran to
+        // nine pixels short of the container edge, which reads as a heading
+        // that only just fit rather than as a decision.
+        "opener-tight": ["clamp(44px, 5.6vw, 84px)", { lineHeight: "0.92", letterSpacing: "-0.03em" }],
+        // The hero's headline, which is not a section opener and must stop
+        // being set like one.
+        //
+        // `opener` is sized for a heading that owns its screen. The hero's has
+        // to clear a deck, two buttons and a line of fine print inside the
+        // fold of the laptops this is actually read on — 1366x768 leaves about
+        // 625px of viewport once the browser has taken its chrome, and 1440x900
+        // about 760. Measured at `opener`, the hero's primary call to action
+        // landed at y=826: below the fold on both, visible only at 1080p.
+        // A landing page whose button most readers never see is a document,
+        // not a landing page.
+        headline: ["clamp(44px, 5.4vw, 84px)", { lineHeight: "0.92", letterSpacing: "-0.032em" }],
         deck: ["2.5rem", { lineHeight: "2.75rem", letterSpacing: "-0.01em" }],
+        // The medium heading this ramp was written without.
+        //
+        // The comment above says a section "either opens at architectural
+        // scale or it does not open", and that holds for section openers. It
+        // does not hold inside a section: sub-heads were landing at 17px Anek
+        // semibold directly above 17px Newsreader body, so the only thing
+        // separating a heading from the paragraph under it was weight and
+        // face. Across a page with no mid-level wayfinding that flattens five
+        // consecutive sections into grey. One step, used only inside sections.
+        subhead: ["1.375rem", { lineHeight: "1.75rem", letterSpacing: "-0.012em" }],
         intro: ["1.5rem", { lineHeight: "2rem" }],
         prose: ["1.0625rem", { lineHeight: "1.6875rem" }],
         amount: ["1.875rem", { lineHeight: "2rem", letterSpacing: "-0.02em" }],
@@ -168,8 +207,31 @@ const config: Config = {
       // `13rem`, so the right-hand column stepped sideways once, near the top,
       // for no reason a reader could name. Section rhythm is `py-12` between
       // sheets and `pt-12` after the last rule; there is no third value.
+      maxWidth: {
+        // The page's one secondary measure.
+        //
+        // Blocks were capped in `ch` — 88ch here, 80ch there, 72ch somewhere
+        // else — and a `ch` is a different width in each of the three faces,
+        // so the right edge of the page landed at 951, 1030 and 1312 within a
+        // single scroll. That is not three columns, it is three accidents. A
+        // ruled block either runs to the divider or stops here.
+        sheet: "58rem",
+      },
       gridTemplateColumns: {
-        paper: "2.5rem minmax(0, 64ch) minmax(0, 13rem)",
+        // The tick gutter, the measure, and the cross-reference margin.
+        //
+        // The margin was `minmax(0, 13rem)` and that was the bug the whole
+        // sheet was built on: three columns with fixed maxima and no `1fr`
+        // between them do not fill the row they are in. Measured at 1440 the
+        // row ran 112 → 1312 and the last column stopped at 1048, so 264px —
+        // 22% of every section — was unclaimed paper on the right, while the
+        // misregistration rules above and below ran the full width. The eye
+        // reads rules to the edge and content stopping short of it, which is
+        // the one thing a ruled document may not do.
+        //
+        // `minmax(16rem, 1fr)` makes the margin a real column: it claims the
+        // row, and a file path stops breaking into six lines inside 208px.
+        paper: "2.5rem minmax(0, 1fr)",
       },
       // Four rule weights, four meanings, and nothing is allowed a fifth:
       // `rule-hair` divides rows inside a block, `rule` divides blocks,

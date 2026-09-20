@@ -13,13 +13,23 @@ import Link from "next/link";
  * with a session wants the list every company is reached from; someone
  * following a stale link from outside wants to know what they have opened.
  *
- * The first link is a plain `/` and not the `/sign-in?next=/` the landing
- * page uses, because the two pages have opposite readers. This one is almost
- * always reached from inside the app by someone already signed in, and for
- * them `/` is the dashboard directly. A stranger who reaches it is bounced
- * from `/` to the landing page, which is where a stranger should be — that
- * redirect is the front door working, not a click going nowhere.
+ * The first link is a plain `/app` and not the `/sign-in?next=/app` the
+ * landing page uses, because the two pages have opposite readers. This one is
+ * almost always reached from inside the app by someone already signed in, and
+ * for them `/app` is the dashboard directly. A stranger who reaches it is
+ * bounced from `/app` to the landing page at `/`, which is where a stranger
+ * should be — that redirect is the front door working, not a click going
+ * nowhere.
  */
+/**
+ * The tab used to read "DiligenceReady: reconciliation for CA firms" here —
+ * the landing page's marketing title, on a page whose whole job is to say
+ * that the address is wrong.
+ */
+export const metadata = {
+  title: "Nothing is filed at that address",
+};
+
 export default function NotFound() {
   return (
     <main className="mx-auto max-w-[70ch] px-6 py-24">
@@ -36,13 +46,13 @@ export default function NotFound() {
       </p>
       <p className="mt-8 flex flex-wrap gap-x-8 gap-y-2 text-ident">
         <Link
-          href="/"
+          href="/app"
           className="underline decoration-graphite-soft underline-offset-4 hover:decoration-agreed"
         >
           All client companies
         </Link>
         <Link
-          href="/product"
+          href="/"
           className="underline decoration-graphite-soft underline-offset-4 hover:decoration-agreed"
         >
           What this is

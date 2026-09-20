@@ -278,7 +278,7 @@ export function Findings({
         group: "Periods",
         label: periodLabel(entry.period),
         hint: entry.gstr2b_generated ? `${entry.open_risks} open` : "no 2B yet",
-        run: () => router.push(`/companies/${companyId}?period=${entry.period}`),
+        run: () => router.push(`/app/companies/${companyId}?period=${entry.period}`),
       });
     }
     // The palette could reach every company except the page that lists them.
@@ -291,7 +291,7 @@ export function Findings({
       label: "All client companies",
       hint: "the firm dashboard",
       keywords: "home up back firm dashboard",
-      run: () => router.push("/"),
+      run: () => router.push("/app"),
     });
     for (const entry of companies) {
       items.push({
@@ -299,7 +299,7 @@ export function Findings({
         group: "Companies",
         label: entry.name,
         hint: entry.gstin,
-        run: () => router.push(`/companies/${entry.company_id}`),
+        run: () => router.push(`/app/companies/${entry.company_id}`),
       });
     }
     items.push({

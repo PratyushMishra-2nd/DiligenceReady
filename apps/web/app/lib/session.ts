@@ -29,7 +29,7 @@ import { API_BASE } from "./api";
  * This is NEXT_PUBLIC_ so it is available in both server and client bundles
  * at build time. Server components read it from process.env directly.
  */
-const SERVER_API_BASE =
+export const SERVER_API_BASE =
   process.env.NEXT_PUBLIC_API_UPSTREAM || API_BASE || "http://localhost:8077";
 
 export class Unauthorized extends Error {}
@@ -73,7 +73,7 @@ export async function requireData<T>(path: string): Promise<T> {
       // only honest `next` would be a guess. Where the destination genuinely
       // is knowable — the links on the landing page that point into the app —
       // it travels as `/sign-in?next=` and is honoured after the form.
-      redirect("/product");
+      redirect("/");
     }
     throw error;
   }

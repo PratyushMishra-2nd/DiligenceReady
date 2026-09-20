@@ -82,7 +82,7 @@ export function AskLedger({ companyId }: { companyId: string }) {
             maxLength={500}
             placeholder="Ask about this company's reconciled books"
             aria-label="Ask about this company's reconciled books"
-            className="min-w-[16rem] flex-1 border border-hairline bg-stock px-3 py-2 text-ident text-agreed placeholder:text-graphite-soft focus:border-agreed focus:outline-none"
+            className="min-w-[16rem] flex-1 border border-hairline bg-stock px-3 py-2 text-ident text-agreed placeholder:text-graphite-soft focus:border-agreed"
           />
           <button
             type="submit"

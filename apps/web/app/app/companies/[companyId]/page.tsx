@@ -1,14 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { AskLedger } from "../../components/AskLedger";
-import { Findings } from "../../components/Findings";
-import { ImsPanel } from "../../components/ImsPanel";
-import { LenderPackage } from "../../components/LenderPackage";
-import { OtherItc } from "../../components/OtherItc";
-import { ReadinessCard } from "../../components/ReadinessCard";
-import { Sparkline } from "../../components/Sparkline";
-import { UploadPanel } from "../../components/UploadPanel";
+import { AskLedger } from "../../../components/AskLedger";
+import { Findings } from "../../../components/Findings";
+import { ImsPanel } from "../../../components/ImsPanel";
+import { LenderPackage } from "../../../components/LenderPackage";
+import { OtherItc } from "../../../components/OtherItc";
+import { ReadinessCard } from "../../../components/ReadinessCard";
+import { Sparkline } from "../../../components/Sparkline";
+import { UploadPanel } from "../../../components/UploadPanel";
 import type {
   Company,
   CompanyCard,
@@ -17,9 +17,9 @@ import type {
   Readiness,
   Risk,
   SessionUser,
-} from "../../lib/api";
-import { requireData } from "../../lib/session";
-import { periodLabel } from "../../lib/format";
+} from "../../../lib/api";
+import { requireData } from "../../../lib/session";
+import { periodLabel } from "../../../lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -81,7 +81,7 @@ export default async function CompanyPage({
           sheet carries. The chevron is the part that is a control rather than
           a fact, so that is the part that comes off on paper. */}
       <nav aria-label="Breadcrumb" className="text-ident text-graphite">
-        <Link href="/" className="group inline-flex items-center gap-2">
+        <Link href="/app" className="group inline-flex items-center gap-2">
           <svg
             viewBox="0 0 8 10"
             aria-hidden
@@ -201,7 +201,7 @@ function PeriodPicker({
         return (
           <Link
             key={entry.period}
-            href={`/companies/${companyId}?period=${entry.period}`}
+            href={`/app/companies/${companyId}?period=${entry.period}`}
             aria-current={active ? "page" : undefined}
             title={
               entry.gstr2b_generated

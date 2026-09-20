@@ -1,314 +1,265 @@
-import Link from "next/link";
+import { inr } from "./lib/format";
+import aggregates from "./press/aggregates.json";
+import { Answers } from "./press/Answers";
+import { Audience } from "./press/Audience";
+import { CallToAction } from "./press/CallToAction";
+import { Colophon } from "./press/Colophon";
+import { DemoButton } from "./press/DemoButton";
+import { Faq } from "./press/Faq";
+import { Hero } from "./press/Hero";
+import { HowItWorks } from "./press/HowItWorks";
+import { Masthead } from "./press/Masthead";
+import { Misregister } from "./press/Misregister";
+import { Pilot } from "./press/Pilot";
+import { Plate } from "./press/Plate";
+import { Pricing } from "./press/Pricing";
+import { Screens } from "./press/Screens";
+import { Legend, Opener, Sheet } from "./press/Sheet";
+import { Standing } from "./press/Standing";
+import { Trace } from "./press/Trace";
+import { Trust } from "./press/Trust";
 
-import { SignOut } from "./components/SignOut";
-import { Overprint } from "./product/press/Overprint";
-import type { CompanyCard, SessionUser } from "./lib/api";
-import { api } from "./lib/api";
-import { requireData } from "./lib/session";
-import { deadline, inr, inrShort, periodLabel, sumInr } from "./lib/format";
+/**
+ * Title and description come from the root layout, which is where the share
+ * card and the title template live too. Repeating the title here would run it
+ * through that template and ship "DiligenceReady: reconciliation for CA firms ·
+ * DiligenceReady" to every tab and every search result.
+ */
+export const metadata = {
+  alternates: { canonical: "/" },
+};
 
-export const dynamic = "force-dynamic";
+/**
+ * The landing page, which is a working paper.
+ *
+ * Nothing here is claimed that the repository cannot back. No certifications
+ * we do not hold, no customer logos, no testimonials, and no signup form that
+ * quietly discards what someone types into it.
+ *
+ * The design follows from that sentence rather than decorating it. A CA's
+ * working paper carries an index, a tick mark in the margin against every
+ * assertion, a legend at the foot defining those marks, a footed column, and a
+ * sign-off block that stays blank until someone reviews it. This page has all
+ * five, and it turns them on itself.
+ *
+ * The mark that appears nowhere on this page is C — confirmed with an external
+ * party — because no practising CA has reviewed the rule set yet. The legend
+ * says so in those words. The page's epistemic position is the layout rather
+ * than a disclaimer under it.
+ *
+ * What changed in this pass, and why, because the order of a landing page is
+ * an argument and this one had the argument in the wrong order:
+ *
+ *   The root belongs to this page. It used to live at `/product` while `/` was
+ *   the dashboard, so a stranger who typed the domain was 307'd through a
+ *   password box to get here. The canonical URL of the thing we ask people to
+ *   share is now a 200.
+ *
+ *   The product is shown. Eight screens were described in prose and none were
+ *   shown; there are five screenshots of the running application on the page
+ *   now, the first of them immediately under the hero, carrying the same
+ *   figure the hero leads with.
+ *
+ *   The limits are on the page and in the masthead. A section that says
+ *   eighty-two of eighty-two were found is worth nothing without the negative
+ *   space around the answer key beside it.
+ *
+ *   The ask is an ask. The blank "reviewed by" rule at the foot is the best
+ *   gesture on the page and it terminated in nothing a reader could do; the
+ *   pilot section says out loud what would fill it.
+ */
 
-export default async function FirmDashboard() {
-  let companies: CompanyCard[];
-  let user: SessionUser;
-  try {
-    [{ companies }, user] = await Promise.all([
-      requireData<{ companies: CompanyCard[] }>("/api/firm/dashboard"),
-      requireData<SessionUser>("/api/me"),
-    ]);
-  } catch (error) {
-    // `requireData` redirects on 401, so anything reaching here is the
-    // engine being unreachable rather than the caller being signed out.
-    if ((error as { digest?: string }).digest?.startsWith("NEXT_REDIRECT")) throw error;
-    return <EngineOffline />;
-  }
+/**
+ * Every way into the product on this page is the demo button, and the demo
+ * button posts to `/demo`, which signs in on the server and lands the reader
+ * on the dashboard. There is no link to `/sign-in` here any more: a form is
+ * what somebody with their own account uses, and this page is not read by
+ * those people. The credentials are printed beside the button anyway, for a
+ * reader who would rather type them than be signed in by a stranger.
+ */
 
-  const exposure = sumInr(companies.map((company) => company.itc_at_risk));
-  const openRisks = companies.reduce((total, company) => total + company.open_risks, 0);
+/**
+ * Counts this page writes in words.
+ *
+ * A figure set in digits is one the reader is invited to check against
+ * something; these are neither at risk nor traceable to a row, they are the
+ * shape of the dataset, and spelling them keeps the digits on the page meaning
+ * one thing. Anything not listed falls back to the numeral rather than being
+ * spelled wrongly.
+ */
+const SPELLED: Record<number, string> = {
+  2: "two",
+  4: "four",
+  12: "twelve",
+  41: "forty-one",
+  82: "eighty-two",
+};
 
-  // The nearest cut-off across the whole book, and only the credit that
-  // cut-off actually governs. Quoting the full exposure against the soonest
-  // date would overstate the urgency, which is the same sin as understating it.
-  const soonest = companies
-    .map((company) => company.next_sec_16_4_deadline)
-    .filter(Boolean)
-    .sort()[0];
-  const cutoff = deadline(soonest);
-  const dueNow = sumInr(
-    companies
-      .filter((company) => company.next_sec_16_4_deadline === soonest)
-      .map((company) => company.itc_before_next_deadline),
-  );
-  const dueNowFindings = companies
-    .filter((company) => company.next_sec_16_4_deadline === soonest)
-    .reduce((total, company) => total + company.findings_before_next_deadline, 0);
+/** The same word, at the start of a sentence. */
+function spell(n: number, sentenceStart = false): string {
+  const word = SPELLED[n];
+  if (!word) return String(n);
+  return sentenceStart ? word[0].toUpperCase() + word.slice(1) : word;
+}
 
-  // The screen states a deadline and then has to answer "which client is that".
-  // A firm carries thirty to eighty companies, so in API order that question
-  // costs a read of every row. Soonest cut-off first, nulls last, ties broken
-  // by the money at stake. Sorting is the whole of it — no figure is recomputed
-  // here, and `itc_at_risk` is compared, never displayed, as a number.
-  const ordered = [...companies].sort((a, b) => {
-    const left = a.next_sec_16_4_deadline;
-    const right = b.next_sec_16_4_deadline;
-    if (left !== right) {
-      if (!left) return 1;
-      if (!right) return -1;
-      return left < right ? -1 : 1;
-    }
-    return Number(b.itc_at_risk) - Number(a.itc_at_risk);
-  });
-
-  const discriminating = companies.some(
-    (company) => company.next_sec_16_4_deadline !== soonest,
-  );
+export default function LandingPage() {
+  const example = aggregates.example;
 
   return (
-    <main className="mx-auto max-w-[1100px] px-6 py-10 sm:px-10">
-      {/* The firm's sheet, headed the way the landing page heads its own.
-          The product screens were set in the body face at intro size while
-          the front door was setting its headings in Anek at 116px, which is
-          two different products wearing one palette. */}
-      <header className="ruled flex flex-wrap items-baseline justify-between gap-x-8 gap-y-2 pb-4">
-        <h1 className="optical-cap wdth-tight font-anek text-[2rem] font-bold leading-none text-agreed">
-          {user.firm}
-        </h1>
-        <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1">
-          <p className="opsz-prose font-news text-ident text-graphite">
-            Financial readiness across {companies.length} client{" "}
-            {companies.length === 1 ? "company" : "companies"}
+    <main className="min-h-screen overflow-x-clip bg-stock text-agreed">
+      {/* Outside the measure, because it is sticky and a sticky element inside
+          a padded column has to undo that padding to reach the edges. It
+          carries its own. */}
+      <Masthead />
+
+      <div className="mx-auto max-w-[1280px] px-6 sm:px-10">
+        <Hero />
+
+        {/* The figure above, on the screen it is actually on.
+            This is the shortest distance between a claim and its evidence
+            anywhere on the page, and it sits here rather than in the screens
+            section for that reason: a reader has just been shown a number at
+            88px by a company that has never met them, and the next thing they
+            see is the same number inside the running application, above the
+            two client companies it was summed from. */}
+        <section className="pb-4">
+          <Plate
+            shot="dashboard"
+            index="Plate 1"
+            alt="The firm dashboard for Mehta & Associates: ₹16,25,635.64 of input tax credit with no GSTR-2B counterpart, the Section 16(4) sentence beneath it, and a table of two client companies — Vertex Components and Acme Industries — with GST and bank coverage, open findings and unmatched credit for each."
+            caption="The same figure, on the screen it is computed on. Both client companies, their coverage, and the credit at stake for each — this is the first thing the demo opens on."
+          />
+        </section>
+
+        <Answers />
+
+        <Misregister slip={1} />
+
+        <HowItWorks />
+        <Misregister slip={0.89} />
+
+        <Screens />
+
+        {/* A way in, in the middle of the argument. Measured, the page offered
+            a button at y=563 and then not another until y=6,783 — better than
+            nine screens carrying the most persuasive material on the site with
+            nothing to press at the moment it persuaded anyone. The sticky
+            masthead is reachable throughout, but it is a button in a corner:
+            a way back, not an invitation. */}
+        <aside className="my-2 border-y border-hairline py-6 lg:pl-20">
+          <div className="flex flex-wrap items-center justify-between gap-x-10 gap-y-4">
+            <p className="rag-pretty opsz-prose max-w-[54ch] font-news text-prose leading-relaxed text-agreed">
+              Those are screenshots of the workspace that is open right now, carrying two
+              client companies and twelve months of books. Nothing stands between you and
+              it — no form, no call, no trial clock.
+            </p>
+            <DemoButton label="Open the live demo" />
+          </div>
+        </aside>
+
+        <Misregister slip={0.78} />
+
+        <Sheet mark="traced">
+          <Opener slip={0.78} className="optical-cap max-w-[20ch]">
+            Every figure has a line
+          </Opener>
+          <p className="rag-pretty opsz-deck mt-7 max-w-[46ch] font-news text-[1.4rem] text-agreed sm:text-deck">
+            One finding, followed from the row of the file it was read out of to the
+            aggregate that puts it on a dashboard.
           </p>
-          <SignOut name={user.display_name} role={user.role} />
-        </div>
-      </header>
+          <div className="mt-2">
+            <Trace />
+            {/* The same four stages, as the product renders them. The section
+                argues that a figure can be opened; this is the panel that
+                opens, with the arithmetic, the match score and the inputs that
+                produced a different finding of the same rule. */}
+            {/* Promoted out of a 320px sidebar, where the most important
+                proof on the page was rendering its body text at about six
+                pixels. A plate nobody can read is a texture with a caption
+                attached, which is the "take it on trust" this page exists to
+                refuse. */}
+            <div className="mt-12 max-w-[34rem]">
+              <Plate
+                shot="evidence"
+                index="Plate 5"
+                sizes="(min-width: 1024px) 544px, 100vw"
+                alt="The evidence panel open beside a finding: rule R1, ITC_UNMATCHED, the arithmetic CGST 0.00 + SGST 0.00 + IGST 1,72,665.08 + Cess 0.00, a match score broken into GSTIN, document number, amount and date, and the note that a SQL aggregate over the match table produced the figure and no model did."
+                caption="What opens when a figure is clicked. This is a different invoice from the one traced above — its own Section 16(4) date, on its own financial year — because the panel is the product's, not this page's."
+              />
+            </div>
+          </div>
+        </Sheet>
 
-      {/* The first thing a CA should see is not a coverage percentage. It is
-          money with a statutory deadline attached — the figure that makes them
-          pick up the phone. */}
-      <section className="border-b border-graphite-soft py-10">
-        <p className="text-ident text-graphite">Input tax credit with no GSTR-2B counterpart</p>
-        {/* A fourteen-character rupee figure at 52px is wider than a phone.
-            The display size is the large-screen treatment; below that it drops
-            to the figure step rather than being clipped at the gutter. */}
-        {/* Printed out of register, like the figure on the landing page.
-            This is the same number the front door leads with and it should
-            look like the same number, not like a different product's total. */}
-        <p className="optical-figure mt-3">
-          <Overprint className="wdth-condensed tabular font-anek text-amount font-bold leading-none sm:text-[clamp(48px,7vw,92px)]">
-            {inr(exposure)}
-          </Overprint>
-        </p>
-        <p className="mt-5 max-w-[62ch] text-prose leading-relaxed text-graphite">
-          Already paid to suppliers and not yet claimable.
-          {cutoff && (
-            <>
-              {" "}
-              {/* Two emphases, not four: the amount and the days left. The
-                  calendar date is the label for the deadline, not the urgency
-                  in it, and a sentence that bolds every variable emphasises
-                  nothing. */}
-              <span className="tabular font-medium text-agreed">{inr(dueNow)}</span> of it sits
-              on invoices whose Sec 16(4) window closes {cutoff.label},{" "}
-              <span className="tabular font-medium text-agreed">{cutoff.days} days</span> away,
-              across {dueNowFindings} findings. After that date the credit stops being a
-              receivable and becomes a cost.
-            </>
-          )}
-        </p>
-      </section>
+        <Misregister slip={0.67} />
 
-      <section className="pt-8">
-        <div className="flex items-baseline justify-between">
-          <h2 className="text-ident font-semibold">Client companies</h2>
-          <p className="tabular text-ident text-graphite">{openRisks} open findings</p>
-        </div>
+        <Pricing />
 
-        {/* A GSTIN is fifteen unbreakable monospace characters and there are
-            six columns beside it. Without this the table pushes the whole
-            document sideways on a phone instead of scrolling itself. */}
-        <div className="mt-4 overflow-x-auto">
-          <table className="w-full min-w-[760px] border-collapse text-ident">
-            <caption className="sr-only">
-              Reconciliation state for every client company the firm carries, soonest Sec
-              16(4) cut-off first
-            </caption>
-            <thead className="sticky top-0 z-10 bg-stock">
-              <tr className="border-y border-graphite-soft text-left text-ident text-graphite">
-                <th scope="col" className="py-2 pr-4 font-medium">
-                  Company
-                </th>
-                <th scope="col" className="py-2 pr-4 font-medium">
-                  Sec 16(4) closes
-                </th>
-                <th scope="col" className="py-2 pr-4 font-medium">
-                  Latest period
-                </th>
-                <th scope="col" className="py-2 pr-4 text-right font-medium text-books">
-                  GST reconciled
-                </th>
-                <th
-                  scope="col"
-                  className="hidden py-2 pr-4 text-right font-medium text-books md:table-cell"
-                >
-                  Bank reconciled
-                </th>
-                <th scope="col" className="py-2 pr-4 text-right font-medium">
-                  Open
-                </th>
-                <th scope="col" className="py-2 text-right font-medium text-statute-deep">
-                  ITC unmatched
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {ordered.map((company) => {
-                // The rows the headline figure was summed from, marked as such.
-                // The alternative is a reader taking the hero on trust — but
-                // only where the mark distinguishes something. If every client
-                // shares the cut-off, shading all of them says nothing and
-                // spends the one wash this table has.
-                const due = discriminating && company.next_sec_16_4_deadline === soonest;
-                return (
-                  <tr
-                    key={company.company_id}
-                    className={`ruled align-baseline ${due ? "bg-statute-wash/40" : ""}`}
-                  >
-                    <td className="py-3 pr-4">
-                      <Link
-                        href={`/companies/${company.company_id}`}
-                        className="font-medium text-agreed underline decoration-graphite-soft underline-offset-4 hover:decoration-agreed"
-                      >
-                        {company.name}
-                      </Link>
-                      <span className="mt-0.5 block font-mono text-ident text-graphite">
-                        {company.gstin}
-                      </span>
-                    </td>
-                    <td className="py-3 pr-4">
-                      <Closes iso={company.next_sec_16_4_deadline} />
-                    </td>
-                    <td className="tabular py-3 pr-4 text-graphite">
-                      {periodLabel(company.period)}
-                    </td>
-                    <td className="tabular py-3 pr-4 text-right">
-                      <Coverage value={company.gst_coverage_pct} />
-                    </td>
-                    <td className="tabular hidden py-3 pr-4 text-right md:table-cell">
-                      <Coverage value={company.bank_coverage_pct} />
-                    </td>
-                    <td className="tabular py-3 pr-4 text-right">
-                      {company.open_risks}
-                      {company.high_risks > 0 && (
-                        <span className="ml-2 bg-statute-wash px-1.5 py-0.5 text-ident font-medium text-statute">
-                          {company.high_risks} high
-                        </span>
-                      )}
-                    </td>
-                    <td className="tabular py-3 text-right font-medium text-statute">
-                      {inrShort(company.itc_at_risk)}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        <Misregister slip={0.56} />
 
-        <p className="mt-6 max-w-[70ch] text-ident leading-relaxed text-graphite-soft">
-          Sorted by the soonest Sec 16(4) cut-off, then by the credit at stake.{" "}
-          {discriminating && "Shaded rows are the ones the figure above was summed from. "}
-          Coverage is the latest period;
-          open findings and unmatched credit are the whole book. Credit that went unmatched
-          in March is still unclaimed today, and the Sec 16(4) clock runs against
-          the invoice date, not the month you noticed.
-        </p>
+        <Sheet id="data" mark="stated">
+          <Opener slip={0.44} className="optical-cap max-w-[22ch]">
+            Where the client data goes
+          </Opener>
+          <p className="rag-pretty opsz-deck mt-7 max-w-[48ch] font-news text-[1.4rem] text-agreed sm:text-deck">
+            A firm does not hold its own books. It holds thirty other companies&rsquo;,
+            under an engagement letter.
+          </p>
+          <Trust />
+        </Sheet>
 
-        <p className="mt-4 text-ident text-graphite-soft">
-          <Link
-            href="/product"
-            className="underline decoration-graphite-soft underline-offset-4 hover:decoration-agreed"
-          >
-            What this is
-          </Link>
-        </p>
-      </section>
-    </main>
-  );
-}
+        <Misregister slip={0.44} />
 
-/**
- * The statutory cut-off, and how long is left of it. Vermillion inside a
- * month, because that is the window in which a CA can still do something about
- * it; plain ink beyond, because colouring every date makes none of them mean
- * anything.
- */
-function Closes({ iso }: { iso: string | null }) {
-  const cutoff = deadline(iso);
-  if (!cutoff) return <span className="text-graphite-soft">—</span>;
-  const urgent = cutoff.days <= 30;
-  return (
-    <span className={urgent ? "text-statute" : "text-agreed"}>
-      <span className="tabular block font-medium">{cutoff.days} days</span>
-      <span className="tabular mt-0.5 block text-ident text-graphite">{cutoff.label}</span>
-    </span>
-  );
-}
+        <Standing />
 
-/**
- * Coverage reads as near-binary in a column of eighty rows — 99.9% and 42.0%
- * are the same shape and the same colour, and only the digits differ. A
- * hairline sharing one baseline down the column lets the eye find the short
- * one without reading any of them.
- *
- * The bar is ink, never exposure: coverage is progress, not money at risk, and
- * the vermillion means one thing in this product. It is `aria-hidden` because
- * the number beside it is already the accessible value.
- */
-/**
- * How much of a register found its counterpart, in the ink of the record it
- * was matched against.
- *
- * Indigo is what the books say, and coverage is the books agreeing with
- * something, so this column is indigo and the exposure column beside it is
- * vermillion. The near-black the rest of the table is set in is the product
- * of those two, and on this screen both of its parents are visible.
- *
- * A fully reconciled register is marked by weight rather than by a second
- * colour — the previous version branched on `complete` and then set the same
- * class in both arms, so the distinction it was written for never reached the
- * screen at all.
- */
-function Coverage({ value }: { value: string }) {
-  const number = Number(value);
-  const complete = Number.isFinite(number) && number >= 99.95;
-  const width = Number.isFinite(number) ? Math.max(0, Math.min(100, number)) : 0;
-  return (
-    <span className="inline-block">
-      <span className={`text-books ${complete ? "font-semibold" : ""}`}>
-        {value}
-        <span className="text-books/70">%</span>
-      </span>
-      <span aria-hidden className="mt-1 block h-px w-12 bg-hairline">
-        <span className="block h-px bg-books" style={{ width: `${width}%` }} />
-      </span>
-    </span>
-  );
-}
+        <Misregister slip={0.33} />
 
-function EngineOffline() {
-  return (
-    <main className="mx-auto max-w-[70ch] px-6 py-24">
-      <h1 className="text-intro font-semibold">The engine is not answering</h1>
-      <p className="mt-3 text-prose leading-relaxed text-graphite">
-        The dashboard reads every figure from the reconciliation API at{" "}
-        <span className="font-mono text-agreed">{api.base}</span>. Start it, then reload:
-      </p>
-      <pre className="mt-4 overflow-x-auto border border-hairline bg-sunk p-4 font-mono text-ident">
-        {`docker compose -f infra/docker-compose.yml up -d
-uv run diligence pipeline
-uv run uvicorn diligence_api.main:app --port 8077`}
-      </pre>
+        <Sheet id="who" mark="computed">
+          <Opener slip={0.22} className="optical-cap max-w-[18ch]">
+            Who this is for
+          </Opener>
+          <Audience />
+        </Sheet>
+
+        <Misregister slip={0.22} />
+
+        <Sheet id="faq" mark="traced">
+          <Opener slip={0.11} className="optical-cap max-w-[20ch]">
+            Questions, answered at length
+          </Opener>
+          <Faq />
+        </Sheet>
+
+        <Misregister slip={0.11} />
+
+        <Sheet id="pilot" mark="stated">
+          <Opener slip={0} className="optical-cap max-w-[20ch]">
+            Sign the sheet
+          </Opener>
+          <Pilot />
+        </Sheet>
+
+        {/* The legend, at the foot, where a working paper puts one.
+            It was written, exported, and never called from anywhere — so the
+            five marks down this page were, by the standard stated three
+            paragraphs up in this very file, decoration. A mark means
+            something only if it was defined before it was used, and a reader
+            can only check that if the definition is on the page. */}
+        <Legend />
+
+        {/* In register. The progression down the page has been closing since
+            the hero and this is where it arrives: one rule, in the colour the
+            two inks make together. It sits here rather than under the black
+            plate below, because a rule that resolves needs paper on both sides
+            of it to be seen resolving. */}
+        <Misregister slip={0} />
+      </div>
+
+      {/* Outside the measure so the ink reaches both edges of the screen. */}
+      <CallToAction />
+
+      <div className="mx-auto max-w-[1280px] px-6 sm:px-10">
+        <Colophon />
+      </div>
     </main>
   );
 }

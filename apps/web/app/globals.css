@@ -264,6 +264,92 @@ summary::-webkit-details-marker {
   animation-delay: 60ms;
 }
 
+/* ── The impression landing ──────────────────────────────────────────
+   The third and last piece of motion, and the only one on the landing page
+   that a reader meets before they have scrolled.
+
+   It is the page's own thesis, performed once. Two records that did not land
+   on top of each other is what this product is about; the hero's figure is
+   printed three times in two inks to say so, and on load the two coloured
+   impressions arrive wide of the black one and pull into register. What a
+   reader sees is a press taking an impression, about six hundred milliseconds
+   of it, and then a document at rest.
+
+   The offsets live in custom properties rather than in the keyframes because
+   only the call site knows them: `Overprint` computes the slip per instance
+   and the animation has to end exactly where the static layout would have put
+   it, or the figure jumps at the last frame. `both` holds that final state.
+
+   Nothing loops, nothing plays on scroll, and the global
+   `prefers-reduced-motion` rule above collapses the whole thing to its
+   finished frame. */
+@keyframes ink-settle {
+  from {
+    transform: translate(calc(var(--ink-x) * 6), calc(var(--ink-y) * 6));
+    opacity: 0.5;
+  }
+  to {
+    transform: translate(var(--ink-x), var(--ink-y));
+    opacity: 1;
+  }
+}
+
+.ink-settle {
+  animation: ink-settle 620ms cubic-bezier(0.16, 0.84, 0.34, 1) both;
+}
+
+/* Type setting after the rule is drawn. Four steps, 70ms apart, and the whole
+   sequence is over before a reader who scrolled immediately would have missed
+   anything. It is only ever applied above the fold: animating a section into
+   view as it is scrolled to is the effect this page has refused from the
+   beginning, and this is a load, not a reveal. */
+@keyframes set-type {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.sets {
+  animation: set-type 480ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+.sets-1 {
+  animation-delay: 60ms;
+}
+.sets-2 {
+  animation-delay: 130ms;
+}
+.sets-3 {
+  animation-delay: 200ms;
+}
+.sets-4 {
+  animation-delay: 270ms;
+}
+
+/* ── The apparatus, linked ───────────────────────────────────────────
+   The tick mark in the margin is the only part of the working-paper
+   apparatus left on screen, and a mark nobody notices is a mark that is not
+   doing its job. Hovering or focusing anywhere in a section's measure grows
+   it slightly, which is enough to connect the mark to the claim it belongs
+   to without announcing itself.
+
+   It is a hover, so it is decoration for anyone who cannot use one — which is
+   why it carries no information that is not already printed. */
+.sheet:hover .tick-mark,
+.sheet:focus-within .tick-mark {
+  transform: scale(1.35);
+}
+
+.tick-mark {
+  transition: transform 160ms cubic-bezier(0.2, 0.7, 0.3, 1);
+  transform-origin: left center;
+}
+
 /* Same document, different sheet. Three lines, no JavaScript, and nothing at
    all in a browser that does not implement it. */
 @view-transition {
@@ -331,29 +417,9 @@ summary::-webkit-details-marker {
     margin: 18mm 16mm;
   }
 
-  /* The full-bleed figure is sized for a viewport and there is no viewport
-     on paper; left alone it takes two and a half sheets and prints the
-     canvas as an empty rectangle, because a canvas is not in the print
-     rasterisation of the page. The static SVG behind it is what should
-     print, at the size of the measure. */
-  .print-figure {
-    height: auto !important;
-    margin: 0 !important;
-  }
-
-  .print-figure .sticky {
-    height: auto !important;
-    padding: 0 !important;
-  }
-
-  canvas {
-    display: none !important;
-  }
-
-  .print-fallback {
-    position: static !important;
-    display: block !important;
-  }
+  /* The population figure is a static SVG and prints as it renders. It used
+     to be a canvas with a hidden SVG behind it, which needed four rules here
+     to survive a printer; the canvas is gone and so are they. */
 
   /* Ink on paper is not the screen's ink. Vermillion at 5.05:1 on bone goes
      muddy on a laser printer and indigo prints as a grey, so type set in
