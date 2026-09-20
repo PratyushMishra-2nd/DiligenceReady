@@ -67,14 +67,27 @@ export function Reconcile() {
 
     setLive(true);
 
-    // How far the reader has moved through the section, from the moment its
-    // top reaches the bottom of the viewport to the moment its foot leaves
-    // the top. One number, and the shader is a pure function of it.
+    // How far the reader has moved through the section. One number, and the
+    // shader is a pure function of it.
+    //
+    // It starts counting when the section's top crosses the BOTTOM of the
+    // viewport, not when it reaches the top. The first cut started at the
+    // top, which meant the whole time the section was scrolling into view the
+    // phase was still pinned at zero — so the canvas was on screen, at full
+    // size, with every record still parked above the frame. Two screens of
+    // blank paper where the best thing on the page should be, and invisible
+    // to anyone who only ever scrolled through it at reading speed.
+    //
+    // Counting from entry means the registers are already filling as the
+    // section arrives and are full by the time it pins, which leaves the
+    // pinned scroll to do the part that matters: everything that reconciles
+    // going quiet.
     const phaseNow = () => {
       const rect = frame.getBoundingClientRect();
-      const travel = rect.height - window.innerHeight;
-      if (travel <= 0) return 1;
-      return Math.min(Math.max(-rect.top / travel, 0), 1);
+      const view = window.innerHeight;
+      const span = rect.height;
+      if (span <= 0) return 1;
+      return Math.min(Math.max((view - rect.top) / span, 0), 1);
     };
 
     let queued = 0;

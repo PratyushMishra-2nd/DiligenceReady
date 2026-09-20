@@ -44,9 +44,11 @@ float ease(float t) {
 }
 
 void main() {
-  float delay = aSeed * 0.34;
-  float fall = ease((uPhase - delay) / 0.30);
-  float settle = smoothstep(0.52, 0.86, uPhase);
+  // The registers fill over the section's entry, so the fall is done by
+  // about a third and the rest of the scroll belongs to the settle.
+  float delay = aSeed * 0.20;
+  float fall = ease((uPhase - delay) / 0.18);
+  float settle = smoothstep(0.58, 0.90, uPhase);
 
   vec2 start = vec2(aFinal.x, -0.25 * uRes.y - aSeed * uRes.y * 0.9);
   vec2 pos = mix(start, aFinal, fall);
@@ -72,7 +74,13 @@ const vec3 STATUTE = vec3(0.769, 0.161, 0.106);
 void main() {
   vec2 d = abs(gl_PointCoord - 0.5);
   if (max(d.x, d.y) > 0.5) discard;
-  outColour = vec4(mix(FIELD, STATUTE, vMarked), vAlpha);
+
+  // Multiply blending, so this fades toward WHITE rather than toward
+  // transparent: under src*dst a white fragment leaves the paper untouched,
+  // and alpha does nothing at all. Fading with alpha here would simply stop
+  // the settle from happening.
+  vec3 ink = mix(FIELD, STATUTE, vMarked);
+  outColour = vec4(mix(vec3(1.0), ink, vAlpha), 1.0);
 }`;
 
 function compile(gl: WebGL2RenderingContext, type: number, source: string) {
@@ -196,7 +204,14 @@ export function createScene(
   const uCell = gl.getUniformLocation(program, "uCell");
 
   gl.enable(gl.BLEND);
-  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+  // Two impressions on paper multiply. Where records overlap, the result is
+  // the product of the inks rather than the topmost one winning, which is the
+  // same arithmetic that makes `agreed` = books x statute in the palette.
+  // Concretely: the ten invoices booked twice occupy adjacent rows, and at
+  // settle the marks are wider than the pitch, so a duplicate prints denser
+  // than a single defect. The picture states which defects are doublings
+  // without being told to.
+  gl.blendFunc(gl.DST_COLOR, gl.ZERO);
 
   return {
     draw(phase: number) {
