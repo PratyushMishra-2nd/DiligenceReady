@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { Overprint } from "./Overprint";
+import { Setting } from "./Setting";
 
 /**
  * The working paper's apparatus, which the page has specified since it was
@@ -314,10 +315,30 @@ const RAMP: Record<string, string> = {
  * first opener, converging to nothing at the sign-off, which is the
  * progression that was always intended and never visible.
  */
+/**
+ * Everything a heading is made of, as one string, or `null` if it is not.
+ *
+ * `Setting` needs the sentence to measure it, and most openers are written
+ * as plain text — but the answer key's interpolates two spelled-out numbers,
+ * so the children arrive as an array of strings. Anything with an element in
+ * it (a link, an emphasis) cannot be flattened without losing it, and takes
+ * the unsplit path instead of being quietly stripped.
+ */
+function flatten(node: ReactNode): string | null {
+  if (typeof node === "string") return node;
+  if (typeof node === "number") return String(node);
+  if (Array.isArray(node)) {
+    const parts = node.map(flatten);
+    return parts.every((part) => part !== null) ? parts.join("") : null;
+  }
+  return null;
+}
+
 export function Opener({
   slip,
   className = "",
   size = "text-opener",
+  stagger = 0,
   children,
 }: {
   slip: number;
@@ -332,6 +353,8 @@ export function Opener({
    * down rather than an orphan.
    */
   size?: string;
+  /** Milliseconds between each line of a split heading seating. */
+  stagger?: number;
   children: ReactNode;
 }) {
   const settled = slip <= 0.02;
@@ -341,6 +364,20 @@ export function Opener({
     </span>
   );
   if (settled) return <h2 className="text-agreed">{head}</h2>;
+
+  // A heading whose text can be read as a string is set line by line, each
+  // line in its own register, the way a press would have produced it. The
+  // server still renders it whole; `Setting` splits it after mount or leaves
+  // it exactly as it is. `relative` is for the measuring span it parks out of
+  // frame.
+  const text = flatten(children);
+  if (text) {
+    return (
+      <h2 className="relative">
+        <Setting text={text} slip={slip} size={size} className={className} stagger={stagger} />
+      </h2>
+    );
+  }
   return (
     <h2>
       {/* Pixels, not ems, and that is not laziness.

@@ -191,7 +191,7 @@ export function AnswerKey() {
           carried the treatment. It is the first section of the document, so
           it takes the top of the ladder. */}
       <div className="mt-3">
-        <Opener slip={slipFor("answer-key")} size="text-opener-tight" className="optical-cap max-w-[24ch]">
+        <Opener slip={slipFor("answer-key")} size="text-opener-tight" stagger={90} className="optical-cap max-w-[24ch]">
           We hid {spell(totals.planted)} defects in a year of books. The engine found{" "}
           {spell(totals.detected)}.
         </Opener>
