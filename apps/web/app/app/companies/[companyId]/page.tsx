@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { EngineOffline } from "../../page";
+
 import { AskLedger } from "../../../components/AskLedger";
 import { Findings } from "../../../components/Findings";
 import { ImsPanel } from "../../../components/ImsPanel";
@@ -31,14 +33,37 @@ export default async function CompanyPage({
   searchParams,
 }: {
   params: { companyId: string };
-  searchParams: { period?: string; from?: string; to?: string };
+  // Next hands every search param as `string | string[]`, because a query
+  // string is allowed to repeat a key. `app/sign-in/page.tsx` says this in as
+  // many words — "declaring it `string` here would be a type that lies… the
+  // first string method called on it throws" — and this file was written as
+  // though it did not apply. It did: `?period=A&period=B` reached
+  // `periodLabel(period)` with an array and threw `period.split is not a
+  // function` out of the server render.
+  searchParams: {
+    period?: string | string[];
+    from?: string | string[];
+    to?: string | string[];
+  };
 }) {
   let company: Company;
   try {
     company = await requireData<Company>(`/api/companies/${params.companyId}`);
   } catch (error) {
-    if ((error as { digest?: string }).digest?.startsWith("NEXT_REDIRECT")) throw error;
-    notFound();
+    const digest = (error as { digest?: string }).digest;
+    // Both digests, for the same reason the other three sites rethrow both:
+    // neither is a failure of this fetch. `requireData` does not currently
+    // throw NEXT_NOT_FOUND, but a guard that is right only by coincidence is
+    // the kind that stops being right quietly.
+    if (digest?.startsWith("NEXT_REDIRECT") || digest?.startsWith("NEXT_NOT_FOUND")) throw error;
+    // Only 404 when the engine actually said so. Every other failure —
+    // connection refused, a 500, a timeout, a proxy's HTML error page — used
+    // to land here too, so an engine that was merely down rendered "Nothing is
+    // filed at that address… Nothing has failed", which is false in exactly
+    // that case and sends a CA hunting for a typo instead of restarting the
+    // API.
+    if ((error as { status?: number }).status === 404) notFound();
+    return <EngineOffline />;
   }
 
   if (company.periods.length === 0) {
@@ -59,29 +84,87 @@ export default async function CompanyPage({
   // guessing the missing end would answer a question nobody asked. A span of
   // one month is not a span — it is the single-month page, which already has
   // a URL of its own.
-  const span = spanFrom(searchParams, company.periods);
-  const period = span ? span.to : (searchParams.period ?? fallback);
-  const chosenForYou = !span && !searchParams.period && reconciled[0]?.period === period;
+  // One normalisation, before anything is read. A repeated key gives an
+  // array, and every use below wants a string or nothing.
+  const asked = single(searchParams.period);
+  const span = spanFrom(
+    { from: single(searchParams.from), to: single(searchParams.to) },
+    company.periods,
+  );
+
+  // Validated, not merely present. The engine answers `where period = :period`
+  // for any string at all and returns 200 with zero counts rather than a 404 —
+  // so `?period=zzz` did not fail, it rendered a complete readiness card for a
+  // month that does not exist, headed "undefined zzz". On a product whose
+  // whole claim is provenance, inventing a month is worse than refusing one.
+  const wanted = asked && PERIOD.test(asked) ? asked : undefined;
+  const period = span ? span.to : (wanted ?? fallback);
+  const chosenForYou = !span && !wanted && reconciled[0]?.period === period;
 
   const base = `/api/companies/${company.company_id}/periods/${period}`;
-  const [range, readiness, { risks }, ims, other, firm, user] = await Promise.all([
-    span
-      ? requireData<Range>(
-          `/api/companies/${company.company_id}/range?from=${span.from}&to=${span.to}`,
-        )
-      : Promise.resolve(null),
-    requireData<Readiness>(`${base}/readiness`),
-    requireData<{ risks: Risk[] }>(`${base}/risks`),
-    requireData<ImsSummary>(`${base}/ims`).catch(() => null),
-    requireData<OtherItcSummary>(`${base}/other-itc`).catch(() => null),
-    // The command palette jumps between clients, so it needs the firm's book.
-    // Fetched on the server beside everything else rather than by the browser
-    // after paint: it is one more query on a page already making four.
-    requireData<{ companies: CompanyCard[] }>("/api/firm/dashboard").catch(() => ({
-      companies: [] as CompanyCard[],
-    })),
-    requireData<SessionUser>("/api/me").catch(() => null),
-  ]);
+  /* `readiness` and `risks` carry no catch of their own, and they should not:
+   * without them there is no page to render. What they were missing was
+   * somewhere for the failure to LAND. An unreachable engine threw straight
+   * out of the server render here and the reader got the bare "an error
+   * occurred in the Server Components render" — while the firm dashboard, one
+   * route up, has always caught exactly this and shown the engine-offline
+   * screen with the commands to start it.
+   *
+   * Same treatment, same screen. `NEXT_REDIRECT` and `NEXT_NOT_FOUND` are
+   * rethrown: `requireData` signals a lapsed session with the first and this
+   * page signals an unknown company with the second, and neither is the
+   * engine being down. */
+  let range: Range | null;
+  let readiness: Readiness;
+  let risks: Risk[];
+  let ims: ImsSummary | null;
+  let other: OtherItcSummary | null;
+  let firm: { companies: CompanyCard[] };
+  let user: SessionUser | null;
+
+  try {
+    [range, readiness, { risks }, ims, other, firm, user] = await Promise.all([
+      // The only fetch on this page that fires from a control rather than on
+      // load, and the only one that had no catch on it — so a range the API
+      // could not answer did not degrade the summary, it threw out of the
+      // server render and took the whole page with it: readiness, findings,
+      // evidence, the lot. Selecting a date span was the one way to reach it,
+      // which is exactly when it was reported.
+      //
+      // A span summary is supplementary. Losing it falls back to the single
+      // period view, which every branch below already handles, and the reader
+      // is told rather than left wondering why the range they picked did
+      // nothing. `NEXT_REDIRECT` still has to escape: `requireData` signals a
+      // lapsed session by throwing one, and swallowing it here would replace a
+      // sign-in with a silent empty panel.
+      span
+        ? requireData<Range>(
+            `/api/companies/${company.company_id}/range?from=${span.from}&to=${span.to}`,
+          ).catch((error: unknown) => {
+            const digest = (error as { digest?: string }).digest;
+            if (digest?.startsWith("NEXT_REDIRECT") || digest?.startsWith("NEXT_NOT_FOUND")) {
+              throw error;
+            }
+            return null;
+          })
+        : Promise.resolve(null),
+        requireData<Readiness>(`${base}/readiness`),
+        requireData<{ risks: Risk[] }>(`${base}/risks`),
+        soft(requireData<ImsSummary>(`${base}/ims`), null),
+        soft(requireData<OtherItcSummary>(`${base}/other-itc`), null),
+      // The command palette jumps between clients, so it needs the firm's book.
+      // Fetched on the server beside everything else rather than by the browser
+      // after paint: it is one more query on a page already making four.
+        soft(requireData<{ companies: CompanyCard[] }>("/api/firm/dashboard"), {
+        companies: [] as CompanyCard[],
+      }),
+        soft(requireData<SessionUser>("/api/me"), null),
+    ]);
+  } catch (error) {
+    const digest = (error as { digest?: string }).digest;
+    if (digest?.startsWith("NEXT_REDIRECT") || digest?.startsWith("NEXT_NOT_FOUND")) throw error;
+    return <EngineOffline />;
+  }
 
   return (
     <main className="mx-auto max-w-[1400px] px-6 py-10 sm:px-10">
@@ -96,28 +179,28 @@ export default async function CompanyPage({
           Not `no-print`: the firm's name is the only attribution the filed
           sheet carries. The chevron is the part that is a control rather than
           a fact, so that is the part that comes off on paper. */}
-      <nav aria-label="Breadcrumb" className="text-ident text-graphite">
+      <nav aria-label="Breadcrumb" className="text-caption-13 text-ink-muted">
         <Link href="/app" className="group inline-flex items-center gap-2">
           <svg
             viewBox="0 0 8 10"
             aria-hidden
-            className="no-print h-2.5 w-2 shrink-0 text-graphite-soft group-hover:text-agreed"
+            className="no-print h-2.5 w-2 shrink-0 text-ink-subtle group-hover:text-ink"
           >
             <path d="M6 1L1 5l5 4" fill="none" stroke="currentColor" strokeWidth="1.5" />
           </svg>
-          <span className="mark-verb underline decoration-graphite-soft underline-offset-4 group-hover:decoration-agreed">
+          <span className="mark-verb underline decoration-hairline underline-offset-4 group-hover:decoration-ink">
             {company.firm_name}
           </span>
-          <span className="text-graphite-soft">· all client companies</span>
+          <span className="text-ink-subtle">· all client companies</span>
         </Link>
       </nav>
 
       <header className="mt-3 flex flex-wrap items-end justify-between gap-x-10 gap-y-4">
         <div>
-          <h1 className="optical-cap wdth-tight font-anek text-[2rem] font-bold leading-none text-agreed">
+          <h1 className="leading-trim font-sans text-head-2 font-semibold leading-none text-ink">
             {company.name}
           </h1>
-          <p className="mt-1 font-mono text-ident text-graphite">
+          <p className="mt-1 font-mono text-caption-13 text-ink-muted">
             {company.gstin} · PAN {company.pan}
           </p>
         </div>
@@ -125,13 +208,13 @@ export default async function CompanyPage({
           {/* Thirteen open-finding counts, as a shape. Whether a book is
               getting better or worse is the firm's actual question about a
               client, and no single period answers it. */}
-          <div className="flex items-center gap-2 text-graphite">
+          <div className="flex items-center gap-2 text-ink-muted">
             <Sparkline
               points={[...company.periods]
                 .reverse()
                 .map((entry) => ({ period: entry.period, value: entry.open_risks }))}
             />
-            <span className="text-ident text-graphite-soft">open findings</span>
+            <span className="text-caption-13 text-ink-subtle">open findings</span>
           </div>
           <PeriodRange
             companyId={company.company_id}
@@ -147,11 +230,11 @@ export default async function CompanyPage({
           because September's 2B does not exist yet, and a CA who assumes
           otherwise is reading the wrong month. One sentence, no pixels of
           permanent furniture. */}
-      <p className="mt-6 max-w-[70ch] text-ident text-graphite">
+      <p className="mt-6 max-w-[70ch] text-caption-13 text-ink-muted">
         Financial readiness ·{" "}
         {span ? `${periodLabel(span.from)} to ${periodLabel(span.to)}` : periodLabel(period)}
         {chosenForYou && (
-          <span className="text-graphite-soft">
+          <span className="text-ink-subtle">
             {" "}
             (the latest period with a generated GSTR-2B; a month&rsquo;s 2B generates on
             the 14th of the month after it)
@@ -163,6 +246,16 @@ export default async function CompanyPage({
         <RangeSummary range={range} companyId={company.company_id} />
       ) : (
         <div className="mt-3">
+          {/* A span was asked for and could not be summed. Said plainly,
+              because the alternative is a reader picking twelve months,
+              getting one back, and having to work out for themselves whether
+              the control is broken or the answer really is one month. */}
+          {span && (
+            <p className="mb-3 border-l-2 border-exposure bg-exposure-wash px-3 py-2 text-caption-13 text-exposure-deep">
+              The engine could not sum {periodLabel(span.from, true)} to{" "}
+              {periodLabel(span.to, true)}. Showing {periodLabel(period)} on its own.
+            </p>
+          )}
           <ReadinessCard readiness={readiness} />
         </div>
       )}
@@ -185,11 +278,17 @@ export default async function CompanyPage({
           companyId={company.company_id}
           periods={company.periods}
           companies={firm.companies}
-          canWrite={user?.can_write ?? true}
+          /* Unknown means no. `/api/me` is fetched softly, so a partial
+             outage leaves `user` null — and defaulting to `true` there handed
+             the write UI to a reader whose permissions could not be read.
+             They press a decision and collect a 403 nobody warned them about.
+             A reader wrongly shown read-only asks; a reader wrongly shown
+             write is told no by the server. */
+          canWrite={user?.can_write ?? false}
         />
       )}
 
-      <div className="mt-10 border-t border-graphite-soft">
+      <div className="mt-10 border-t border-ink-subtle">
         {!range && other && <OtherItc other={other} />}
 
         {!range && ims && <ImsPanel ims={ims} />}
@@ -199,7 +298,7 @@ export default async function CompanyPage({
             that — it cannot be the thing hidden inside a closed drawer. */}
         <UploadPanel companyId={company.company_id} />
 
-        <div className="no-print border-b border-graphite-soft py-8">
+        <div className="no-print border-b border-ink-subtle py-8">
           <AskLedger companyId={company.company_id} />
         </div>
 
@@ -216,6 +315,38 @@ export default async function CompanyPage({
 }
 
 const PERIOD = /^\d{4}-(0[1-9]|1[0-2])$/;
+
+/**
+ * A failure this page can carry on without.
+ *
+ * Returns `fallback` for anything environmental, and rethrows the two digests
+ * that are not failures at all: `requireData` signals a lapsed session by
+ * throwing `NEXT_REDIRECT`, and this page signals an unknown company with
+ * `NEXT_NOT_FOUND`. A plain `.catch(() => null)` swallows both — which turns a
+ * sign-in into an empty panel and a 404 into a half-rendered page.
+ */
+function soft<T>(promise: Promise<T>, fallback: T): Promise<T> {
+  return promise.catch((error: unknown) => {
+    const digest = (error as { digest?: string }).digest;
+    if (digest?.startsWith("NEXT_REDIRECT") || digest?.startsWith("NEXT_NOT_FOUND")) {
+      throw error;
+    }
+    return fallback;
+  });
+}
+
+/**
+ * A search param as the one value the page can use.
+ *
+ * A query string may repeat a key, so Next types every param `string |
+ * string[]`. Taking the last occurrence rather than the first matches how a
+ * browser treats a repeated form field, and returning `undefined` for an empty
+ * array keeps every caller on one shape.
+ */
+function single(value: string | string[] | undefined): string | undefined {
+  if (Array.isArray(value)) return value[value.length - 1];
+  return value;
+}
 
 /**
  * The span the URL is asking for, or null for the ordinary one-month page.

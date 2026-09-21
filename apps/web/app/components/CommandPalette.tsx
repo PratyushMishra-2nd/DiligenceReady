@@ -98,14 +98,14 @@ export function CommandPalette({ commands }: { commands: Command[] }) {
 
   return (
     <div
-      className="no-print fixed inset-0 z-50 flex items-start justify-center bg-agreed/20 px-4 pt-[12vh]"
+      className="no-print fixed inset-0 z-50 flex items-start justify-center bg-ink/20 px-4 pt-[12vh]"
       onMouseDown={(event) => event.target === event.currentTarget && setOpen(false)}
     >
       <div
         role="dialog"
         aria-modal="true"
         aria-label="Command palette"
-        className="w-full max-w-[34rem] border border-agreed bg-sunk"
+        className="w-full max-w-[34rem] border border-ink bg-sunken"
       >
         <input
           ref={input}
@@ -113,7 +113,7 @@ export function CommandPalette({ commands }: { commands: Command[] }) {
           onChange={(event) => setQuery(event.target.value)}
           placeholder="Go to a finding, a period or another company"
           aria-label="Search commands"
-          className="w-full border-b border-hairline bg-sunk px-4 py-3 text-prose text-agreed placeholder:text-graphite-soft"
+          className="w-full border-b border-hairline bg-sunken px-4 py-3 text-copy-17 text-ink placeholder:text-ink-subtle"
           onKeyDown={(event) => {
             if (event.key === "ArrowDown" || (event.ctrlKey && event.key === "n")) {
               event.preventDefault();
@@ -132,7 +132,7 @@ export function CommandPalette({ commands }: { commands: Command[] }) {
         />
 
         {matches.length === 0 ? (
-          <p className="px-4 py-6 text-ident text-graphite">Nothing matches that.</p>
+          <p className="px-4 py-6 text-caption-13 text-ink-muted">Nothing matches that.</p>
         ) : (
           <ul ref={list} className="max-h-[52vh] overflow-y-auto">
             {matches.map((command, index) => {
@@ -140,7 +140,7 @@ export function CommandPalette({ commands }: { commands: Command[] }) {
               return (
                 <li key={command.id}>
                   {previous?.group !== command.group && (
-                    <p className="border-b border-hairline bg-stock px-4 py-1 text-ident text-graphite">
+                    <p className="border-b border-hairline bg-canvas px-4 py-1 text-caption-13 text-ink-muted">
                       {command.group}
                     </p>
                   )}
@@ -148,13 +148,20 @@ export function CommandPalette({ commands }: { commands: Command[] }) {
                     type="button"
                     onMouseEnter={() => setCursor(index)}
                     onClick={() => choose(command)}
-                    className={`flex w-full items-baseline gap-4 px-4 py-2 text-left ${
-                      index === cursor ? "bg-agreed-wash" : ""
+                    /* The palette's own ground is `sunken`, so a selected
+                       row painted `sunken` was invisible: arrowing down
+                       changed nothing on screen and Enter navigated to a row
+                       the reader could not see was chosen. Raised, plus a
+                       rule, so the selection survives a monochrome screen. */
+                    className={`flex w-full items-baseline gap-4 border-l-2 px-4 py-2 text-left ${
+                      index === cursor
+                        ? "border-exposure bg-raised"
+                        : "border-transparent"
                     }`}
                   >
-                    <span className="min-w-0 flex-1 truncate text-ident">{command.label}</span>
+                    <span className="min-w-0 flex-1 truncate text-caption-13">{command.label}</span>
                     {command.hint && (
-                      <span className="tabular shrink-0 font-mono text-ident text-graphite">
+                      <span className="fig shrink-0 font-mono text-caption-13 text-ink-muted">
                         {command.hint}
                       </span>
                     )}
@@ -174,14 +181,14 @@ export function CommandPalette({ commands }: { commands: Command[] }) {
             accident rather than on purpose. One button, in the idiom the
             evidence panel already uses for the same job. */}
         <div className="flex items-center justify-between gap-4 border-t border-hairline px-4 py-2">
-          <p className="text-ident text-graphite-soft">
+          <p className="text-caption-13 text-ink-subtle">
             <Key>↑</Key> <Key>↓</Key> to move · <Key>↵</Key> to go · <Key>esc</Key> to close
           </p>
           <button
             type="button"
             onClick={() => setOpen(false)}
             aria-label="Close the command palette"
-            className="shrink-0 border border-hairline px-2 py-0.5 text-ident text-graphite hover:border-agreed hover:text-agreed"
+            className="shrink-0 border border-hairline px-2 py-0.5 text-caption-13 text-ink-muted hover:border-ink hover:text-ink"
           >
             Close
           </button>
@@ -193,7 +200,7 @@ export function CommandPalette({ commands }: { commands: Command[] }) {
 
 function Key({ children }: { children: React.ReactNode }) {
   return (
-    <kbd className="border border-hairline bg-stock px-1 font-mono text-ident text-graphite">
+    <kbd className="border border-hairline bg-canvas px-1 font-mono text-caption-13 text-ink-muted">
       {children}
     </kbd>
   );

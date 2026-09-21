@@ -38,7 +38,7 @@ export function Mark({ className = "" }: { className?: string }) {
       {/* Books. The upper plate, and the one a reader meets first. */}
       <rect x="0" y="3" width="31" height="7.5" className="ink-books fill-books" />
       {/* The statute, landing low and to the right of it. */}
-      <rect x="9" y="13.5" width="31" height="7.5" className="ink-statute fill-statute" />
+      <rect x="9" y="13.5" width="31" height="7.5" className="ink-statute fill-exposure" />
     </svg>
   );
 }
@@ -68,12 +68,12 @@ export function Logo({
           plate on the cap line and the lower one on the baseline. */}
       <Mark className="h-[0.86em] w-[1.43em] shrink-0" />
       <span className="inline-flex flex-col">
-        <span className="wdth-tight font-anek font-bold leading-none tracking-tight">
+        <span className=" font-sans font-semibold leading-none tracking-tight">
           <span className="text-books">Diligence</span>
-          <span className="text-statute">Ready</span>
+          <span className="text-exposure">Ready</span>
         </span>
         {tagline && (
-          <span className="mt-[0.3em] font-mono text-[0.36em] uppercase leading-none tracking-[0.18em] text-graphite">
+          <span className="mt-[0.3em] font-mono text-[0.36em] uppercase leading-none tracking-[0.18em] text-ink-muted">
             Reconciliation for CA firms
           </span>
         )}

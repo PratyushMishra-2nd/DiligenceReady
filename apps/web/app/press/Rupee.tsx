@@ -49,7 +49,7 @@ export function Rupee({ amount, className = "" }: { amount: string; className?: 
  * it is the only one that gets this treatment.
  */
 function Comma({ lakh }: { lakh: boolean }) {
-  return lakh ? <span className="text-statute">,</span> : <span>,</span>;
+  return lakh ? <span className="text-exposure">,</span> : <span>,</span>;
 }
 
 /**

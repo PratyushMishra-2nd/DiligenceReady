@@ -4,7 +4,7 @@ import { useState } from "react";
 
 import aggregates from "./aggregates.json";
 import { Rupee } from "./Rupee";
-import { Opener, slipFor } from "./Sheet";
+import { Opener } from "./Sheet";
 
 /**
  * The answer key: eighty-two defects planted, eighty-two found.
@@ -176,8 +176,8 @@ export function AnswerKey() {
   const maxAmount = Math.max(...amounts);
 
   return (
-    <section id="answer-key" className="scroll-mt-24 border-y-2 border-agreed py-14">
-      <p className="font-mono text-stub uppercase tracking-[0.06em] text-statute-deep">
+    <section id="answer-key" className="scroll-mt-24 border-y-2 border-ink py-section md:py-section-md lg:py-section-lg">
+      <p className="font-mono text-label-12 uppercase tracking-[0.06em] text-exposure-deep">
         The answer key
       </p>
 
@@ -191,9 +191,8 @@ export function AnswerKey() {
           carried the treatment. It is the first section of the document, so
           it takes the top of the ladder. */}
       <div className="mt-3">
-        <Opener slip={slipFor("answer-key")} size="text-opener-tight" stagger={90} className="optical-cap max-w-[24ch]">
-          We hid {spell(totals.planted)} defects in a year of books. The engine found{" "}
-          {spell(totals.detected)}.
+        <Opener className="max-w-display">
+          {`We hid ${spell(totals.planted)} defects in a year of books. The engine found ${spell(totals.detected)}.`}
         </Opener>
       </div>
 
@@ -202,11 +201,11 @@ export function AnswerKey() {
           <ul className="grid gap-y-4">
             {rows.map(([rule, { type, items }]) => (
               <li key={rule} className="grid gap-y-1.5">
-                <p className="flex items-baseline justify-between gap-4 font-mono text-stub uppercase text-graphite">
+                <p className="flex items-baseline justify-between gap-4 font-mono text-label-12 uppercase text-ink-muted">
                   <span>
-                    <span className="text-statute-deep">{rule}</span> {readable(type)}
+                    <span className="text-exposure-deep">{rule}</span> {readable(type)}
                   </span>
-                  <span className="tabular text-agreed">{items.length}</span>
+                  <span className="fig text-ink">{items.length}</span>
                 </p>
                 <ul className="flex flex-wrap gap-1.5">
                   {items.map((defect, index) => (
@@ -225,11 +224,11 @@ export function AnswerKey() {
           </ul>
 
           {/* Footed, the way a column is. */}
-          <dl className="mt-8 border-t-2 border-agreed">
+          <dl className="mt-8 border-t-2 border-ink">
             <Foot term="Planted" value={totals.planted} />
             <Foot term="Found" value={totals.detected} />
-            <Foot term="Missed" value={totals.missed} tone="statute" />
-            <Foot term="Raised and not planted" value={totals.false_positives} tone="statute" />
+            <Foot term="Missed" value={totals.missed} tone="exposure" />
+            <Foot term="Raised and not planted" value={totals.false_positives} tone="exposure" />
           </dl>
         </div>
 
@@ -251,8 +250,8 @@ export function AnswerKey() {
               has seen what a miss and a false positive would look like, the
               eighty-two squares above stop being decoration and become a
               result they have verified with their own eyes. */}
-          <div className="border border-hairline bg-sunk p-5">
-            <p className="font-mono text-stub uppercase text-graphite">
+          <div className="border border-hairline bg-sunken p-5">
+            <p className="font-mono text-label-12 uppercase text-ink-muted">
               How to read a square
             </p>
             <dl className="mt-4 grid gap-y-3">
@@ -264,17 +263,17 @@ export function AnswerKey() {
                         <span aria-hidden className="plate-books absolute inset-0 bg-books mix-blend-multiply" />
                       )}
                       {found && (
-                        <span aria-hidden className="plate-statute absolute inset-0 bg-statute mix-blend-multiply" />
+                        <span aria-hidden className="plate-statute absolute inset-0 bg-exposure mix-blend-multiply" />
                       )}
                     </span>
                   </dt>
-                  <dd className="rag-pretty opsz-prose max-w-[34ch] font-news text-ident leading-relaxed text-graphite">
-                    <span className="text-agreed">{name}</span> — {meaning}
+                  <dd className="rag-pretty max-w-[34ch] font-sans text-caption-13 leading-relaxed text-ink-muted">
+                    <span className="text-ink">{name}</span> — {meaning}
                   </dd>
                 </div>
               ))}
             </dl>
-            <p className="rag-pretty opsz-prose mt-4 max-w-[34ch] border-t border-hairline pt-3 font-news text-ident leading-relaxed text-graphite">
+            <p className="rag-pretty mt-4 max-w-[34ch] border-t border-hairline pt-3 font-sans text-caption-13 leading-relaxed text-ink-muted">
               Every square above is the first kind. The other two are drawn here because
               they do not appear up there, and a result you cannot see the failure of is
               a result you are being asked to take on trust.
@@ -294,14 +293,14 @@ export function AnswerKey() {
           the same refusal, stated about the number instead of about the
           review. */}
       <div className="mt-14 border-t border-hairline pt-8">
-        <h3 className="rag-balance optical-cap wdth-tight max-w-[22ch] font-anek text-subhead font-semibold text-agreed">
+        <h3 className="rag-balance leading-trim max-w-[22ch] font-sans text-head-4 font-semibold text-ink">
           What {spell(totals.planted)} of {spell(totals.detected)} does not mean
         </h3>
         <ul className="mt-5 grid gap-x-12 gap-y-5 sm:grid-cols-2">
           {LIMITS.map((limit) => (
             <li
               key={limit}
-              className="rag-pretty opsz-prose max-w-[46ch] border-l-2 border-statute pl-4 font-news text-prose leading-relaxed text-agreed"
+              className="rag-pretty max-w-[46ch] border-l-2 border-exposure pl-4 font-sans text-copy-17 leading-relaxed text-ink"
             >
               {limit}
             </li>
@@ -353,7 +352,7 @@ function Cell({
       // would have inherited Tailwind's 150ms ease-in-out and put a second
       // easing system back on the page one component after it was removed.
       className={`relative isolate block h-5 w-5 [transition:transform_160ms_cubic-bezier(0.2,0.7,0.3,1)] hover:scale-110 ${
-        selected ? "scale-110 outline outline-2 outline-offset-2 outline-agreed" : ""
+        selected ? "scale-110 outline outline-2 outline-offset-2 outline-ink" : ""
       }`}
     >
       {/* Both plates are the same square, centred in the box and sized by
@@ -368,7 +367,7 @@ function Cell({
       {detected && (
         <span
           aria-hidden
-          className="plate-statute absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-statute mix-blend-multiply"
+          className="plate-statute absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-exposure mix-blend-multiply"
           style={{ width: ink, height: ink }}
         />
       )}
@@ -387,9 +386,9 @@ function Cell({
 function Readout({ defect, name }: { defect: Defect | null; name: string }) {
   if (!defect) {
     return (
-      <div aria-live="polite" className="border border-hairline bg-sunk p-5">
-        <p className="font-mono text-stub uppercase text-graphite">Any square</p>
-        <p className="rag-pretty opsz-prose mt-2 max-w-[34ch] font-news text-ident leading-relaxed text-graphite">
+      <div aria-live="polite" className="border border-hairline bg-sunken p-5">
+        <p className="font-mono text-label-12 uppercase text-ink-muted">Any square</p>
+        <p className="rag-pretty mt-2 max-w-[34ch] font-sans text-caption-13 leading-relaxed text-ink-muted">
           Each square is one defect written into the books before the engine ran, and the
           detection that landed on it. Open any of them and the record is here — the rule,
           the month, the company and the rupees. Nothing on this page is a summary you have
@@ -400,28 +399,28 @@ function Readout({ defect, name }: { defect: Defect | null; name: string }) {
   }
 
   return (
-    <dl aria-live="polite" className="border border-agreed bg-sunk p-5">
-      <dt className="font-mono text-stub uppercase text-graphite">Planted</dt>
-      <dd className="mt-1 font-news text-prose text-agreed">
+    <dl aria-live="polite" className="border border-ink bg-sunken p-5">
+      <dt className="font-mono text-label-12 uppercase text-ink-muted">Planted</dt>
+      <dd className="mt-1 font-sans text-copy-17 text-ink">
         {readable(defect.defect_type)}
       </dd>
 
-      <dt className="mt-4 font-mono text-stub uppercase text-graphite">Caught by</dt>
-      <dd className="mt-1 font-mono text-ident text-statute-deep">{defect.rule}</dd>
+      <dt className="mt-4 font-mono text-label-12 uppercase text-ink-muted">Caught by</dt>
+      <dd className="mt-1 font-mono text-caption-13 text-exposure-deep">{defect.rule}</dd>
 
-      <dt className="mt-4 font-mono text-stub uppercase text-graphite">Amount</dt>
-      <dd className="tabular mt-1 font-mono text-ident text-agreed">
+      <dt className="mt-4 font-mono text-label-12 uppercase text-ink-muted">Amount</dt>
+      <dd className="fig mt-1 font-mono text-caption-13 text-ink">
         <Rupee amount={defect.amount} />
       </dd>
 
-      <dt className="mt-4 font-mono text-stub uppercase text-graphite">Period</dt>
-      <dd className="mt-1 font-mono text-ident text-agreed">{period(defect.period)}</dd>
+      <dt className="mt-4 font-mono text-label-12 uppercase text-ink-muted">Period</dt>
+      <dd className="mt-1 font-mono text-caption-13 text-ink">{period(defect.period)}</dd>
 
-      <dt className="mt-4 font-mono text-stub uppercase text-graphite">Company</dt>
-      <dd className="mt-1 font-mono text-ident text-agreed">{name}</dd>
+      <dt className="mt-4 font-mono text-label-12 uppercase text-ink-muted">Company</dt>
+      <dd className="mt-1 font-mono text-caption-13 text-ink">{name}</dd>
 
-      <dt className="mt-4 font-mono text-stub uppercase text-graphite">Register</dt>
-      <dd className="mt-1 font-mono text-ident text-agreed">
+      <dt className="mt-4 font-mono text-label-12 uppercase text-ink-muted">Register</dt>
+      <dd className="mt-1 font-mono text-caption-13 text-ink">
         {defect.register ?? "period-level"} · planted at {defect.target} level
       </dd>
     </dl>
@@ -436,7 +435,7 @@ function Readout({ defect, name }: { defect: Defect | null; name: string }) {
  * table. The page's own rule is that a spelled number carries shape and a
  * digit is something to check against, so the headline sentence keeps the
  * display scale; but a footed total is exactly the kind of figure a reader
- * checks, and it was too small to be met. It is set in Anek now, tabular, at
+ * checks, and it was too small to be met. It is set in Anek now, fig, at
  * a size that is unmistakably subordinate to the sentence above and
  * unmistakably not a caption.
  */
@@ -447,14 +446,14 @@ function Foot({
 }: {
   term: string;
   value: number;
-  tone?: "plain" | "statute";
+  tone?: "plain" | "exposure";
 }) {
   return (
     <div className="flex items-baseline justify-between gap-6 border-b border-hairline py-3">
-      <dt className="font-mono text-stub uppercase text-graphite">{term}</dt>
+      <dt className="font-mono text-label-12 uppercase text-ink-muted">{term}</dt>
       <dd
-        className={`tabular wdth-condensed font-anek text-[clamp(26px,3.2vw,38px)] font-bold leading-none ${
-          tone === "statute" && value > 0 ? "text-statute-deep" : "text-agreed"
+        className={`fig font-sans text-head-2 font-semibold leading-none ${
+          tone === "exposure" && value > 0 ? "text-exposure-deep" : "text-ink"
         }`}
       >
         {value}

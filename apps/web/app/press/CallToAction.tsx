@@ -25,7 +25,7 @@ import { Opener } from "./Sheet";
  */
 export function CallToAction() {
   return (
-    <section className="mt-20 bg-plate px-6 py-20 text-stock sm:px-10">
+    <section className="plate-section mt-section bg-plate px-6 py-section text-plate-ink sm:px-10 md:py-section-md">
       <div className="mx-auto grid max-w-[1280px] gap-x-14 gap-y-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]">
         <div>
           {/* Slip zero, and through `Opener` rather than around it.
@@ -41,14 +41,14 @@ export function CallToAction() {
               inks are composited with `mix-blend-multiply`, and multiply
               against a black plate returns the plate. An overprint on this
               ground would be three invisible layers. */}
-          <Opener slip={0} className="optical-round max-w-[16ch] text-stock">
+          <Opener className="leading-trim max-w-[16ch] text-plate-ink">
             Open it and look.
           </Opener>
-          <p className="rag-pretty opsz-deck mt-7 max-w-[44ch] font-news text-[1.4rem] sm:text-deck text-stock-soft">
+          <p className="rag-pretty mt-7 max-w-[44ch] font-sans text-head-4 sm:text-head-3 text-plate-muted">
             A demo firm is already signed up, carrying two client companies with twelve
             months of books, GST returns and bank statements behind each.
           </p>
-          <p className="rag-pretty opsz-prose mt-6 max-w-[52ch] font-news text-prose text-stock-faint">
+          <p className="rag-pretty mt-6 max-w-[52ch] font-sans text-copy-17 text-plate-muted">
             The records are generated rather than real, and that is deliberate: it is the
             only way to know in advance what the engine is supposed to find, and therefore
             the only way to measure whether it found it.
@@ -62,29 +62,29 @@ export function CallToAction() {
         {/* `self-start` because a grid item stretches to its row by default,
             and this one was drawing a border round two hundred pixels of
             nothing under the last line of its own fine print. */}
-        <div className="self-start border border-stock-faint/40 p-6">
-          <p className="font-mono text-stub uppercase text-stock-faint">Sign in as</p>
+        <div className="self-start border border-plate-hairline p-6">
+          <p className="font-mono text-label-12 uppercase text-plate-muted">Sign in as</p>
           <dl className="mt-4 space-y-4">
             <div>
-              <dt className="font-mono text-stub uppercase text-stock-faint">Firm</dt>
-              <dd className="wdth-set mt-1 font-anek text-[1.25rem] font-semibold text-stock">
+              <dt className="font-mono text-label-12 uppercase text-plate-muted">Firm</dt>
+              <dd className=" mt-1 font-sans text-copy-19 font-semibold text-plate-ink">
                 {DEMO_FIRM}
               </dd>
             </div>
             <div>
-              <dt className="font-mono text-stub uppercase text-stock-faint">Email</dt>
-              <dd className="mt-1 select-all break-all font-mono text-ident text-stock">
+              <dt className="font-mono text-label-12 uppercase text-plate-muted">Email</dt>
+              <dd className="mt-1 select-all break-all font-mono text-caption-13 text-plate-ink">
                 {DEMO_EMAIL}
               </dd>
             </div>
             <div>
-              <dt className="font-mono text-stub uppercase text-stock-faint">Password</dt>
-              <dd className="mt-1 select-all break-all font-mono text-ident text-stock">
+              <dt className="font-mono text-label-12 uppercase text-plate-muted">Password</dt>
+              <dd className="mt-1 select-all break-all font-mono text-caption-13 text-plate-ink">
                 {DEMO_PASSWORD}
               </dd>
             </div>
           </dl>
-          <p className="rag-pretty opsz-prose mt-6 font-news text-ident leading-relaxed text-stock-faint">
+          <p className="rag-pretty mt-6 font-sans text-caption-13 leading-relaxed text-plate-muted">
             A demo account on generated data. There is no self-service signup, because
             there is no self-service client data: a firm owner creates each account and
             every account belongs to exactly one firm.

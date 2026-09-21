@@ -30,15 +30,15 @@ export function LenderPackage({
     <Disclosure
       title="Lender-ready package"
       headline={
-        <p className="tabular text-ident text-graphite">
-          <span className="font-medium text-agreed">{periodsReconciled} months</span> of
+        <p className="fig text-caption-13 text-ink-muted">
+          <span className="font-medium text-ink">{periodsReconciled} months</span> of
           reconciled history · not built yet
         </p>
       }
     >
       <div className="flex flex-wrap items-start justify-between gap-x-8 gap-y-4">
-        <p className="max-w-[60ch] text-prose leading-relaxed text-graphite">
-          <span className="tabular font-medium text-agreed">{periodsReconciled} months</span>{" "}
+        <p className="max-w-[60ch] text-copy-17 leading-relaxed text-ink-muted">
+          <span className="fig font-medium text-ink">{periodsReconciled} months</span>{" "}
           of reconciled history so far, {periodLabel(earliest)} to {periodLabel(latest)},
           every figure linked to the file line behind it. At eighteen months this becomes a
           diligence pack a lender can take as read, generated from history that already
@@ -49,13 +49,13 @@ export function LenderPackage({
           type="button"
           disabled
           title="Not built yet. Shown because the history it would be generated from is real."
-          className="no-print shrink-0 cursor-not-allowed border border-hairline bg-stock px-4 py-2 text-ident text-graphite-soft"
+          className="no-print shrink-0 cursor-not-allowed border border-hairline bg-canvas px-4 py-2 text-caption-13 text-ink-subtle"
         >
           Generate lender-ready package
         </button>
       </div>
 
-      <p className="mt-3 text-ident text-graphite-soft">
+      <p className="mt-3 text-caption-13 text-ink-subtle">
         Deliberately inactive. The reconciled history behind it is real; the export is not
         written, and a button that produced an unverified pack would be worse than none.
       </p>

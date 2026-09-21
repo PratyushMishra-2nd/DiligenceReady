@@ -1,7 +1,7 @@
 import aggregates from "./aggregates.json";
 
 import { DemoButton } from "./DemoButton";
-import { Opener, slipFor } from "./Sheet";
+import { Opener } from "./Sheet";
 import { Rupee } from "./Rupee";
 
 /**
@@ -27,15 +27,15 @@ import { Rupee } from "./Rupee";
  */
 export function Pricing() {
   return (
-    <section id="pricing" className="scroll-mt-24 py-14 lg:pl-20">
-      <div className="grid gap-x-14 gap-y-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+    <section id="pricing" className="scroll-mt-24 py-section md:py-section-md lg:py-section-lg lg:pl-[268px]">
+      <div className="grid gap-x-block gap-y-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div className="min-w-0">
-          <Opener slip={slipFor("pricing")} className="optical-cap max-w-[14ch]">
+          <Opener className="max-w-pull">
             What it costs
           </Opener>
 
-          <p className="optical-figure mt-8">
-            {/* The floor is 40px, not 48. Same defect as `text-register`: 7vw
+          <p className="leading-trim mt-8">
+            {/* The floor is 40px, not 48. Same defect as `text-figure-1`: 7vw
                 does not reach 48px until a 686px viewport, so every phone got
                 the floor — thirteen glyphs of condensed Anek bold at 48px
                 against 272px of usable measure at 320px, held on one line by
@@ -45,24 +45,24 @@ export function Pricing() {
                 `whitespace-nowrap` stays: a price that breaks across two
                 lines mid-range is worse than a smaller one. Above 686px
                 nothing about this changes. */}
-            <span className="whitespace-nowrap wdth-condensed tabular font-anek text-[clamp(40px,7vw,92px)] font-bold leading-none text-agreed">
+            <span className="fig leading-trim font-sans text-head-1 font-semibold text-ink">
               ₹6,000&ndash;15,000
             </span>
           </p>
-          <p className="wdth-set mt-3 font-anek text-subhead font-semibold text-graphite">
+          <p className=" mt-3 font-sans text-head-4 font-semibold text-ink-muted">
             per month, per firm. Up to 25 client companies. Plus 18% GST.
           </p>
 
-          <p className="rag-pretty opsz-deck mt-7 max-w-[40ch] font-news text-[1.3rem] leading-snug text-agreed">
-            That is <span className="tabular">₹240</span> to{" "}
-            <span className="tabular">₹600</span> per client company, per month.
+          <p className="rag-pretty mt-7 max-w-lede font-sans text-copy-19 text-ink">
+            That is <span className="fig">₹240</span> to{" "}
+            <span className="fig">₹600</span> per client company, per month.
           </p>
 
           <div className="mt-8 flex flex-wrap items-center gap-x-4 gap-y-3">
             <DemoButton label="Open the live demo" />
             <a
               href="#pilot"
-              className="border-2 border-hairline px-6 py-3 font-mono text-ident uppercase tracking-[0.08em] text-graphite press-verb hover:border-agreed hover:text-agreed"
+              className="magnetic rounded-chip border-2 border-hairline px-6 py-3 font-mono text-caption-13 uppercase tracking-[0.08em] text-ink-muted hover:border-ink hover:text-ink"
             >
               Run it on a real client
             </a>
@@ -81,9 +81,9 @@ export function Pricing() {
           </Row>
           <Row term="For scale">
             The top of that range is{" "}
-            <span className="tabular font-medium text-agreed">₹1,80,000</span> a year. The
+            <span className="fig font-medium text-ink">₹1,80,000</span> a year. The
             two companies in the demo were carrying{" "}
-            <span className="tabular font-medium text-statute-deep">
+            <span className="fig font-medium text-exposure-deep">
               <Rupee amount={aggregates.headline.amount} />
             </span>{" "}
             of unclaimable credit between them.
@@ -100,10 +100,10 @@ export function Pricing() {
 function Row({ term, children }: { term: string; children: React.ReactNode }) {
   return (
     <div className="border-b border-hairline py-3">
-      <dt className="wdth-set font-anek text-subhead font-semibold leading-tight text-agreed">
+      <dt className=" font-sans text-head-4 font-semibold leading-tight text-ink">
         {term}
       </dt>
-      <dd className="rag-pretty opsz-prose mt-1 font-news text-ident leading-relaxed text-graphite">
+      <dd className="rag-pretty mt-1 font-sans text-caption-13 leading-relaxed text-ink-muted">
         {children}
       </dd>
     </div>

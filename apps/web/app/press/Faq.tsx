@@ -57,18 +57,18 @@ export function Faq() {
     <div className="mt-10 max-w-sheet border-t border-hairline">
       {QUESTIONS.map(({ q, a }) => (
         <details key={q} className="group border-b border-hairline">
-          <summary className="mark-verb -mx-3 flex cursor-pointer items-baseline gap-3 px-3 py-4 hover:bg-sunk">
+          <summary className="mark-verb -mx-3 flex cursor-pointer items-baseline gap-3 px-3 py-4 hover:bg-sunken">
             <svg
               viewBox="0 0 8 10"
               aria-hidden
-              className="mt-[3px] h-2.5 w-2 shrink-0 text-statute [transition:transform_160ms_cubic-bezier(0.2,0.7,0.3,1)] group-open:rotate-90"
+              className="mt-[3px] h-2.5 w-2 shrink-0 text-exposure [transition:transform_160ms_cubic-bezier(0.2,0.7,0.3,1)] group-open:rotate-90"
             >
               <path d="M1 1l5 4-5 4" fill="none" stroke="currentColor" strokeWidth="1.5" />
             </svg>
-            <h3 className="wdth-set font-anek text-subhead font-semibold leading-tight text-agreed">{q}</h3>
+            <h3 className=" font-sans text-head-4 font-semibold leading-tight text-ink">{q}</h3>
           </summary>
           <div className="pb-6 pl-5">
-            <p className="rag-pretty opsz-prose max-w-[74ch] font-news text-prose leading-relaxed text-graphite">
+            <p className="rag-pretty max-w-[74ch] font-sans text-copy-17 leading-relaxed text-ink-muted">
               {a}
             </p>
           </div>

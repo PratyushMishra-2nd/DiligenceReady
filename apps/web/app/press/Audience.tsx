@@ -51,12 +51,12 @@ export function Audience() {
   return (
     <div className="mt-8 grid gap-x-14 gap-y-12 lg:grid-cols-2">
       <div>
-        <h3 className="font-mono text-stub uppercase text-graphite">Built for</h3>
+        <h3 className="font-mono text-label-12 uppercase text-ink-muted">Built for</h3>
         <ul className="mt-4 border-t border-hairline">
           {FOR.map((line) => (
             <li
               key={line}
-              className="rag-pretty opsz-prose max-w-sheet border-b border-hairline py-3 font-news text-prose text-agreed"
+              className="rag-pretty max-w-sheet border-b border-hairline py-3 font-sans text-copy-17 text-ink"
             >
               {line}
             </li>
@@ -67,7 +67,7 @@ export function Audience() {
             claim about hours. One client-month is three registers that have to
             be made to agree with each other, and the demo carries
             twenty-four of them. */}
-        <h3 className="mt-10 font-mono text-stub uppercase text-graphite">
+        <h3 className="mt-10 font-mono text-label-12 uppercase text-ink-muted">
           One client-month, in this dataset
         </h3>
         <Schedule className="mt-4">
@@ -77,10 +77,10 @@ export function Audience() {
           <ScheduleRow
             term="Findings the engine raises"
             state={(totals.planted / clientMonths).toFixed(1)}
-            tone="statute"
+            tone="exposure"
           />
         </Schedule>
-        <p className="rag-pretty opsz-prose mt-4 max-w-[58ch] font-news text-ident leading-relaxed text-graphite-soft">
+        <p className="rag-pretty mt-4 max-w-[58ch] font-sans text-caption-13 leading-relaxed text-ink-subtle">
           Three registers, compared three ways, {clientMonths} times over in the workspace
           you are about to open. How long that takes by eye is a number you already know
           and we would only be guessing at.
@@ -88,7 +88,7 @@ export function Audience() {
       </div>
 
       <div>
-        <h3 className="font-mono text-stub uppercase text-graphite">Not for</h3>
+        <h3 className="font-mono text-label-12 uppercase text-ink-muted">Not for</h3>
         <Schedule className="mt-4">
           {NOT_FOR.map(({ term, note }) => (
             <ScheduleRow key={term} term={term} note={note} />

@@ -41,14 +41,14 @@ const ANSWERS: { q: string; a: string }[] = [
 
 export function Answers() {
   return (
-    <section className="py-10 lg:pl-20">
+    <section className="py-section md:py-section-md lg:py-section-lg lg:pl-[268px] border-t border-hairline">
       <dl className="grid gap-x-12 gap-y-6 border-y border-hairline py-8 sm:grid-cols-2">
         {ANSWERS.map(({ q, a }) => (
           <div key={q} className="min-w-0">
-            <dt className="wdth-set font-anek text-subhead font-semibold leading-tight text-agreed">
+            <dt className=" font-sans text-head-4 font-semibold leading-tight text-ink">
               {q}
             </dt>
-            <dd className="rag-pretty opsz-prose mt-1.5 max-w-[46ch] font-news text-ident leading-relaxed text-graphite">
+            <dd className="rag-pretty mt-1.5 max-w-[46ch] font-sans text-caption-13 leading-relaxed text-ink-muted">
               {a}
             </dd>
           </div>

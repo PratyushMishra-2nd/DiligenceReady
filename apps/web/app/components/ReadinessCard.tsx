@@ -34,9 +34,9 @@ import { inrExact, inrShort, pct } from "../lib/format";
  */
 export function ReadinessCard({ readiness }: { readiness: Readiness }) {
   return (
-    <section className="grid gap-x-12 gap-y-8 border-y border-graphite-soft py-8 md:grid-cols-2">
+    <section className="grid gap-x-12 gap-y-8 border-y border-ink-subtle py-8 md:grid-cols-2">
       <div>
-        <h2 className="text-ident font-semibold text-books">Reconciled</h2>
+        <h2 className="text-caption-13 font-semibold text-books">Reconciled</h2>
         <dl className="mt-4 space-y-4">
           <CoverageRow
             label="Purchase register against GSTR-2B"
@@ -52,7 +52,7 @@ export function ReadinessCard({ readiness }: { readiness: Readiness }) {
       </div>
 
       <div className="md:border-l md:border-hairline md:pl-12">
-        <h2 className="text-ident font-semibold text-statute">Exposed</h2>
+        <h2 className="text-caption-13 font-semibold text-exposure">Exposed</h2>
         <dl className="mt-4 space-y-4">
           <ExposureRow
             label="Input tax credit with no 2B counterpart"
@@ -97,13 +97,13 @@ function CoverageRow({
   return (
     <div className="flex items-baseline justify-between gap-6">
       <div className="max-w-[34ch]">
-        <dt className="text-prose">{label}</dt>
-        <dd className="tabular mt-0.5 text-ident text-graphite-soft">{detail}</dd>
+        <dt className="text-copy-17">{label}</dt>
+        <dd className="fig mt-0.5 text-caption-13 text-ink-subtle">{detail}</dd>
       </div>
       <dd className="shrink-0 text-right">
-        <span className="tabular text-amount font-normal text-books">
+        <span className="fig text-head-2 font-normal text-books">
           {percent}
-          <span className="text-prose text-books/70">%</span>
+          <span className="text-copy-17 text-books/70">%</span>
         </span>
         {/* Proportional, so a column of them is comparable without reading the
             digits. Drawn in ink: coverage is progress, and the vermillion in
@@ -125,14 +125,14 @@ function ExposureRow({ label, amount }: { label: string; amount: string }) {
   // there is nothing to print underneath it.
   const exact = inrExact(amount);
   return (
-    <div className="flex items-baseline justify-between gap-6 border-l-2 border-statute pl-3">
-      <dt className="max-w-[34ch] text-prose">{label}</dt>
+    <div className="flex items-baseline justify-between gap-6 border-l-2 border-exposure pl-3">
+      <dt className="max-w-[34ch] text-copy-17">{label}</dt>
       <dd className="shrink-0 text-right">
-        <span className="tabular block text-amount font-semibold text-statute">
+        <span className="fig block text-head-2 font-semibold text-exposure">
           {inrShort(amount)}
         </span>
         {exact && (
-          <span className="tabular mt-0.5 block text-ident text-graphite-soft">{exact}</span>
+          <span className="fig mt-0.5 block text-caption-13 text-ink-subtle">{exact}</span>
         )}
       </dd>
     </div>
@@ -150,9 +150,9 @@ function ExposureRow({ label, amount }: { label: string; amount: string }) {
  */
 function PercentRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-baseline justify-between gap-6 border-l-2 border-statute pl-3">
-      <dt className="max-w-[34ch] text-prose">{label}</dt>
-      <dd className="tabular shrink-0 text-amount font-semibold text-agreed">
+    <div className="flex items-baseline justify-between gap-6 border-l-2 border-exposure pl-3">
+      <dt className="max-w-[34ch] text-copy-17">{label}</dt>
+      <dd className="fig shrink-0 text-head-2 font-semibold text-ink">
         {pct(value)}
       </dd>
     </div>

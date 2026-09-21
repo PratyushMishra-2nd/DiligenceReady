@@ -1,7 +1,6 @@
 import Link from "next/link";
 
 import { SignOut } from "../components/SignOut";
-import { Overprint } from "../press/Overprint";
 import type { CompanyCard, SessionUser } from "../lib/api";
 import { api } from "../lib/api";
 import { requireData } from "../lib/session";
@@ -71,11 +70,11 @@ export default async function FirmDashboard() {
           the front door was setting its headings in Anek at 116px, which is
           two different products wearing one palette. */}
       <header className="ruled flex flex-wrap items-baseline justify-between gap-x-8 gap-y-2 pb-4">
-        <h1 className="optical-cap wdth-tight font-anek text-[2rem] font-bold leading-none text-agreed">
+        <h1 className="leading-trim font-sans text-head-2 font-semibold leading-none text-ink">
           {user.firm}
         </h1>
         <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1">
-          <p className="opsz-prose font-news text-ident text-graphite">
+          <p className=" font-sans text-caption-13 text-ink-muted">
             Financial readiness across {companies.length} client{" "}
             {companies.length === 1 ? "company" : "companies"}
           </p>
@@ -86,20 +85,20 @@ export default async function FirmDashboard() {
       {/* The first thing a CA should see is not a coverage percentage. It is
           money with a statutory deadline attached — the figure that makes them
           pick up the phone. */}
-      <section className="border-b border-graphite-soft py-10">
-        <p className="text-ident text-graphite">Input tax credit with no GSTR-2B counterpart</p>
+      <section className="border-b border-ink-subtle py-10">
+        <p className="text-caption-13 text-ink-muted">Input tax credit with no GSTR-2B counterpart</p>
         {/* A fourteen-character rupee figure at 52px is wider than a phone.
             The display size is the large-screen treatment; below that it drops
             to the figure step rather than being clipped at the gutter. */}
         {/* Printed out of register, like the figure on the landing page.
             This is the same number the front door leads with and it should
             look like the same number, not like a different product's total. */}
-        <p className="optical-figure mt-3">
-          <Overprint className="wdth-condensed tabular font-anek text-amount font-bold leading-none sm:text-[clamp(48px,7vw,92px)]">
+        <p className="leading-trim mt-3">
+          <span className=" fig font-sans text-head-2 font-semibold leading-none sm:text-display-2">
             {inr(exposure)}
-          </Overprint>
+          </span>
         </p>
-        <p className="mt-5 max-w-[62ch] text-prose leading-relaxed text-graphite">
+        <p className="mt-5 max-w-[62ch] text-copy-17 leading-relaxed text-ink-muted">
           Already paid to suppliers and not yet claimable.
           {cutoff && (
             <>
@@ -108,9 +107,9 @@ export default async function FirmDashboard() {
                   calendar date is the label for the deadline, not the urgency
                   in it, and a sentence that bolds every variable emphasises
                   nothing. */}
-              <span className="tabular font-medium text-agreed">{inr(dueNow)}</span> of it sits
+              <span className="fig font-medium text-ink">{inr(dueNow)}</span> of it sits
               on invoices whose Sec 16(4) window closes {cutoff.label},{" "}
-              <span className="tabular font-medium text-agreed">{cutoff.days} days</span> away,
+              <span className="fig font-medium text-ink">{cutoff.days} days</span> away,
               across {dueNowFindings} findings. After that date the credit stops being a
               receivable and becomes a cost.
             </>
@@ -120,21 +119,21 @@ export default async function FirmDashboard() {
 
       <section className="pt-8">
         <div className="flex items-baseline justify-between">
-          <h2 className="text-ident font-semibold">Client companies</h2>
-          <p className="tabular text-ident text-graphite">{openRisks} open findings</p>
+          <h2 className="text-caption-13 font-semibold">Client companies</h2>
+          <p className="fig text-caption-13 text-ink-muted">{openRisks} open findings</p>
         </div>
 
         {/* A GSTIN is fifteen unbreakable monospace characters and there are
             six columns beside it. Without this the table pushes the whole
             document sideways on a phone instead of scrolling itself. */}
         <div className="mt-4 overflow-x-auto">
-          <table className="w-full min-w-[760px] border-collapse text-ident">
+          <table className="w-full min-w-[760px] border-collapse text-caption-13">
             <caption className="sr-only">
               Reconciliation state for every client company the firm carries, soonest Sec
               16(4) cut-off first
             </caption>
-            <thead className="sticky top-0 z-10 bg-stock">
-              <tr className="border-y border-graphite-soft text-left text-ident text-graphite">
+            <thead className="sticky top-0 z-10 bg-canvas">
+              <tr className="border-y border-ink-subtle text-left text-caption-13 text-ink-muted">
                 <th scope="col" className="py-2 pr-4 font-medium">
                   Company
                 </th>
@@ -156,7 +155,7 @@ export default async function FirmDashboard() {
                 <th scope="col" className="py-2 pr-4 text-right font-medium">
                   Open
                 </th>
-                <th scope="col" className="py-2 text-right font-medium text-statute-deep">
+                <th scope="col" className="py-2 text-right font-medium text-exposure-deep">
                   ITC unmatched
                 </th>
               </tr>
@@ -172,40 +171,40 @@ export default async function FirmDashboard() {
                 return (
                   <tr
                     key={company.company_id}
-                    className={`ruled align-baseline ${due ? "bg-statute-wash/40" : ""}`}
+                    className={`ruled align-baseline ${due ? "bg-exposure-wash/40" : ""}`}
                   >
                     <td className="py-3 pr-4">
                       <Link
                         href={`/app/companies/${company.company_id}`}
-                        className="font-medium text-agreed mark-verb underline decoration-graphite-soft underline-offset-4 hover:decoration-agreed"
+                        className="font-medium text-ink mark-verb underline decoration-hairline underline-offset-4 hover:decoration-ink"
                       >
                         {company.name}
                       </Link>
-                      <span className="mt-0.5 block font-mono text-ident text-graphite">
+                      <span className="mt-0.5 block font-mono text-caption-13 text-ink-muted">
                         {company.gstin}
                       </span>
                     </td>
                     <td className="py-3 pr-4">
                       <Closes iso={company.next_sec_16_4_deadline} />
                     </td>
-                    <td className="tabular py-3 pr-4 text-graphite">
+                    <td className="fig py-3 pr-4 text-ink-muted">
                       {periodLabel(company.period)}
                     </td>
-                    <td className="tabular py-3 pr-4 text-right">
+                    <td className="fig py-3 pr-4 text-right">
                       <Coverage value={company.gst_coverage_pct} />
                     </td>
-                    <td className="tabular hidden py-3 pr-4 text-right md:table-cell">
+                    <td className="fig hidden py-3 pr-4 text-right md:table-cell">
                       <Coverage value={company.bank_coverage_pct} />
                     </td>
-                    <td className="tabular py-3 pr-4 text-right">
+                    <td className="fig py-3 pr-4 text-right">
                       {company.open_risks}
                       {company.high_risks > 0 && (
-                        <span className="ml-2 bg-statute-wash px-1.5 py-0.5 text-ident font-medium text-statute">
+                        <span className="ml-2 bg-exposure-wash px-1.5 py-0.5 text-caption-13 font-medium text-exposure">
                           {company.high_risks} high
                         </span>
                       )}
                     </td>
-                    <td className="tabular py-3 text-right font-medium text-statute">
+                    <td className="fig py-3 text-right font-medium text-exposure">
                       {inrShort(company.itc_at_risk)}
                     </td>
                   </tr>
@@ -215,7 +214,7 @@ export default async function FirmDashboard() {
           </table>
         </div>
 
-        <p className="mt-6 max-w-[70ch] text-ident leading-relaxed text-graphite-soft">
+        <p className="mt-6 max-w-[70ch] text-caption-13 leading-relaxed text-ink-subtle">
           Sorted by the soonest Sec 16(4) cut-off, then by the credit at stake.{" "}
           {discriminating && "Shaded rows are the ones the figure above was summed from. "}
           Coverage is the latest period;
@@ -224,10 +223,10 @@ export default async function FirmDashboard() {
           the invoice date, not the month you noticed.
         </p>
 
-        <p className="mt-4 text-ident text-graphite-soft">
+        <p className="mt-4 text-caption-13 text-ink-subtle">
           <Link
             href="/"
-            className="mark-verb underline decoration-graphite-soft underline-offset-4 hover:decoration-agreed"
+            className="mark-verb underline decoration-hairline underline-offset-4 hover:decoration-ink"
           >
             What this is
           </Link>
@@ -245,12 +244,12 @@ export default async function FirmDashboard() {
  */
 function Closes({ iso }: { iso: string | null }) {
   const cutoff = deadline(iso);
-  if (!cutoff) return <span className="text-graphite-soft">—</span>;
+  if (!cutoff) return <span className="text-ink-subtle">—</span>;
   const urgent = cutoff.days <= 30;
   return (
-    <span className={urgent ? "text-statute" : "text-agreed"}>
-      <span className="tabular block font-medium">{cutoff.days} days</span>
-      <span className="tabular mt-0.5 block text-ident text-graphite">{cutoff.label}</span>
+    <span className={urgent ? "text-exposure" : "text-ink"}>
+      <span className="fig block font-medium">{cutoff.days} days</span>
+      <span className="fig mt-0.5 block text-caption-13 text-ink-muted">{cutoff.label}</span>
     </span>
   );
 }
@@ -296,15 +295,15 @@ function Coverage({ value }: { value: string }) {
   );
 }
 
-function EngineOffline() {
+export function EngineOffline() {
   return (
     <main className="mx-auto max-w-[70ch] px-6 py-24">
-      <h1 className="text-intro font-semibold">The engine is not answering</h1>
-      <p className="mt-3 text-prose leading-relaxed text-graphite">
+      <h1 className="text-copy-19 font-semibold">The engine is not answering</h1>
+      <p className="mt-3 text-copy-17 leading-relaxed text-ink-muted">
         The dashboard reads every figure from the reconciliation API at{" "}
-        <span className="font-mono text-agreed">{api.base}</span>. Start it, then reload:
+        <span className="font-mono text-ink">{api.base}</span>. Start it, then reload:
       </p>
-      <pre className="mt-4 overflow-x-auto border border-hairline bg-sunk p-4 font-mono text-ident">
+      <pre className="mt-4 overflow-x-auto border border-hairline bg-sunken p-4 font-mono text-caption-13">
         {`docker compose -f infra/docker-compose.yml up -d
 uv run diligence pipeline
 uv run uvicorn diligence_api.main:app --port 8077`}

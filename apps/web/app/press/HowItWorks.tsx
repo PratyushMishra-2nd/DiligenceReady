@@ -31,36 +31,36 @@ const STEPS: { n: string; title: string; body: string }[] = [
   },
 ];
 
-import { Opener, slipFor } from "./Sheet";
+import { Opener } from "./Sheet";
 
 export function HowItWorks() {
   return (
-    <section id="how" className="scroll-mt-24 py-14">
+    <section id="how" className="scroll-mt-24 py-section md:py-section-md lg:py-section-lg">
       {/* The list below is on the paper grid and this heading was not, which
           left it 80px outside the column every other opener starts in. */}
-      <div className="lg:pl-20">
-        <Opener slip={slipFor("how")} className="optical-cap max-w-[18ch]">
+      <div className="lg:pl-[268px]">
+        <Opener className="max-w-pull">
           What it actually does
         </Opener>
       </div>
 
-      <ol className="mt-14 border-t border-hairline">
+      <ol className="mt-block border-t border-hairline">
         {STEPS.map((step) => (
           <li
             key={step.n}
-            className="grid gap-x-10 gap-y-3 border-b border-hairline py-8 lg:grid-cols-paper"
+            className="reveal grid gap-x-block gap-y-3 border-b border-hairline py-8 lg:grid-cols-[220px_minmax(0,1fr)]"
           >
             {/* The number hangs in the tick gutter, where the mark goes on
                 every other section, because a numbered stage is what this
                 section's assertions are indexed by. */}
-            <p className="wdth-condensed font-anek text-[2rem] font-bold leading-none text-statute">
+            <p className=" font-sans text-head-2 font-semibold leading-none text-exposure">
               {step.n}
             </p>
             <div className="min-w-0">
-              <h3 className="wdth-set font-anek text-[1.5rem] font-semibold leading-tight text-agreed">
+              <h3 className=" font-sans text-head-3 font-semibold leading-tight text-ink">
                 {step.title}
               </h3>
-              <p className="rag-pretty opsz-prose mt-2 max-w-sheet font-news text-prose text-graphite">{step.body}</p>
+              <p className="rag-pretty mt-2 max-w-sheet font-sans text-copy-17 text-ink-muted">{step.body}</p>
             </div>
           </li>
         ))}

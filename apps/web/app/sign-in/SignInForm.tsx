@@ -262,7 +262,7 @@ export function SignInForm({
               ref={alertRef}
               id="sign-in-error"
               tabIndex={-1}
-              className="alert-in border border-statute/30 bg-statute-wash px-3 py-2 text-ident text-statute-deep"
+              className="alert-in border border-exposure/30 bg-exposure-wash px-3 py-2 text-caption-13 text-exposure-deep"
             >
               {error.text}
             </p>
@@ -300,13 +300,13 @@ export function SignInForm({
           type="submit"
           disabled={busy}
           aria-busy={busy}
-          className="relative w-full overflow-hidden border-2 border-books bg-books px-6 py-3 font-mono text-ident uppercase tracking-[0.08em] text-stock press-verb hover:bg-stock hover:text-books disabled:cursor-progress disabled:hover:bg-books disabled:hover:text-stock"
+          className="relative w-full overflow-hidden border-2 border-books bg-books px-6 py-3 font-mono text-caption-13 uppercase tracking-[0.08em] text-plate-ink press-verb hover:bg-canvas hover:text-books disabled:cursor-progress disabled:hover:bg-books disabled:hover:text-plate-ink"
         >
           <span className={busy ? "opacity-70" : undefined}>
             {busy ? "Signing in…" : "Sign in"}
           </span>
           {busy && (
-            <span aria-hidden className="foot-rule-running absolute inset-x-0 bottom-0 h-0.5 bg-stock" />
+            <span aria-hidden className="foot-rule-running absolute inset-x-0 bottom-0 h-0.5 bg-canvas" />
           )}
         </button>
       </form>
@@ -320,16 +320,16 @@ export function SignInForm({
             the answer to "no account yet" for almost everyone who reads this
             line, so it is the thing the line says. */}
         <div className="border-t border-hairline pt-5">
-          <p className="font-mono text-stub uppercase text-graphite">No account? Use the demo</p>
-          <p className="mt-2 max-w-[40ch] text-ident leading-relaxed text-graphite">
+          <p className="font-mono text-label-12 uppercase text-ink-muted">No account? Use the demo</p>
+          <p className="mt-2 max-w-[40ch] text-caption-13 leading-relaxed text-ink-muted">
             {DEMO_FIRM}, a generated firm carrying two client companies and twelve months of
             books. Nothing in it is real and nothing you do to it matters.
           </p>
-          <dl className="mt-3 grid grid-cols-[5rem_minmax(0,1fr)] gap-y-1 text-ident">
-            <dt className="font-mono text-stub uppercase text-graphite-soft">Email</dt>
-            <dd className="select-all break-all font-mono text-agreed">{DEMO_EMAIL}</dd>
-            <dt className="font-mono text-stub uppercase text-graphite-soft">Password</dt>
-            <dd className="select-all break-all font-mono text-agreed">{DEMO_PASSWORD}</dd>
+          <dl className="mt-3 grid grid-cols-[5rem_minmax(0,1fr)] gap-y-1 text-caption-13">
+            <dt className="font-mono text-label-12 uppercase text-ink-subtle">Email</dt>
+            <dd className="select-all break-all font-mono text-ink">{DEMO_EMAIL}</dd>
+            <dt className="font-mono text-label-12 uppercase text-ink-subtle">Password</dt>
+            <dd className="select-all break-all font-mono text-ink">{DEMO_PASSWORD}</dd>
           </dl>
           <button
             type="button"
@@ -338,7 +338,7 @@ export function SignInForm({
               setPassword(DEMO_PASSWORD);
               setError(null);
             }}
-            className="mt-4 border border-agreed px-4 py-2.5 font-mono text-stub uppercase tracking-[0.08em] text-agreed press-verb hover:bg-agreed hover:text-stock"
+            className="mt-4 border border-ink px-4 py-2.5 font-mono text-label-12 uppercase tracking-[0.08em] text-ink press-verb hover:bg-ink hover:text-plate-ink"
           >
             Fill the demo account
           </button>
@@ -353,8 +353,8 @@ export function SignInForm({
             honest version of the answer is short — the firm owner holds it,
             because the firm owns the data. */}
         <div className="mt-8 border-t border-hairline pt-5">
-          <p className="font-mono text-stub uppercase text-graphite">Locked out</p>
-          <p className="rag-pretty opsz-prose mt-2 max-w-[42ch] font-news text-ident leading-relaxed text-graphite-soft">
+          <p className="font-mono text-label-12 uppercase text-ink-muted">Locked out</p>
+          <p className="rag-pretty mt-2 max-w-[42ch] font-sans text-caption-13 leading-relaxed text-ink-subtle">
             Your firm owner resets passwords, because the firm holds the account and the
             client data under it. Real accounts are created the same way — there is no
             self-service signup, because there is no self-service client data.
@@ -392,7 +392,7 @@ function Field({
   return (
     <div>
       <label htmlFor={name} className="block">
-        <span className="font-mono text-stub uppercase tracking-[0.06em] text-graphite">
+        <span className="font-mono text-label-12 uppercase tracking-[0.06em] text-ink-muted">
           {label}
         </span>
       </label>
@@ -430,7 +430,7 @@ function Field({
           autoComplete={autoComplete}
           onChange={(event) => onChange(event.target.value)}
           className={
-            "field-rule mt-1.5 w-full border-0 border-b-2 border-graphite-soft bg-transparent px-0 py-2 font-mono text-prose text-agreed focus:border-agreed" +
+            "field-rule mt-1.5 w-full border-0 border-b-2 border-ink-subtle bg-transparent px-0 py-2 font-mono text-copy-17 text-ink focus:border-ink" +
             (reveal ? " pr-16" : "")
           }
         />
@@ -441,7 +441,7 @@ function Field({
             // Not `aria-pressed`: the control renames itself, and a toggle
             // that reports both its state and a changing name is read twice
             // over. The name is the state.
-            className="press-verb absolute bottom-2 right-0 font-mono text-stub uppercase tracking-[0.06em] text-graphite hover:text-agreed"
+            className="press-verb absolute bottom-2 right-0 font-mono text-label-12 uppercase tracking-[0.06em] text-ink-muted hover:text-ink"
           >
             {reveal.on ? "Hide" : "Show"}
           </button>

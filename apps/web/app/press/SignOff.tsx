@@ -26,8 +26,8 @@
  */
 export function SignOff() {
   return (
-    <section className="sign-off bg-plate px-6 py-16 text-stock sm:px-10">
-      <div className="mx-auto max-w-[1280px]">
+    <section className="sign-off border-t border-hairline py-section md:py-section-md">
+      <div>
         {/* The in-register target does NOT go here, and the reason is the
             mechanism rather than the layout. `mix-blend-multiply` is a
             subtractive, ink-on-paper model: multiplied against this plate's
@@ -35,7 +35,7 @@ export function SignOff() {
             invisible and the one graphic whose job is to prove the inks
             really multiply would be the one faking it. It sits on paper, at
             the foot of the measure, immediately above this plate. */}
-        <p className="font-mono text-stub uppercase tracking-[0.06em] text-stock/60">
+        <p className="font-mono text-label-12 uppercase tracking-[0.06em] text-ink-subtle">
           Sign-off
         </p>
 
@@ -47,27 +47,27 @@ export function SignOff() {
             ask. The gutter tightens instead of the grid collapsing. */}
         <div className="mt-8 grid grid-cols-2 gap-x-6 gap-y-10 sm:gap-x-16">
           <div>
-            <p className="font-mono text-stub uppercase tracking-[0.06em] text-stock/60">
+            <p className="font-mono text-label-12 uppercase tracking-[0.06em] text-ink-subtle">
               Prepared by
             </p>
             {/* Filled, because this part is done. */}
-            <p className="wdth-set mt-2 border-b-2 border-stock pb-2 font-anek text-[1.05rem] font-semibold sm:text-subhead">
+            <p className=" mt-2 border-b-2 border-ink pb-2 font-sans text-copy-17 font-semibold sm:text-head-4">
               DiligenceReady
             </p>
           </div>
 
           <div>
-            <p className="font-mono text-stub uppercase tracking-[0.06em] text-stock/60">
+            <p className="font-mono text-label-12 uppercase tracking-[0.06em] text-ink-subtle">
               Reviewed by · signature · date
             </p>
             {/* Blank, because this part is not. The non-breaking space holds
                 the line open at the same height as the one beside it, so the
                 emptiness is a measured gap rather than a missing element. */}
-            <p className="mt-2 border-b-2 border-stock pb-2 font-anek text-[1.05rem] sm:text-subhead">&nbsp;</p>
+            <p className="mt-2 border-b-2 border-ink pb-2 font-sans text-copy-17 sm:text-head-4">&nbsp;</p>
           </div>
         </div>
 
-        <p className="rag-pretty opsz-prose mt-10 max-w-[62ch] font-news text-prose leading-relaxed text-stock/75">
+        <p className="rag-pretty mt-10 max-w-prose font-sans text-copy-17 leading-relaxed text-ink-muted">
           The rule beside this one is blank because no practising chartered accountant
           has reviewed the rule set. Nothing on this page claims otherwise, the tick mark
           for an assertion confirmed outside this company appears nowhere above, and the

@@ -90,14 +90,19 @@ export function periodLabel(period: string, short = false): string {
 
 export function severityTone(severity: string): string {
   switch (severity) {
+    // Severity runs on ONE ink at three strengths, not on three hues. The
+    // palette has a single accent and no semantic amber, so the amber these
+    // used to reach for stopped existing — and because this file is `.ts`
+    // rather than `.tsx`, it sat outside every sweep: medium and low findings
+    // were rendering with no ground, no ink and no border at all.
     case "high":
-      return "bg-exposure-wash text-exposure border-exposure/30";
+      return "bg-exposure-wash text-exposure-deep border-exposure/30";
     case "medium":
-      return "bg-caution-wash text-caution border-caution/25";
+      return "bg-sunken text-ink border-rule";
     case "low":
-      return "bg-paper text-ink-soft border-rule-strong";
+      return "bg-sunken text-ink-muted border-hairline";
     default:
-      return "bg-paper text-ink-faint border-rule";
+      return "bg-sunken text-ink-subtle border-hairline";
   }
 }
 
@@ -116,12 +121,16 @@ export function severityTone(severity: string): string {
  */
 export function severityBar(severity: string): string {
   switch (severity) {
+    // Two channels, as the note above requires: width AND ink. The hue is the
+    // one accent at full strength for high, and the document ink at two
+    // weights below it — so the order survives a monochrome print and a
+    // reader who cannot separate vermillion from near-black.
     case "high":
       return "w-[3px] bg-exposure";
     case "medium":
-      return "w-[3px] bg-caution";
+      return "w-[3px] bg-ink";
     case "low":
-      return "w-px bg-rule-strong";
+      return "w-px bg-ink-subtle";
     default:
       return "w-px bg-rule";
   }

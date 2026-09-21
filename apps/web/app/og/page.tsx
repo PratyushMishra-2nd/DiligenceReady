@@ -1,5 +1,4 @@
 import aggregates from "../press/aggregates.json";
-import { Overprint } from "../press/Overprint";
 import { Rupee } from "../press/Rupee";
 
 export const metadata = {
@@ -34,40 +33,40 @@ export default function OgCard() {
 
   return (
     <main
-      className="flex flex-col justify-between bg-stock px-16 pb-16 pt-12 text-agreed"
+      className="flex flex-col justify-between bg-canvas px-16 pb-16 pt-12 text-ink"
       style={{ width: 1200, height: 630 }}
     >
       <div className="flex items-baseline justify-between">
-        <p className="wdth-tight font-anek text-[2rem] font-bold leading-none text-agreed">
+        <p className=" font-sans text-head-2 font-semibold leading-none text-ink">
           DiligenceReady
         </p>
-        <p className="font-mono text-[1rem] uppercase tracking-[0.12em] text-statute-deep">
+        <p className="font-mono text-copy-17 uppercase tracking-[0.12em] text-exposure-deep">
           Books · GSTR-2B · Bank
         </p>
       </div>
 
       <div>
-        <h1 className="optical-cap wdth-tight max-w-[18ch] font-anek text-[5.5rem] font-bold leading-[0.92] tracking-[-0.032em] text-agreed">
+        <h1 className="leading-trim max-w-[18ch] font-sans text-display-1 font-semibold leading-[0.92] tracking-[-0.032em] text-ink">
           Reconciled the week 2B lands.
         </h1>
-        <p className="opsz-deck mt-6 max-w-[52ch] font-news text-[1.75rem] leading-snug text-graphite">
+        <p className=" mt-6 max-w-[52ch] font-sans text-head-3 leading-snug text-ink-muted">
           Books, GSTR-2B and bank, reconciled every month, with the evidence kept — for
           the CA firms who do the work.
         </p>
       </div>
 
-      <div className="flex items-end justify-between border-t-2 border-agreed pt-5">
+      <div className="flex items-end justify-between border-t-2 border-ink pt-5">
         <div>
-          <p className="font-mono text-[0.8125rem] uppercase tracking-[0.12em] text-graphite">
+          <p className="font-mono text-caption-13 uppercase tracking-[0.12em] text-ink-muted">
             Input tax credit paid and not claimable, two client companies
           </p>
-          <p className="optical-figure mt-2">
-            <Overprint className="wdth-condensed font-anek text-[3.25rem] font-bold leading-none tracking-[-0.04em]">
+          <p className="leading-trim mt-2">
+            <span className=" font-sans text-head-1 font-semibold leading-none tracking-[-0.04em]">
               <Rupee amount={headline.amount} />
-            </Overprint>
+            </span>
           </p>
         </div>
-        <p className="font-mono text-[0.8125rem] uppercase tracking-[0.12em] text-graphite-soft">
+        <p className="font-mono text-caption-13 uppercase tracking-[0.12em] text-ink-subtle">
           {aggregates.totals.detected} of {aggregates.totals.planted} planted defects found
         </p>
       </div>

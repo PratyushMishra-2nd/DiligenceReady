@@ -69,7 +69,7 @@ export function Sparkline({
         cx={width - 1}
         cy={lastY}
         r="1.75"
-        className={last.value > first.value ? "fill-statute" : "fill-agreed"}
+        className={last.value > first.value ? "fill-exposure" : "fill-ink"}
       />
     </svg>
   );

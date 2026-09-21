@@ -332,11 +332,11 @@ export function Findings({
             the period is the one a reader is most likely to be wrong about
             because it was chosen for them. The header that was already here
             carries them rather than a second bar being added above it. */}
-        <div className="sticky top-0 z-10 bg-stock pb-3 pt-8">
+        <div className="sticky top-0 z-10 bg-canvas pb-3 pt-8">
           <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
-            <h2 className="text-ident font-semibold">
+            <h2 className="text-caption-13 font-semibold">
               {shown.length} finding{shown.length === 1 ? "" : "s"}
-              <span className="ml-3 font-normal text-graphite">
+              <span className="ml-3 font-normal text-ink-muted">
                 {company} · {periodLabel(period)}
               </span>
             </h2>
@@ -363,7 +363,7 @@ export function Findings({
                 type="button"
                 onClick={() => setShowKeys((value) => !value)}
                 aria-expanded={showKeys}
-                className="border border-hairline px-2 py-1 text-ident text-graphite hover:border-agreed hover:text-agreed"
+                className="border border-hairline px-2 py-1 text-caption-13 text-ink-muted hover:border-ink hover:text-ink"
               >
                 ⌘K · keys
               </button>
@@ -374,12 +374,12 @@ export function Findings({
         </div>
 
         {shown.length === 0 ? (
-          <p className="ruled py-8 text-prose text-graphite">
+          <p className="ruled py-8 text-copy-17 text-ink-muted">
             Nothing to review in this period. Every document in the register matched a 2B
             record, and the bank agrees with the books.
           </p>
         ) : (
-          <ul className="border-t border-graphite-soft">
+          <ul className="border-t border-ink-subtle">
             {shown.map((risk, index) => (
               <li key={risk.risk_id}>
                 <FindingRow
@@ -456,17 +456,17 @@ export function Findings({
           <button
             type="button"
             onClick={() => void undo()}
-            className="mark-verb underline decoration-graphite-soft underline-offset-4 hover:decoration-stock"
+            className="mark-verb underline decoration-hairline underline-offset-4 hover:decoration-plate-ink"
           >
             Undo
           </button>
-          <span className="text-graphite-soft">⌘Z</span>
+          <span className="text-ink-subtle">⌘Z</span>
         </Toast>
       )}
 
       {error && (
         <Toast onDismiss={() => setError(null)}>
-          <span className="text-statute">{error}</span>
+          <span className="text-exposure">{error}</span>
         </Toast>
       )}
     </div>
@@ -512,7 +512,7 @@ function FindingRow({
   return (
     <div
       className={`ruled group flex w-full items-stretch gap-3 press-verb ${
-        marked ? "bg-agreed-wash/50" : selected ? "bg-sunk" : "hover:bg-sunk"
+        marked ? "bg-sunken/50" : selected ? "bg-sunken" : "hover:bg-sunken"
       }`}
     >
       <span aria-hidden className={`shrink-0 self-stretch ${severityBar(risk.severity)}`} />
@@ -525,7 +525,7 @@ function FindingRow({
         }}
         aria-pressed={marked}
         aria-label={`Mark ${supplierOf(risk)} for a bulk decision`}
-        className={`no-print my-2 h-3.5 w-3.5 shrink-0 self-start border border-graphite-soft text-ident leading-none text-stock transition-opacity hover:border-agreed focus:opacity-100 group-hover:opacity-100 ${
+        className={`no-print my-2 h-3.5 w-3.5 shrink-0 self-start border border-ink-subtle text-caption-13 leading-none text-plate-ink transition-opacity hover:border-ink focus:opacity-100 group-hover:opacity-100 ${
           marked || anyMarked ? "opacity-100" : "opacity-0"
         }`}
         style={marked ? { background: "#1B2A2F", borderColor: "#1B2A2F" } : undefined}
@@ -542,34 +542,34 @@ function FindingRow({
       >
         <span className="sr-only">{risk.severity} severity</span>
         <span className="flex items-baseline gap-3">
-          <span className="min-w-0 flex-1 truncate text-ident">{supplierOf(risk)}</span>
+          <span className="min-w-0 flex-1 truncate text-caption-13">{supplierOf(risk)}</span>
 
           {/* Never truncated, and hidden rather than clipped where there is no
               room for it — on a phone it moves to the line below. */}
-          <span className="tabular hidden w-[18ch] shrink-0 break-all font-mono text-ident text-graphite sm:block">
+          <span className="fig hidden w-[18ch] shrink-0 break-all font-mono text-caption-13 text-ink-muted sm:block">
             {document}
           </span>
 
           <span
-            className="tabular shrink-0 text-ident font-medium"
+            className="fig shrink-0 text-caption-13 font-medium"
             title={amount ? inr(risk.headline_amount as string) : undefined}
           >
             {amount ? inrShort(risk.headline_amount) : pct(risk.headline_pct)}
           </span>
         </span>
 
-        <span className="mt-0.5 flex items-baseline gap-3 text-ident text-graphite">
+        <span className="mt-0.5 flex items-baseline gap-3 text-caption-13 text-ink-muted">
           <span className="min-w-0 flex-1 truncate">
             {RULE_LABEL[risk.rule_code] ?? risk.title}
-            {document && <span className="tabular ml-2 font-mono sm:hidden">{document}</span>}
+            {document && <span className="fig ml-2 font-mono sm:hidden">{document}</span>}
             {status !== "open" && (
-              <span className="ml-2 border border-hairline px-1 text-graphite">{status}</span>
+              <span className="ml-2 border border-hairline px-1 text-ink-muted">{status}</span>
             )}
           </span>
           {/* An amount is the thing a CA acts on; a percentage is context.
               Where a finding has both, the money leads and this trails it. */}
           {amount && risk.headline_pct && (
-            <span className="tabular shrink-0 text-graphite-soft">{pct(risk.headline_pct)}</span>
+            <span className="fig shrink-0 text-ink-subtle">{pct(risk.headline_pct)}</span>
           )}
         </span>
       </button>
@@ -592,8 +592,8 @@ function BulkBar({
   onRecord: (status: string) => void;
 }) {
   return (
-    <div className="no-print fixed inset-x-0 bottom-0 z-40 flex flex-wrap items-center justify-center gap-3 border-t border-agreed bg-agreed px-4 py-3 text-stock">
-      <span className="tabular text-ident">
+    <div className="no-print fixed inset-x-0 bottom-0 z-40 flex flex-wrap items-center justify-center gap-3 border-t border-ink bg-ink px-4 py-3 text-plate-ink">
+      <span className="fig text-caption-13">
         {count} finding{count === 1 ? "" : "s"} marked
       </span>
       {canWrite ? (
@@ -603,15 +603,15 @@ function BulkBar({
             type="button"
             disabled={busy}
             onClick={() => onRecord(entry.value)}
-            className="border border-stock/40 px-3 py-1 text-ident hover:bg-stock hover:text-agreed disabled:opacity-50"
+            className="border border-plate-hairline/40 px-3 py-1 text-caption-13 hover:bg-canvas hover:text-ink disabled:opacity-50"
           >
             {entry.label} <span className="ml-1 opacity-60">{entry.key}</span>
           </button>
         ))
       ) : (
-        <span className="text-ident opacity-70">This account has read-only access.</span>
+        <span className="text-caption-13 opacity-70">This account has read-only access.</span>
       )}
-      <button type="button" onClick={onClear} className="text-ident mark-verb underline opacity-70">
+      <button type="button" onClick={onClear} className="text-caption-13 mark-verb underline opacity-70">
         Clear
       </button>
     </div>
@@ -633,7 +633,7 @@ function Toast({
   return (
     <div
       role="status"
-      className="no-print fixed bottom-6 left-1/2 z-40 flex -translate-x-1/2 items-center gap-4 border border-agreed bg-agreed px-4 py-2 text-ident text-stock"
+      className="no-print fixed bottom-6 left-1/2 z-40 flex -translate-x-1/2 items-center gap-4 border border-ink bg-ink px-4 py-2 text-caption-13 text-plate-ink"
     >
       {children}
     </div>
@@ -651,11 +651,11 @@ function Shortcuts() {
     ["esc", "clear the marks, close the panel"],
   ];
   return (
-    <dl className="mt-3 grid gap-x-6 gap-y-1 border border-hairline bg-sunk px-4 py-3 text-ident sm:grid-cols-2">
+    <dl className="mt-3 grid gap-x-6 gap-y-1 border border-hairline bg-sunken px-4 py-3 text-caption-13 sm:grid-cols-2">
       {keys.map(([key, meaning]) => (
         <div key={key} className="flex items-baseline gap-3">
-          <dt className="w-24 shrink-0 font-mono text-agreed">{key}</dt>
-          <dd className="text-graphite">{meaning}</dd>
+          <dt className="w-24 shrink-0 font-mono text-ink">{key}</dt>
+          <dd className="text-ink-muted">{meaning}</dd>
         </div>
       ))}
     </dl>
@@ -677,13 +677,13 @@ function FilterButton({
     <button
       type="button"
       onClick={onClick}
-      className={`border px-2 py-1 text-ident ${
+      className={`border px-2 py-1 text-caption-13 ${
         active
-          ? "border-agreed bg-agreed text-stock"
-          : "border-hairline text-graphite hover:border-agreed hover:text-agreed"
+          ? "border-ink bg-ink text-plate-ink"
+          : "border-hairline text-ink-muted hover:border-ink hover:text-ink"
       }`}
     >
-      {label} <span className="tabular opacity-70">{count}</span>
+      {label} <span className="fig opacity-70">{count}</span>
     </button>
   );
 }

@@ -136,21 +136,21 @@ export function UploadPanel({ companyId }: { companyId: string }) {
   }
 
   return (
-    <section className="border-b border-graphite-soft py-8">
-      <h2 className="text-ident font-semibold">Add a document</h2>
-      <p className="mt-2 max-w-[70ch] text-prose leading-relaxed text-graphite">
+    <section className="border-b border-ink-subtle py-8">
+      <h2 className="text-caption-13 font-semibold">Add a document</h2>
+      <p className="mt-2 max-w-[70ch] text-copy-17 leading-relaxed text-ink-muted">
         A register from Tally, Busy, Marg, Zoho or Vyapar, a GSTR-2B download, or a bank
         statement. Column names differ between packages and are resolved on the way in;
         if one cannot be, the error says which and what the file calls it instead.
       </p>
 
       <div className="mt-4 flex flex-wrap items-center gap-3">
-        <label className="text-prose">
+        <label className="text-copy-17">
           <span className="sr-only">Document type</span>
           <select
             value={kind}
             onChange={(event) => setKind(event.target.value)}
-            className="border border-graphite-soft bg-sunk px-3 py-2 text-prose focus:border-agreed"
+            className="border border-ink-subtle bg-sunken px-3 py-2 text-copy-17 focus:border-ink"
           >
             {KINDS.map((entry) => (
               <option key={entry.value} value={entry.value}>
@@ -169,7 +169,7 @@ export function UploadPanel({ companyId }: { companyId: string }) {
             const file = event.target.files?.[0];
             if (file) void send(file);
           }}
-          className="text-prose file:mr-3 file:cursor-pointer file:border file:border-agreed file:bg-transparent file:px-3 file:py-1.5 file:text-prose file:font-medium hover:file:bg-agreed hover:file:text-stock"
+          className="text-copy-17 file:mr-3 file:cursor-pointer file:border file:border-ink file:bg-transparent file:px-3 file:py-1.5 file:text-copy-17 file:font-medium hover:file:bg-ink hover:file:text-plate-ink"
         />
 
         {/* The answer to "what am I supposed to choose?", beside the control
@@ -180,18 +180,18 @@ export function UploadPanel({ companyId }: { companyId: string }) {
         <a
           href={`${API_BASE}/api/templates/${kind}/file`}
           download
-          className="border border-agreed px-3 py-1.5 font-mono text-stub uppercase tracking-[0.06em] text-agreed press-verb hover:bg-agreed hover:text-stock"
+          className="border border-ink px-3 py-1.5 font-mono text-label-12 uppercase tracking-[0.06em] text-ink press-verb hover:bg-ink hover:text-plate-ink"
         >
           Download template
         </a>
 
-        {busy && <span className="text-ident text-graphite">Reading…</span>}
+        {busy && <span className="text-caption-13 text-ink-muted">Reading…</span>}
       </div>
 
       {template && (
         <div className="mt-4 max-w-[70ch] border-l-2 border-hairline pl-4">
-          <p className="text-ident text-graphite">
-            <span className="font-mono text-stub uppercase text-graphite-soft">
+          <p className="text-caption-13 text-ink-muted">
+            <span className="font-mono text-label-12 uppercase text-ink-subtle">
               Columns required
             </span>{" "}
             {/* Named rather than counted, because the failure this prevents is
@@ -199,10 +199,10 @@ export function UploadPanel({ companyId }: { companyId: string }) {
                 `resolve()` looks for first; a file calling a column something
                 else is still read, and the error says so by name if it is
                 not. */}
-            <span className="font-mono text-agreed">{template.required.join(", ")}</span>
+            <span className="font-mono text-ink">{template.required.join(", ")}</span>
           </p>
           {template.notes.length > 0 && (
-            <ul className="mt-2 space-y-1 text-ident leading-relaxed text-graphite">
+            <ul className="mt-2 space-y-1 text-caption-13 leading-relaxed text-ink-muted">
               {template.notes.map((note) => (
                 <li key={note}>{note}</li>
               ))}
@@ -214,15 +214,15 @@ export function UploadPanel({ companyId }: { companyId: string }) {
       {outcome && (
         <div
           role="status"
-          className={`mt-4 border px-4 py-3 text-ident leading-relaxed ${
+          className={`mt-4 border px-4 py-3 text-caption-13 leading-relaxed ${
             outcome.ok
-              ? "border-agreed/30 bg-agreed-wash text-agreed"
-              : "border-statute/30 bg-statute-wash text-agreed"
+              ? "border-ink/30 bg-sunken text-ink"
+              : "border-exposure/30 bg-exposure-wash text-ink"
           }`}
         >
           <p className="font-medium">{outcome.message}</p>
           {outcome.detail && (
-            <p className="mt-1.5 whitespace-pre-wrap text-graphite">{outcome.detail}</p>
+            <p className="mt-1.5 whitespace-pre-wrap text-ink-muted">{outcome.detail}</p>
           )}
         </div>
       )}

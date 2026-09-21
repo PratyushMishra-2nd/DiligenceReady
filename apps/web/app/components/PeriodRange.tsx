@@ -153,16 +153,16 @@ export function PeriodRange({
         onClick={() => setOpen((was) => !was)}
         aria-expanded={open}
         aria-haspopup="dialog"
-        className="flex items-center gap-2 border border-hairline px-3 py-1.5 text-ident text-graphite press-verb hover:border-agreed hover:text-agreed"
+        className="flex items-center gap-2 border border-hairline px-3 py-1.5 text-caption-13 text-ink-muted press-verb hover:border-ink hover:text-ink"
       >
-        <span className="font-mono text-stub uppercase tracking-[0.06em] text-graphite-soft">
+        <span className="font-mono text-label-12 uppercase tracking-[0.06em] text-ink-subtle">
           Period
         </span>
-        <span className="tabular font-medium text-agreed">{spanLabel}</span>
+        <span className="fig font-medium text-ink">{spanLabel}</span>
         {months > 1 && (
-          <span className="tabular text-graphite-soft">{months} months</span>
+          <span className="fig text-ink-subtle">{months} months</span>
         )}
-        <svg viewBox="0 0 10 6" aria-hidden className="h-1.5 w-2.5 text-graphite-soft">
+        <svg viewBox="0 0 10 6" aria-hidden className="h-1.5 w-2.5 text-ink-subtle">
           <path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.5" />
         </svg>
       </button>
@@ -171,7 +171,7 @@ export function PeriodRange({
         <div
           role="dialog"
           aria-label="Choose a period or a range"
-          className="absolute right-0 z-40 mt-1 w-[22rem] border border-graphite-soft bg-stock p-4 shadow-[0_2px_16px_rgba(0,0,0,0.12)]"
+          className="absolute right-0 z-40 mt-1 w-[22rem] border border-ink-subtle bg-canvas p-4 shadow-[0_2px_16px_rgba(0,0,0,0.12)]"
         >
           <div className="flex flex-wrap gap-1.5">
             {presets.map((preset) => {
@@ -181,10 +181,10 @@ export function PeriodRange({
                   key={preset.key}
                   type="button"
                   onClick={() => go(preset.from, preset.to)}
-                  className={`border px-2 py-1 text-ident press-verb ${
+                  className={`border px-2 py-1 text-caption-13 press-verb ${
                     active
-                      ? "border-agreed bg-agreed text-stock"
-                      : "border-hairline text-graphite hover:border-agreed hover:text-agreed"
+                      ? "border-ink bg-ink text-plate-ink"
+                      : "border-hairline text-ink-muted hover:border-ink hover:text-ink"
                   }`}
                 >
                   {preset.label}
@@ -207,7 +207,7 @@ export function PeriodRange({
               on the earlier one's value means a reader who picks the ends in
               the other order finds half the list missing and no reason given. */}
           {invalid && (
-            <p role="alert" className="mt-3 text-ident text-exposure">
+            <p role="alert" className="mt-3 text-caption-13 text-exposure">
               {periodLabel(start, true)} is after {periodLabel(end, true)}.
             </p>
           )}
@@ -220,7 +220,7 @@ export function PeriodRange({
                 setEnd(to);
               }}
               disabled={!dirty}
-              className="text-ident text-graphite mark-verb underline decoration-graphite-soft underline-offset-4 hover:decoration-agreed disabled:text-graphite-soft disabled:no-underline"
+              className="text-caption-13 text-ink-muted mark-verb underline decoration-hairline underline-offset-4 hover:decoration-ink disabled:text-ink-subtle disabled:no-underline"
             >
               Reset
             </button>
@@ -228,7 +228,7 @@ export function PeriodRange({
               type="button"
               onClick={() => go(start, end)}
               disabled={!dirty || invalid}
-              className="border-2 border-books bg-books px-4 py-1.5 font-mono text-stub uppercase tracking-[0.06em] text-stock press-verb hover:bg-stock hover:text-books disabled:border-graphite-soft disabled:bg-transparent disabled:text-graphite-soft"
+              className="border-2 border-books bg-books px-4 py-1.5 font-mono text-label-12 uppercase tracking-[0.06em] text-plate-ink press-verb hover:bg-canvas hover:text-books disabled:border-ink-subtle disabled:bg-transparent disabled:text-ink-subtle"
             >
               Apply
             </button>
@@ -260,13 +260,13 @@ function MonthField({
 }) {
   return (
     <label className="block">
-      <span className="font-mono text-stub uppercase tracking-[0.06em] text-graphite">
+      <span className="font-mono text-label-12 uppercase tracking-[0.06em] text-ink-muted">
         {label}
       </span>
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="tabular mt-1 w-full border border-graphite-soft bg-sunk px-2 py-1.5 text-ident focus:border-agreed"
+        className="fig mt-1 w-full border border-ink-subtle bg-sunken px-2 py-1.5 text-caption-13 focus:border-ink"
       >
         {periods.map((entry) => (
           <option key={entry.period} value={entry.period}>

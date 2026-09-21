@@ -1,254 +1,143 @@
 import type { Config } from "tailwindcss";
 
-// The palette is a working paper, not a product surface: a cool paper ground
-// (warm cream reads as marketing), archival ink for text, hairline rules
-// instead of shadows, and one statutory vermillion reserved for money that is
-// actually at risk. Nothing else is allowed to use it.
-//
-// The grey ramp is measured, not eyeballed. Against paper #F4F6F5:
-// ink 13.6:1, ink-soft 7.0:1, ink-faint 4.8:1 — three steps, each ~1.5x the
-// last, all past AA. The previous ink-faint was 2.7:1 and it was what the
-// GSTIN, the sha256 and every calculation line were printed in, which made
-// the case for IBM Plex's disambiguated digits and then defeated it.
+/* One ramp, one accent, two themes.
+ *
+ * Every token resolves to a custom property declared in globals.css, which is
+ * where light and dark are defined. Tailwind's opacity modifier does not work
+ * through `var()`, and it does not need to: secondary text is an alpha of the
+ * primary ink and ships as its own token, so it stays harmonised when it
+ * lands on a sunken ground, a wash, or a screenshot. A separate grey cannot
+ * do that.
+ *
+ * Contrast, computed against `canvas` in each theme:
+ *   light  ink 17.04  ink-muted 6.90  ink-subtle 5.24  exposure 5.01  books 10.04
+ *   dark   ink 17.40  ink-muted 9.20  ink-subtle 5.91  exposure 7.56  books 8.42
+ * `exposure` clears AA at 19px and above only; `exposure-deep` is the small-text cut.
+ */
 const config: Config = {
   content: ["./app/**/*.{ts,tsx}"],
   theme: {
     extend: {
       colors: {
-        // ── The editorial press palette ───────────────────────────────
-        // Two inks and a paper, and a third colour that is not picked.
-        //
-        // The landing page is printed in two inks: one for what the books
-        // say, one for what the statute says. Where the two records agree
-        // the impressions land on each other and multiply; `agreed` is that
-        // multiply, computed channel by channel from `books` x `statute`,
-        // not chosen. Agreement in this design is a printed state rather
-        // than a hue someone liked.
-        //
-        // Indigo is not an arbitrary blue: it was India's export dye and the
-        // English word is the country's name. Vermillion is the product's
-        // existing statutory colour pushed one step brighter so it survives
-        // being overprinted.
-        //
-        // There is no third hue. No semantic green, no amber.
-        //
-        // Indigo marks the record that reconciled, which is worth stating
-        // plainly because it is a widening of the original rule rather than
-        // an application of it. "Books" and "agreed with the statute" are
-        // not the same set, and the coverage figures on the company screen
-        // are the second one. Setting them in `agreed` would have been more
-        // literal and would have printed the two halves of that screen in
-        // near-black and vermillion, which is a pair a reader has to work to
-        // separate.
-        //
-        // The risk being accepted is that indigo drifts into meaning "good",
-        // which is the semantic green this palette exists without. What
-        // holds it back is that the reconciled state is never carried by
-        // hue alone: the coverage figure is indigo AND light AND sits over a
-        // proportional bar, and exposure is vermillion AND semibold AND
-        // behind a rule. Either channel survives a monochrome print or a
-        // red-green colourblind reader on its own.
-        //
-        // Ratios against `stock`, computed: books 10.84, statute 5.05,
-        // statute-deep 6.70, agreed 17.33, graphite 8.41. On `plate`:
-        // stock 16.81, stock-soft 10.79, stock-faint 5.38. The inverted
-        // sections are plates, not a dark mode, which is the opposite of
-        // the washed-out dark theme this project is audited against.
-        stock: "#F4F1E8",
-        books: "#1D3461",
-        statute: "#C4291B",
-        // `statute` set below 18px drops under 4.5:1, so small type uses this.
-        "statute-deep": "#A32014",
-        agreed: "#16080A",
-        graphite: "#4A453D",
-        // Captions and second-rank labels. 5.11:1, so it clears AA at the
-        // 12px the stub is set at, which `graphite` alone was overqualified
-        // for and the old palette's `ink-faint` did not reach.
-        "graphite-soft": "#6B655C",
-        // The population field: eleven thousand records as a texture. 3.23:1,
-        // which is dense enough to read as a field and light enough that a
-        // vermillion mark still sits on top of it rather than in it.
-        field: "#8C857A",
-        // Code and quoted source sit on a slightly sunk plate rather than on
-        // white, which on a bone ground reads as a hole punched in the paper.
-        sunk: "#EDE9DE",
-        // The ground a tipped-in plate sits on.
-        //
-        // `sunk` is six units off `stock` and was doing this job, which meant
-        // a screenshot of the product did not read as a photograph pasted onto
-        // the page — it read as more page, smaller and softer, and the run of
-        // three plates sagged into one grey block. This is far enough from the
-        // stock to say "different surface" and still a paper tone rather than
-        // a card.
-        "plate-ground": "#E2DCCC",
-        // Washes. A row is tinted, not outlined, because a coloured border
-        // round a row is the card cliche and a tint is what a highlighter
-        // does to a printed sheet. Each is its ink at low saturation over
-        // bone, so text on it keeps the contrast it had on the paper.
-        "statute-wash": "#F6E7E3",
-        "books-wash": "#E6E9F0",
-        "agreed-wash": "#E8E5DC",
-        hairline: "#D6D0C0",
-        plate: "#12100E",
-        "stock-soft": "#C9C3B2",
-        "stock-faint": "#8E887A",
+        canvas: "rgb(var(--canvas-rgb) / <alpha-value>)",
+        raised: "rgb(var(--raised-rgb) / <alpha-value>)",
+        sunken: "rgb(var(--sunken-rgb) / <alpha-value>)",
+        hairline: "rgb(var(--hairline-rgb) / <alpha-value>)",
+        rule: "rgb(var(--rule-rgb) / <alpha-value>)",
 
-        paper: "#F4F6F5",
-        sheet: "#FFFFFF",
-        ink: "#1B2A2F",
-        "ink-soft": "#46565C",
-        "ink-faint": "#5F7076",
-        rule: "#D5DCDA",
-        // One hairline for rules drawn inside a block. It is a token rather
-        // than `border-rule/60` because an alpha rule composites to a
-        // different grey over paper than over sheet, and the two places that
-        // used it sit on different grounds.
-        "rule-hair": "#E3E8E6",
-        "rule-strong": "#B3BEBB",
-        exposure: "#9E2B25",
-        "exposure-wash": "#F6E7E5",
-        reconciled: "#2F6F4E",
-        "reconciled-wash": "#E4EEE8",
-        caution: "#8A5A16",
-        "caution-wash": "#FBF3E2",
-        marked: "#F5EBC4",
+        ink: "rgb(var(--ink-rgb) / <alpha-value>)",
+        // These three are already an alpha of the ink, so they resolve rather
+        // than taking a modifier: `rgb(channels / <alpha-value>)` defaults the
+        // alpha to 1, which would render "muted" at full strength.
+        "ink-muted": "var(--ink-muted)",
+        "ink-subtle": "var(--ink-subtle)",
+
+        // Money at risk, and statutory dates. At most three per viewport,
+        // never on a button, never on a heading, never on a border.
+        exposure: "rgb(var(--exposure-rgb) / <alpha-value>)",
+        "exposure-deep": "rgb(var(--exposure-deep-rgb) / <alpha-value>)",
+        "exposure-wash": "rgb(var(--exposure-wash-rgb) / <alpha-value>)",
+
+        // The record that reconciled.
+        books: "rgb(var(--books-rgb) / <alpha-value>)",
+        "books-wash": "rgb(var(--books-wash-rgb) / <alpha-value>)",
+        positive: "rgb(var(--positive-rgb) / <alpha-value>)",
+
+        // The one inverted section on the site.
+        plate: "rgb(var(--plate-rgb) / <alpha-value>)",
+        "plate-ink": "rgb(var(--plate-ink-rgb) / <alpha-value>)",
+        "plate-muted": "var(--plate-muted)",
+        "plate-hairline": "rgb(var(--plate-hairline-rgb) / <alpha-value>)",
       },
+
       fontFamily: {
+        // Two faces, one superfamily, both already in the repository and both
+        // carrying the `zero` feature. The slashed zero this product's whole
+        // legibility argument rests on is finally reachable on the figures
+        // themselves, which it was not while they were set in a face whose
+        // GSUB has no `zero` in it.
         sans: ["var(--font-plex-sans)", "system-ui", "-apple-system", "Segoe UI", "sans-serif"],
         mono: ["var(--font-plex-mono)", "ui-monospace", "SFMono-Regular", "Consolas", "monospace"],
-        // Provenance by typeface, and it is enforced rather than suggested.
-        // `news` is what the language model wrote and may not contain a
-        // digit; `anek` is a magnitude that came out of SQL; `mono` is an
-        // identifier, a thing that points at a row rather than measures one.
-        // A reader can tell by letterform alone which engine produced any
-        // character on the page.
-        anek: ["Anek Latin", "var(--font-plex-sans)", "system-ui", "sans-serif"],
-        anekdev: ["Anek Devanagari", "Anek Latin", "system-ui", "sans-serif"],
-        news: ["Newsreader", "Georgia", "Times New Roman", "serif"],
       },
-      // Six steps, assigned by role rather than by size. `micro` and `data` are
-      // one point apart on purpose and are not interchangeable: 12px carries
-      // sans annotation, 13px carries the figures and the table rows, and at
-      // Plex's relative glyph widths that pair reads as one optical size. Keep
-      // the roles or the pair rots back into the nine ad-hoc sizes it replaced.
+
+      /* Thirteen steps, named by role rather than by size, so nobody reaches
+       * for an arbitrary `text-[1.3rem]` again. Ratios tighten through the
+       * text range and open at display. Leading descends monotonically from
+       * 1.59 to 0.98 and no step is looser than the step below it.
+       *
+       * Tracking runs in three tiers, not thirteen values: +0.08em on the
+       * uppercase micro step, 0 through the text range, and negative from 21px
+       * up, steepening to -0.05em at display. */
       fontSize: {
-        micro: ["0.75rem", { lineHeight: "1rem", letterSpacing: "0.005em" }],
-        data: ["0.8125rem", { lineHeight: "1.125rem" }],
-        // 16px, lifted from 15. Fifteen is a UI size and this page argues in
-        // paragraphs: the measure runs to 64ch, and at that length 15px asks
-        // the eye to track a line it can barely resolve. The leading stays at
-        // 24px, which is 150% and above the 120-145% a shorter measure would
-        // want. That is deliberate and it is the same reason: leading carries
-        // the eye back to the start of the next line, and the longer the line
-        // the further it has to carry.
-        body: ["1rem", { lineHeight: "1.5rem" }],
-        lede: ["1.125rem", { lineHeight: "1.625rem" }],
-        figure: ["1.625rem", { lineHeight: "2rem", letterSpacing: "-0.015em" }],
-        // The one display figure in the product. Used once, on the firm
-        // dashboard, and allowed outside the ramp because it is never reused.
-        hero: ["3.25rem", { lineHeight: "0.95", letterSpacing: "-0.02em" }],
-        // The landing page opens on the figure rather than on a paragraph,
-        // and at `hero` it read as a heading rather than as a sum. This step
-        // exists for that one number and is not used anywhere else. A
-        // fourteen-character rupee figure at this size is about 740px wide,
-        // which is why it is a large-screen treatment and steps down twice
-        // below it rather than being clipped at the gutter.
-        display: ["5rem", { lineHeight: "0.88", letterSpacing: "-0.03em" }],
-        // ── The editorial ramp ────────────────────────────────────────
-        // Eight steps, eight roles, built outward from the 17px the prose
-        // is actually set at rather than from a notional 16. Two display
-        // steps sit outside the ramp because each is used exactly once per
-        // page. The gap between `amount` and `opener` is deliberate and
-        // large: there is no medium heading here, because a section either
-        // opens at architectural scale or it does not open.
-        // The floor is 46px and is a backstop, not a size anybody sees.
-        // It was 96px, which is a floor that BINDS on every phone: 17.5vw
-        // does not reach 96px until a 549px viewport, so a 320px screen set
-        // this fourteen-character figure at 96px inside 272px of usable
-        // measure and `overflow-x-clip` on `<main>` swallowed the rest
-        // silently. A clamp whose minimum is larger than its preferred value
-        // across the entire range it is read at is not a clamp. At 46 the
-        // preferred value governs everywhere — 56px at 320, 68px at 390,
-        // 252px at 1440 — and the cap still delivers the 268px this ramp
-        // step, and this typeface, were chosen for.
-        register: ["clamp(46px, 17.5vw, 268px)", { lineHeight: "0.82", letterSpacing: "-0.045em" }],
-        opener: ["clamp(56px, 8vw, 116px)", { lineHeight: "0.88", letterSpacing: "-0.035em" }],
-        // The opener, one step down, for headings whose word count does not
-        // suit the measure. Not a free dial: two headings on the page need it
-        // and the rest do not. "The model cannot produce a number" broke to a
-        // single six-letter word on its second line with eight hundred pixels
-        // of hole beside it, and "Eight screens, one question each" ran to
-        // nine pixels short of the container edge, which reads as a heading
-        // that only just fit rather than as a decision.
-        "opener-tight": ["clamp(44px, 5.6vw, 84px)", { lineHeight: "0.92", letterSpacing: "-0.03em" }],
-        // The hero's headline, which is not a section opener and must stop
-        // being set like one.
-        //
-        // `opener` is sized for a heading that owns its screen. The hero's has
-        // to clear a deck, two buttons and a line of fine print inside the
-        // fold of the laptops this is actually read on — 1366x768 leaves about
-        // 625px of viewport once the browser has taken its chrome, and 1440x900
-        // about 760. Measured at `opener`, the hero's primary call to action
-        // landed at y=826: below the fold on both, visible only at 1080p.
-        // A landing page whose button most readers never see is a document,
-        // not a landing page.
-        headline: ["clamp(44px, 5.4vw, 84px)", { lineHeight: "0.92", letterSpacing: "-0.032em" }],
-        deck: ["2.5rem", { lineHeight: "2.75rem", letterSpacing: "-0.01em" }],
-        // The medium heading this ramp was written without.
-        //
-        // The comment above says a section "either opens at architectural
-        // scale or it does not open", and that holds for section openers. It
-        // does not hold inside a section: sub-heads were landing at 17px Anek
-        // semibold directly above 17px Newsreader body, so the only thing
-        // separating a heading from the paragraph under it was weight and
-        // face. Across a page with no mid-level wayfinding that flattens five
-        // consecutive sections into grey. One step, used only inside sections.
-        subhead: ["1.375rem", { lineHeight: "1.75rem", letterSpacing: "-0.012em" }],
-        intro: ["1.5rem", { lineHeight: "2rem" }],
-        prose: ["1.0625rem", { lineHeight: "1.6875rem" }],
-        amount: ["1.875rem", { lineHeight: "2rem", letterSpacing: "-0.02em" }],
-        ident: ["0.875rem", { lineHeight: "1.1875rem", letterSpacing: "0.01em" }],
-        stub: ["0.75rem", { lineHeight: "0.875rem", letterSpacing: "0.12em" }],
+        // The only step allowed `text-transform: uppercase`, and at most one
+        // per section.
+        "label-12": ["0.75rem", { lineHeight: "1rem", letterSpacing: "0.08em" }],
+        "caption-13": ["0.8125rem", { lineHeight: "1.25rem", letterSpacing: "0.01em" }],
+        "ui-15": ["0.9375rem", { lineHeight: "1.4375rem" }],
+        "copy-17": ["1.0625rem", { lineHeight: "1.6875rem" }],
+        "copy-19": ["1.1875rem", { lineHeight: "1.875rem", letterSpacing: "-0.003em" }],
+
+        "head-4": ["var(--head-4)", { lineHeight: "1.25", letterSpacing: "-0.012em" }],
+        "head-3": ["var(--head-3)", { lineHeight: "1.18", letterSpacing: "-0.02em" }],
+        "head-2": ["var(--head-2)", { lineHeight: "1.12", letterSpacing: "-0.02em" }],
+        "head-1": ["var(--head-1)", { lineHeight: "1.08", letterSpacing: "-0.03em" }],
+
+        "display-3": ["var(--display-3)", { lineHeight: "1.05", letterSpacing: "-0.04em" }],
+        "display-2": ["var(--display-2)", { lineHeight: "1.0", letterSpacing: "-0.04em" }],
+        // The hero headline. Once per page.
+        "display-1": ["var(--display-1)", { lineHeight: "0.98", letterSpacing: "-0.05em" }],
+        // The one large numeral. Once per page, and it caps at 96px — a figure
+        // set larger than this reads as a template, not as confidence, and
+        // this one comes from a seeded dataset besides.
+        "figure-1": ["var(--figure-1)", { lineHeight: "1.0", letterSpacing: "-0.03em" }],
       },
-      // One grid for the whole working paper: the tick-mark gutter, the
-      // measure, and the cross-reference margin. It is a token because the
-      // page had two of these written out by hand and they disagreed — the
-      // deck said `22rem` for the margin and every claim below it said
-      // `13rem`, so the right-hand column stepped sideways once, near the top,
-      // for no reason a reader could name. Section rhythm is `py-12` between
-      // sheets and `pt-12` after the last rule; there is no third value.
+
       maxWidth: {
-        // The page's one secondary measure.
-        //
-        // Blocks were capped in `ch` — 88ch here, 80ch there, 72ch somewhere
-        // else — and a `ch` is a different width in each of the three faces,
-        // so the right edge of the page landed at 951, 1030 and 1312 within a
-        // single scroll. That is not three columns, it is three accidents. A
-        // ruled block either runs to the divider or stops here.
-        sheet: "58rem",
+        // Four measures site-wide, in px. A `ch` is a different width in every
+        // face, which is exactly how this page ended up with nineteen of them.
+        display: "1040px",
+        prose: "620px",
+        lede: "520px",
+        pull: "420px",
+        sheet: "1200px",
       },
-      gridTemplateColumns: {
-        // The tick gutter, the measure, and the cross-reference margin.
-        //
-        // The margin was `minmax(0, 13rem)` and that was the bug the whole
-        // sheet was built on: three columns with fixed maxima and no `1fr`
-        // between them do not fill the row they are in. Measured at 1440 the
-        // row ran 112 → 1312 and the last column stopped at 1048, so 264px —
-        // 22% of every section — was unclaimed paper on the right, while the
-        // misregistration rules above and below ran the full width. The eye
-        // reads rules to the edge and content stopping short of it, which is
-        // the one thing a ruled document may not do.
-        //
-        // `minmax(16rem, 1fr)` makes the margin a real column: it claims the
-        // row, and a file path stops breaking into six lines inside 208px.
-        paper: "2.5rem minmax(0, 1fr)",
+
+      spacing: {
+        // Section rhythm. Three values, and there is no fourth.
+        section: "72px",
+        "section-md": "96px",
+        "section-lg": "112px",
+        block: "48px",
+        stack: "32px",
       },
-      // Four rule weights, four meanings, and nothing is allowed a fifth:
-      // `rule-hair` divides rows inside a block, `rule` divides blocks,
-      // `rule-strong` divides sections, and a 2px `ink` rule is the masthead.
-      // `borderRadius.sheet` used to sit here at 2px and was never once used;
-      // every surface in this product is square, and a token nothing applies
-      // is an invitation to start rounding things.
+
+      borderRadius: {
+        panel: "6px",
+        chip: "4px",
+        card: "10px",
+      },
+
+      boxShadow: {
+        // Exactly one shadow token, for the hero card and floating panels.
+        // Everything else is ruled.
+        lift: "0 1px 2px rgb(17 17 16 / 0.04), 0 8px 24px -8px rgb(17 17 16 / 0.10)",
+      },
+
+      transitionTimingFunction: {
+        // Two curves, and there is no third. `seat` is something arriving and
+        // coming to rest; `press` is something answering a hand. Scroll-linked
+        // work is always `linear` — a scroll timeline is already eased by the
+        // reader's thumb, and easing it twice reads as lag.
+        seat: "cubic-bezier(0.16, 0.84, 0.34, 1)",
+        press: "cubic-bezier(0.2, 0.7, 0.3, 1)",
+      },
+
+      transitionDuration: {
+        press: "120ms",
+        mark: "160ms",
+        panel: "220ms",
+        seat: "320ms",
+      },
     },
   },
   plugins: [],

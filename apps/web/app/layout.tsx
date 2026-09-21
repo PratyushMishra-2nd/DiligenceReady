@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 
 import { PrintExpander } from "./components/PrintExpander";
+import { Cursor } from "./press/Cursor";
+import { MotionFallback } from "./press/MotionFallback";
 import { SITE_URL } from "./lib/site";
 import "./globals.css";
 
@@ -51,7 +53,6 @@ const plexSans = localFont({
     { path: "./fonts/IBMPlexSans-400.woff2", weight: "400", style: "normal" },
     { path: "./fonts/IBMPlexSans-500.woff2", weight: "500", style: "normal" },
     { path: "./fonts/IBMPlexSans-600.woff2", weight: "600", style: "normal" },
-    { path: "./fonts/IBMPlexSans-700.woff2", weight: "700", style: "normal" },
   ],
   display: "swap",
   variable: "--font-plex-sans",
@@ -124,45 +125,22 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en-IN" className={`${plexSans.variable} ${plexMono.variable}`}>
-      <head>
-        {/* Anek and Newsreader are declared by hand in globals.css, because
-            they need `unicode-range` and `next/font` has no way to express
-            one. The cost of doing it by hand is that nothing preloads them:
-            the browser only discovers a font when it has parsed the CSS and
-            then found a character that needs it, which on a cold load means
-            the first paint is in a fallback and then jumps.
-            Both are preloaded on every route rather than only on the landing
-            page, because both are used on every route: Newsreader is the
-            document face, and `.tabular` sets every magnitude in the product
-            in Anek, so the dashboard needs it as much as the hero does. */}
-        <link
-          rel="preload"
-          as="font"
-          type="font/woff2"
-          href="/fonts/AnekLatin-latin.woff2"
-          crossOrigin="anonymous"
-        />
-        <link
-          rel="preload"
-          as="font"
-          type="font/woff2"
-          href="/fonts/AnekLatin-latin-ext.woff2"
-          crossOrigin="anonymous"
-        />
-        <link
-          rel="preload"
-          as="font"
-          type="font/woff2"
-          href="/fonts/Newsreader-latin.woff2"
-          crossOrigin="anonymous"
-        />
-      </head>
-      {/* The document is set in Newsreader, not in the sans. Prose is the
-          default state of a page and this one argues in paragraphs; anything
-          that is a magnitude or an identifier opts out explicitly, which is
-          the rule the type system exists to enforce. */}
-      <body className="min-h-screen bg-stock font-news text-prose leading-normal text-agreed antialiased">
+      {/* Nothing is preloaded by hand any more. The three `<link rel=preload>`
+          tags that used to sit here served Anek and Newsreader, which were
+          declared by hand in globals.css because they needed a `unicode-range`
+          that `next/font` cannot express. Both faces are gone; the two that
+          remain go through `next/font/local`, which emits its own preloads
+          with the right crossorigin and the right fetch priority. */}
+      {/* No `bg-canvas` here. The ground is painted by `html` in globals.css,
+          and it has to be: a background on the body paints an opaque box in
+          the root stacking context, directly over the fixed weather layer at
+          z-index -1. The utility class also outranks the `body` element rule
+          that tried to make it transparent, so the layer rendered every frame,
+          correctly sized, at full opacity, and was never once visible. */}
+      <body className="min-h-screen font-sans text-copy-17 leading-normal text-ink antialiased">
         <PrintExpander />
+        <Cursor />
+        <MotionFallback />
         {children}
       </body>
     </html>

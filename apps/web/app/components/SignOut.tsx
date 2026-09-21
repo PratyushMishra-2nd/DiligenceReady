@@ -21,16 +21,16 @@ export function SignOut({ name, role }: { name: string; role: string }) {
   }
 
   return (
-    <span className="no-print flex items-baseline gap-3 text-ident text-graphite">
+    <span className="no-print flex items-baseline gap-3 text-caption-13 text-ink-muted">
       <span>
         {name}
-        {role !== "member" && <span className="ml-1.5 text-graphite-soft">({role})</span>}
+        {role !== "member" && <span className="ml-1.5 text-ink-subtle">({role})</span>}
       </span>
       <button
         type="button"
         onClick={signOut}
         disabled={busy}
-        className="mark-verb underline decoration-graphite-soft underline-offset-4 hover:decoration-agreed disabled:opacity-50"
+        className="mark-verb underline decoration-hairline underline-offset-4 hover:decoration-ink disabled:opacity-50"
       >
         Sign out
       </button>

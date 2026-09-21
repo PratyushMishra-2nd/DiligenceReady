@@ -28,24 +28,24 @@ export function ImsPanel({ ims }: { ims: ImsSummary }) {
     <Disclosure
       title="Invoice Management System"
       headline={
-        <p className="tabular text-ident text-graphite">
+        <p className="fig text-caption-13 text-ink-muted">
           {reviewed} of {ims.total} actioned ·{" "}
-          <span className={ims.deemed_accepted > 0 ? "font-medium text-statute" : ""}>
+          <span className={ims.deemed_accepted > 0 ? "font-medium text-exposure" : ""}>
             {ims.deemed_accepted} flowing through unreviewed
           </span>
         </p>
       }
     >
-      <p className="tabular text-amount font-medium">
-        {ims.total} records: <span className="text-agreed">accept {ims.accept}</span>,{" "}
-        <span className="text-statute">reject {ims.reject}</span>, pending {ims.pending}
+      <p className="fig text-head-2 font-medium">
+        {ims.total} records: <span className="text-ink">accept {ims.accept}</span>,{" "}
+        <span className="text-exposure">reject {ims.reject}</span>, pending {ims.pending}
         {ims.decide > 0 && <>, decide {ims.decide}</>}
       </p>
 
-      <p className="mt-3 max-w-[70ch] text-prose leading-relaxed text-graphite">
-        <span className="tabular font-medium text-agreed">{ims.deemed_accepted}</span> of them
+      <p className="mt-3 max-w-[70ch] text-copy-17 leading-relaxed text-ink-muted">
+        <span className="fig font-medium text-ink">{ims.deemed_accepted}</span> of them
         carry no action, worth{" "}
-        <span className="tabular font-medium text-agreed" title={inr(ims.deemed_accepted_value)}>
+        <span className="fig font-medium text-ink" title={inr(ims.deemed_accepted_value)}>
           {inrShort(ims.deemed_accepted_value)}
         </span>
         . Inaction is deemed acceptance, so those flow into the return as filed once
@@ -53,13 +53,13 @@ export function ImsPanel({ ims }: { ims: ImsSummary }) {
       </p>
 
       {(ims.reject_raises_liability > 0 || ims.decide > 0 || ims.not_filed > 0) && (
-        <ul className="mt-4 space-y-1.5 text-ident">
+        <ul className="mt-4 space-y-1.5 text-caption-13">
           {ims.reject_raises_liability > 0 && (
             <li className="flex gap-3">
-              <span className="tabular w-7 shrink-0 text-right font-medium text-statute">
+              <span className="fig w-7 shrink-0 text-right font-medium text-exposure">
                 {ims.reject_raises_liability}
               </span>
-              <span className="text-graphite">
+              <span className="text-ink-muted">
                 of the rejections raise the supplier&rsquo;s liability in their next
                 GSTR-3B, and the supplier can see the action. Confirm before acting.
               </span>
@@ -67,10 +67,10 @@ export function ImsPanel({ ims }: { ims: ImsSummary }) {
           )}
           {ims.decide > 0 && (
             <li className="flex gap-3">
-              <span className="tabular w-7 shrink-0 text-right font-medium">
+              <span className="fig w-7 shrink-0 text-right font-medium">
                 {ims.decide}
               </span>
-              <span className="text-graphite">
+              <span className="text-ink-muted">
                 need a person: credit notes against documents the register does not
                 contain, where pending is barred and rejecting is visible to the supplier.
               </span>
@@ -78,10 +78,10 @@ export function ImsPanel({ ims }: { ims: ImsSummary }) {
           )}
           {ims.not_filed > 0 && (
             <li className="flex gap-3">
-              <span className="tabular w-7 shrink-0 text-right font-medium">
+              <span className="fig w-7 shrink-0 text-right font-medium">
                 {ims.not_filed}
               </span>
-              <span className="text-graphite">
+              <span className="text-ink-muted">
                 are saved but not filed by the supplier. Visible on the dashboard, not yet
                 counted in 2B, and nothing to action until they file.
               </span>

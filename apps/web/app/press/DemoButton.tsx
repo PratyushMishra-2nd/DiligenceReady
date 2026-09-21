@@ -1,42 +1,34 @@
+"use client";
+
+import { useRef } from "react";
+
 /**
- * The way in, as a button that actually opens the thing.
+ * The one control on this page that matters, and the only one with a
+ * behaviour of its own.
  *
- * It posts to `/demo`, which signs in as the seeded firm on the server and
- * lands the reader on the dashboard. Every call to action on this page used to
- * be a link to `/sign-in` — an empty password box for an account a first-time
- * visitor had no reason to think they had — and the credentials that would
- * have rescued that click were printed further down the page they had just
- * left.
- *
- * A form rather than a link, because signing in creates a session and a GET
- * that changes state is one a prefetch or a crawler will fire unasked.
- * `display: contents` keeps the form out of the layout, so the button sits in
- * its parent's flex row exactly as the link it replaces did.
- *
- * The form still degrades without JavaScript, which matters more here than it
- * usually does: this is the one control on the page that has to work.
+ * Inside the button, the label is nudged a couple of pixels toward the
+ * cursor. Two pixels is the whole effect — enough that a hand feels the
+ * control reach back for it, small enough that nobody could say what
+ * happened. It is off for touch, off under reduced motion, and the offsets
+ * are written as custom properties from a pointer handler so React never
+ * re-renders during the move.
  */
+
 const STYLES = {
-  // The hero, and anywhere else the button is the point of the block.
   primary:
-    "border-2 border-books bg-books px-6 py-3 font-mono text-ident uppercase tracking-[0.08em] text-stock press-verb hover:bg-stock hover:text-books",
-  // The masthead. Bigger than the `compact` it replaced: this is the only
-  // call to action present across the whole page, and it was also the
-  // smallest one on it.
+    "magnetic rounded-chip border-2 border-books bg-books px-6 py-3 font-mono text-caption-13 uppercase tracking-[0.08em] text-plate-ink hover:bg-canvas hover:text-books",
   masthead:
-    "border-2 border-books bg-books px-5 py-2.5 font-mono text-ident uppercase tracking-[0.06em] text-stock press-verb hover:bg-stock hover:text-books",
+    "magnetic rounded-chip border-2 border-books bg-books px-5 py-2.5 font-mono text-caption-13 uppercase tracking-[0.06em] text-plate-ink hover:bg-canvas hover:text-books",
   compact:
-    "border-2 border-books bg-books px-4 py-2 font-mono text-stub uppercase text-stock press-verb hover:bg-stock hover:text-books",
-  // Beside a primary, where a second filled button would fork the eye.
+    "magnetic rounded-chip border-2 border-books bg-books px-4 py-2 font-mono text-label-12 uppercase text-plate-ink hover:bg-canvas hover:text-books",
   outline:
-    "border-2 border-hairline px-6 py-3 font-mono text-ident uppercase tracking-[0.08em] text-graphite press-verb hover:border-agreed hover:text-agreed",
+    "magnetic rounded-chip border-2 border-hairline px-6 py-3 font-mono text-caption-13 uppercase tracking-[0.08em] text-ink-muted hover:border-ink hover:text-ink",
   // On the inverted plate the inks swap: bone on black.
   plate:
-    "border-2 border-stock bg-stock px-6 py-3 font-mono text-ident uppercase tracking-[0.08em] text-plate press-verb hover:bg-transparent hover:text-stock",
-  // Inside a sentence, where the surrounding type is prose and a button would
-  // be a box in the middle of a paragraph.
-  link:
-    "text-agreed underline decoration-graphite-soft underline-offset-4 press-verb hover:decoration-agreed",
+    "magnetic rounded-chip border-2 border-plate-ink bg-plate-ink px-6 py-3 font-mono text-caption-13 uppercase tracking-[0.08em] text-plate hover:bg-transparent hover:text-plate-ink",
+  // Inside a sentence, where a box would be a box in the middle of a
+  // paragraph.
+  link: "wipe-link text-ink press-verb hover:text-exposure-deep",
 } as const;
 
 export function DemoButton({
@@ -46,9 +38,32 @@ export function DemoButton({
   variant?: keyof typeof STYLES;
   label?: string;
 }) {
+  const ref = useRef<HTMLButtonElement>(null);
+
+  const pull = (e: React.PointerEvent<HTMLButtonElement>) => {
+    const el = ref.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    el.style.setProperty("--mx", `${((e.clientX - r.left) / r.width - 0.5) * 6}px`);
+    el.style.setProperty("--my", `${((e.clientY - r.top) / r.height - 0.5) * 4}px`);
+  };
+
+  const release = () => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.setProperty("--mx", "0px");
+    el.style.setProperty("--my", "0px");
+  };
+
   return (
     <form action="/demo" method="post" className="contents">
-      <button type="submit" className={STYLES[variant]}>
+      <button
+        ref={ref}
+        type="submit"
+        onPointerMove={pull}
+        onPointerLeave={release}
+        className={STYLES[variant]}
+      >
         {label}
       </button>
     </form>

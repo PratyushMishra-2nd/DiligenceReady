@@ -33,27 +33,27 @@ export const metadata = {
 export default function NotFound() {
   return (
     <main className="mx-auto max-w-[70ch] px-6 py-24">
-      <p className="font-mono text-stub uppercase tracking-[0.08em] text-graphite-soft">404</p>
-      <h1 className="mt-2 text-intro font-semibold tracking-tight">
+      <p className="font-mono text-label-12 uppercase tracking-[0.08em] text-ink-subtle">404</p>
+      <h1 className="mt-2 text-copy-19 font-semibold tracking-tight">
         Nothing is filed at that address
       </h1>
       {/* Said plainly, and said to be not an error. The engine-offline notice
           on the dashboard is the page for something having gone wrong, and a
           reader who confuses the two goes looking for a service to restart. */}
-      <p className="mt-3 text-prose leading-relaxed text-graphite">
+      <p className="mt-3 text-copy-17 leading-relaxed text-ink-muted">
         Either the address is wrong, or the company it names is not one this firm carries.
         Nothing has failed: a page that does not exist is not a page that would not load.
       </p>
-      <p className="mt-8 flex flex-wrap gap-x-8 gap-y-2 text-ident">
+      <p className="mt-8 flex flex-wrap gap-x-8 gap-y-2 text-caption-13">
         <Link
           href="/app"
-          className="mark-verb underline decoration-graphite-soft underline-offset-4 hover:decoration-agreed"
+          className="mark-verb underline decoration-hairline underline-offset-4 hover:decoration-ink"
         >
           All client companies
         </Link>
         <Link
           href="/"
-          className="mark-verb underline decoration-graphite-soft underline-offset-4 hover:decoration-agreed"
+          className="mark-verb underline decoration-hairline underline-offset-4 hover:decoration-ink"
         >
           What this is
         </Link>

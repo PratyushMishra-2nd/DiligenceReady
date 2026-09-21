@@ -69,10 +69,10 @@ export function AskLedger({ companyId }: { companyId: string }) {
   }
 
   return (
-    <section className="border border-hairline bg-sunk">
+    <section className="border border-hairline bg-sunken">
       <header className="flex flex-wrap items-baseline justify-between gap-2 border-b border-hairline px-5 py-3">
-        <h2 className="text-ident font-semibold text-agreed">Ask the ledger</h2>
-        <p className="text-ident text-graphite-soft">
+        <h2 className="text-caption-13 font-semibold text-ink">Ask the ledger</h2>
+        <p className="text-caption-13 text-ink-subtle">
           The agent chooses the queries. The engine computes every figure.
         </p>
       </header>
@@ -91,12 +91,12 @@ export function AskLedger({ companyId }: { companyId: string }) {
             maxLength={500}
             placeholder="Ask about this company's reconciled books"
             aria-label="Ask about this company's reconciled books"
-            className="min-w-[16rem] flex-1 border border-hairline bg-stock px-3 py-2 text-ident text-agreed placeholder:text-graphite-soft focus:border-agreed"
+            className="min-w-[16rem] flex-1 border border-hairline bg-canvas px-3 py-2 text-caption-13 text-ink placeholder:text-ink-subtle focus:border-ink"
           />
           <button
             type="submit"
             disabled={busy || question.trim().length === 0}
-            className="border border-agreed bg-agreed px-4 py-2 text-ident text-stock transition-opacity disabled:opacity-40"
+            className="border border-ink bg-ink px-4 py-2 text-caption-13 text-plate-ink transition-opacity disabled:opacity-40"
           >
             {busy ? (waited > 4 ? `Querying… ${waited}s` : "Querying…") : "Ask"}
           </button>
@@ -112,7 +112,7 @@ export function AskLedger({ companyId }: { companyId: string }) {
                   setQuestion(suggestion);
                   void send(suggestion);
                 }}
-                className="border border-hairline px-2.5 py-1 text-ident text-graphite hover:border-agreed hover:text-agreed"
+                className="border border-hairline px-2.5 py-1 text-caption-13 text-ink-muted hover:border-ink hover:text-ink"
               >
                 {suggestion}
               </button>
@@ -121,18 +121,18 @@ export function AskLedger({ companyId }: { companyId: string }) {
         )}
 
         {busy && (
-          <p className="mt-4 text-ident text-graphite">
+          <p className="mt-4 text-caption-13 text-ink-muted">
             Reading this company&rsquo;s reconciled records…
           </p>
         )}
 
-        {error && <p className="mt-4 text-ident text-statute">{error}</p>}
+        {error && <p className="mt-4 text-caption-13 text-exposure">{error}</p>}
 
         {result?.source === "agent" && (
           <div className="mt-4">
-            <p className="max-w-[68ch] text-prose leading-relaxed text-agreed">{result.answer}</p>
+            <p className="max-w-[68ch] text-copy-17 leading-relaxed text-ink">{result.answer}</p>
             <ToolTrace tools={result.tools_called} />
-            <p className="mt-2 text-ident text-graphite-soft">
+            <p className="mt-2 text-caption-13 text-ink-subtle">
               Every figure above was returned by one of those queries. The API checked
               each one and would have refused the answer otherwise.
               {result.model && <span className="ml-1 font-mono">{result.model}</span>}
@@ -141,15 +141,15 @@ export function AskLedger({ companyId }: { companyId: string }) {
         )}
 
         {result?.source === "refused" && (
-          <div className="mt-4 border-l-2 border-statute bg-statute-wash px-4 py-3">
-            <p className="text-ident font-medium text-agreed">
+          <div className="mt-4 border-l-2 border-exposure bg-exposure-wash px-4 py-3">
+            <p className="text-caption-13 font-medium text-ink">
               The answer was refused, and here is why.
             </p>
-            <p className="mt-1 max-w-[68ch] text-ident text-graphite">
+            <p className="mt-1 max-w-[68ch] text-caption-13 text-ink-muted">
               {result.rejected_reason}
             </p>
             <ToolTrace tools={result.tools_called} />
-            <p className="mt-2 text-ident text-graphite">
+            <p className="mt-2 text-caption-13 text-ink-muted">
               This is the product working. A figure that is not in a query result is a
               figure nobody can trace to a document, so it is not shown at all.
             </p>
@@ -157,9 +157,9 @@ export function AskLedger({ companyId }: { companyId: string }) {
         )}
 
         {result?.source === "unavailable" && (
-          <div className="mt-4 border-l-2 border-graphite-soft bg-stock px-4 py-3">
-            <p className="text-ident text-graphite">{result.rejected_reason}</p>
-            <p className="mt-1 text-ident text-graphite-soft">
+          <div className="mt-4 border-l-2 border-ink-subtle bg-canvas px-4 py-3">
+            <p className="text-caption-13 text-ink-muted">{result.rejected_reason}</p>
+            <p className="mt-1 text-caption-13 text-ink-subtle">
               Nothing else on this page depends on a model. Every figure you can see was
               computed before the agent was asked anything.
             </p>
@@ -174,9 +174,9 @@ function ToolTrace({ tools }: { tools: string[] }) {
   if (tools.length === 0) return null;
   return (
     <div className="mt-3 flex flex-wrap items-center gap-1.5">
-      <span className="text-ident text-graphite-soft">Queries run:</span>
+      <span className="text-caption-13 text-ink-subtle">Queries run:</span>
       {tools.map((tool) => (
-        <code key={tool} className="border border-hairline bg-stock px-1.5 py-0.5 font-mono text-ident text-graphite">
+        <code key={tool} className="border border-hairline bg-canvas px-1.5 py-0.5 font-mono text-caption-13 text-ink-muted">
           {tool}
         </code>
       ))}

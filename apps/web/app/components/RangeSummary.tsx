@@ -41,7 +41,7 @@ export function RangeSummary({
 
   return (
     <section className="mt-3">
-      <div className="grid gap-x-12 gap-y-8 border-y border-graphite-soft py-8 md:grid-cols-4">
+      <div className="grid gap-x-12 gap-y-8 border-y border-ink-subtle py-8 md:grid-cols-4">
         <Figure
           label="Input tax credit at risk"
           value={inrShort(totals.itc_at_risk)}
@@ -73,10 +73,10 @@ export function RangeSummary({
           renders it as one says the client filed a clean nil return. It is
           said in words instead. */}
       {gaps.length > 0 && (
-        <p className="mt-4 max-w-[70ch] text-ident text-graphite">
+        <p className="mt-4 max-w-[70ch] text-caption-13 text-ink-muted">
           {gaps.length === 1 ? "One month in this span has" : `${gaps.length} months in this span have`}{" "}
           no documents at all:{" "}
-          <span className="text-graphite-soft">
+          <span className="text-ink-subtle">
             {gaps.map((month) => periodLabel(month.period, true)).join(", ")}
           </span>
           . Nothing was filed for {gaps.length === 1 ? "it" : "them"}, which is
@@ -85,12 +85,12 @@ export function RangeSummary({
       )}
 
       <div className="mt-8 overflow-x-auto">
-        <table className="w-full min-w-[54rem] border-collapse text-ident">
+        <table className="w-full min-w-[54rem] border-collapse text-caption-13">
           <caption className="sr-only">
             Each month from {periodLabel(range.from)} to {periodLabel(range.to)}
           </caption>
           <thead>
-            <tr className="border-b border-graphite-soft text-left font-mono text-stub uppercase tracking-[0.06em] text-graphite">
+            <tr className="border-b border-ink-subtle text-left font-mono text-label-12 uppercase tracking-[0.06em] text-ink-muted">
               <th scope="col" className="py-2 pr-4 font-normal">Month</th>
               <th scope="col" className="py-2 pr-4 text-right font-normal">2B coverage</th>
               <th scope="col" className="py-2 pr-4 text-right font-normal">Bank coverage</th>
@@ -104,32 +104,32 @@ export function RangeSummary({
             {[...months].reverse().map((month) => (
               <tr
                 key={month.period}
-                className={`border-b border-hairline ${month.present ? "" : "text-graphite-soft"}`}
+                className={`border-b border-hairline ${month.present ? "" : "text-ink-subtle"}`}
               >
                 <th scope="row" className="py-2 pr-4 text-left font-normal">
                   <Link
                     href={`/app/companies/${companyId}?period=${month.period}`}
-                    className="mark-verb underline decoration-graphite-soft underline-offset-4 hover:decoration-agreed hover:text-agreed"
+                    className="mark-verb underline decoration-hairline underline-offset-4 hover:decoration-ink hover:text-ink"
                   >
                     {periodLabel(month.period)}
                   </Link>
                   {month.present && !month.gstr2b_generated && (
-                    <span className="ml-2 text-graphite-soft">no 2B yet</span>
+                    <span className="ml-2 text-ink-subtle">no 2B yet</span>
                   )}
                   {month.gstr2b_stale && (
-                    <span className="ml-2 text-caution">2B stale</span>
+                    <span className="ml-2 text-exposure-deep">2B stale</span>
                   )}
                 </th>
-                <td className="tabular py-2 pr-4 text-right">
+                <td className="fig py-2 pr-4 text-right">
                   {month.gst_total ? pct(month.gst_coverage_pct) : "—"}
                 </td>
-                <td className="tabular py-2 pr-4 text-right">
+                <td className="fig py-2 pr-4 text-right">
                   {month.bank_total ? pct(month.bank_coverage_pct) : "—"}
                 </td>
-                <td className="tabular py-2 pr-4 text-right">{inr(month.itc_at_risk)}</td>
-                <td className="tabular py-2 pr-4 text-right">{inr(month.bank_variance)}</td>
-                <td className="tabular py-2 pr-4 text-right">{month.open_risks || "—"}</td>
-                <td className="tabular py-2 text-right">
+                <td className="fig py-2 pr-4 text-right">{inr(month.itc_at_risk)}</td>
+                <td className="fig py-2 pr-4 text-right">{inr(month.bank_variance)}</td>
+                <td className="fig py-2 pr-4 text-right">{month.open_risks || "—"}</td>
+                <td className="fig py-2 text-right">
                   {month.high_risks ? (
                     <span className="text-exposure">{month.high_risks}</span>
                   ) : (
@@ -143,16 +143,16 @@ export function RangeSummary({
             <tr className="border-t-2 border-books font-medium">
               <th scope="row" className="py-2 pr-4 text-left">
                 {totals.months} months
-                <span className="ml-2 font-normal text-graphite-soft">
+                <span className="ml-2 font-normal text-ink-subtle">
                   {totals.gst_matched} of {totals.gst_total} documents
                 </span>
               </th>
-              <td className="tabular py-2 pr-4 text-right">{pct(totals.gst_coverage_pct)}</td>
-              <td className="tabular py-2 pr-4 text-right">{pct(totals.bank_coverage_pct)}</td>
-              <td className="tabular py-2 pr-4 text-right">{inr(totals.itc_at_risk)}</td>
-              <td className="tabular py-2 pr-4 text-right">{inr(totals.bank_variance)}</td>
-              <td className="tabular py-2 pr-4 text-right">{totals.open_risks || "—"}</td>
-              <td className="tabular py-2 text-right">
+              <td className="fig py-2 pr-4 text-right">{pct(totals.gst_coverage_pct)}</td>
+              <td className="fig py-2 pr-4 text-right">{pct(totals.bank_coverage_pct)}</td>
+              <td className="fig py-2 pr-4 text-right">{inr(totals.itc_at_risk)}</td>
+              <td className="fig py-2 pr-4 text-right">{inr(totals.bank_variance)}</td>
+              <td className="fig py-2 pr-4 text-right">{totals.open_risks || "—"}</td>
+              <td className="fig py-2 text-right">
                 {totals.high_risks ? (
                   <span className="text-exposure">{totals.high_risks}</span>
                 ) : (
@@ -184,7 +184,7 @@ function RangeFindings({ range, companyId }: { range: Range; companyId: string }
 
   if (open.length === 0) {
     return (
-      <p className="mt-10 max-w-[70ch] text-ident text-graphite">
+      <p className="mt-10 max-w-[70ch] text-caption-13 text-ink-muted">
         No open findings between {periodLabel(range.from)} and {periodLabel(range.to)}.
         {range.totals.months_reconciled === 0 &&
           " No month in this span has a generated GSTR-2B, so nothing has been reconciled yet."}
@@ -194,13 +194,13 @@ function RangeFindings({ range, companyId }: { range: Range; companyId: string }
 
   return (
     <div className="mt-10">
-      <h2 className="text-ident font-semibold text-books">
+      <h2 className="text-caption-13 font-semibold text-books">
         Open findings across the span
       </h2>
-      <p className="mt-1 text-ident text-graphite">
+      <p className="mt-1 text-caption-13 text-ink-muted">
         {open.length} open{" "}
         {shown.length < open.length && (
-          <span className="text-graphite-soft">
+          <span className="text-ink-subtle">
             · the {shown.length} largest are listed; open a month for all of its own
           </span>
         )}
@@ -216,15 +216,15 @@ function RangeFindings({ range, companyId }: { range: Range; companyId: string }
             <span className="sr-only">{risk.severity} severity</span>
             <Link
               href={`/app/companies/${companyId}?period=${risk.period}`}
-              className="tabular w-[5.5rem] shrink-0 text-ident text-graphite mark-verb underline decoration-graphite-soft underline-offset-4 hover:decoration-agreed hover:text-agreed"
+              className="fig w-[5.5rem] shrink-0 text-caption-13 text-ink-muted mark-verb underline decoration-hairline underline-offset-4 hover:decoration-ink hover:text-ink"
             >
               {periodLabel(risk.period, true)}
             </Link>
-            <span className="w-[10rem] shrink-0 truncate text-ident text-graphite">
+            <span className="w-[10rem] shrink-0 truncate text-caption-13 text-ink-muted">
               {RULE_LABEL[risk.rule_code] ?? risk.rule_code}
             </span>
-            <span className="min-w-0 flex-1 truncate text-ident">{supplierOf(risk)}</span>
-            <span className="tabular shrink-0 text-ident">
+            <span className="min-w-0 flex-1 truncate text-caption-13">{supplierOf(risk)}</span>
+            <span className="fig shrink-0 text-caption-13">
               {risk.headline_amount ? inrShort(risk.headline_amount) : ""}
             </span>
           </li>
@@ -247,14 +247,14 @@ function Figure({
 }) {
   return (
     <div>
-      <h2 className="font-mono text-stub uppercase tracking-[0.06em] text-graphite">
+      <h2 className="font-mono text-label-12 uppercase tracking-[0.06em] text-ink-muted">
         {label}
       </h2>
-      <p className="tabular mt-2 font-anek text-[1.75rem] font-bold leading-none text-agreed">
+      <p className="fig mt-2 font-sans text-head-3 font-semibold leading-none text-ink">
         {value}
       </p>
-      {exact && <p className="tabular mt-1 text-ident text-graphite-soft">{exact}</p>}
-      <p className="mt-1.5 text-ident leading-relaxed text-graphite">{note}</p>
+      {exact && <p className="fig mt-1 text-caption-13 text-ink-subtle">{exact}</p>}
+      <p className="mt-1.5 text-caption-13 leading-relaxed text-ink-muted">{note}</p>
     </div>
   );
 }

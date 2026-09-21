@@ -67,12 +67,12 @@ export function ContentsNav({ items }: { items: { href: string; label: string }[
       {/* Padded to a 24px minimum. It was 69x14px — a primary navigation
           control failing WCAG 2.5.8 by a factor of about 1.7, on the width
           where it is the only navigation there is. */}
-      <summary className="flex cursor-pointer items-center gap-2 py-1.5 font-mono text-stub uppercase text-graphite underline decoration-graphite-soft underline-offset-4 hover:decoration-agreed">
+      <summary className="flex cursor-pointer items-center gap-2 py-1.5 font-mono text-label-12 uppercase text-ink-muted underline decoration-hairline underline-offset-4 hover:decoration-ink">
         Contents
         <svg
           viewBox="0 0 8 10"
           aria-hidden
-          className="h-2.5 w-2 shrink-0 text-graphite-soft transition-transform duration-200 group-open:rotate-90"
+          className="h-2.5 w-2 shrink-0 text-ink-subtle transition-transform duration-200 group-open:rotate-90"
         >
           <path d="M2 1l5 4-5 4" fill="none" stroke="currentColor" strokeWidth="1.5" />
         </svg>
@@ -83,12 +83,12 @@ export function ContentsNav({ items }: { items: { href: string; label: string }[
           the nav — so a right-aligned panel hung its two hundred pixels off
           the left edge of a 390px screen and half the list was unreachable.
           It opens rightwards from the word instead. */}
-      <ul className="absolute left-0 top-full z-50 mt-3 min-w-[13rem] border border-hairline bg-stock py-1">
+      <ul className="absolute left-0 top-full z-50 mt-3 min-w-[13rem] border border-hairline bg-canvas py-1">
         {items.map(({ href, label }) => (
           <li key={href}>
             <a
               href={href}
-              className="mark-verb block px-4 py-2.5 font-mono text-stub uppercase text-graphite hover:bg-sunk hover:text-agreed"
+              className="mark-verb block px-4 py-2.5 font-mono text-label-12 uppercase text-ink-muted hover:bg-sunken hover:text-ink"
             >
               {label}
             </a>

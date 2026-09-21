@@ -2,9 +2,8 @@ import { redirect } from "next/navigation";
 
 import { destination } from "../lib/next-path";
 import { hasLiveSession } from "../lib/session";
+import { Aurora } from "../press/Aurora";
 import { Masthead } from "../press/Masthead";
-import { Misregister } from "../press/Misregister";
-import { TickMark } from "../press/Sheet";
 import { SignInForm } from "./SignInForm";
 
 export const dynamic = "force-dynamic";
@@ -65,7 +64,7 @@ export default async function SignInPage({
 
   return (
     <>
-      {/* Sheet W-2 of the same working paper.
+      {/* The same sheet as the landing page, not a second product.
           This page used to be a 432px column floating in five hundred pixels
           of unclaimed paper on either side, with no masthead, no lockup, no
           rules and no marks — a different design system reached in one click
@@ -76,16 +75,14 @@ export default async function SignInPage({
           client component: importing the masthead into it would pull the
           lockup and the demo button across the boundary with it, for markup
           that never changes after the first paint. */}
-      <Masthead current="/sign-in" sheet="W-2" />
+      <Aurora />
+      <Masthead current="/sign-in" />
 
-      <main className="mx-auto max-w-[1280px] px-6 sm:px-10">
-        <section className="sheet py-14">
-          <div className="grid gap-x-10 gap-y-4 lg:grid-cols-paper">
+      <main className="mx-auto max-w-sheet px-6 sm:px-10">
+        <section className="py-section md:py-section-md lg:py-section-lg">
+          <div className="grid gap-x-block gap-y-6 lg:grid-cols-[220px_minmax(0,1fr)]">
             <div>
-              {/* `stated` — how this is built and how it is sold, rather than
-                  a figure out of the data. The legend on sheet W-1 defines
-                  it, which is the point of having put one there. */}
-              <TickMark mark="stated" />
+              <p className="font-mono text-label-12 uppercase text-ink-subtle">/sign-in</p>
             </div>
 
             <div className="min-w-0">
@@ -95,25 +92,15 @@ export default async function SignInPage({
                     a little out of true and closes towards zero down the
                     sheet; this is the sheet where the reader is identified,
                     so the impression has landed. */}
-                <h1 className="text-agreed">
-                  <span className="rag-balance wdth-tight optical-cap font-anek text-opener-tight font-bold">
+                <h1 className="text-ink">
+                  <span className="rag-balance leading-trim font-sans text-head-1 font-semibold">
                     Sign in
                   </span>
                 </h1>
 
-                <dl className="font-mono text-stub uppercase text-graphite">
-                  <div className="flex justify-between gap-x-8 border-b border-hairline py-2">
-                    <dt>Index</dt>
-                    <dd className="text-agreed">W-2</dd>
-                  </div>
-                  <div className="flex justify-between gap-x-8 border-b border-hairline py-2">
-                    <dt>Sheet</dt>
-                    <dd className="text-agreed">Access</dd>
-                  </div>
-                </dl>
               </div>
 
-              <p className="rag-pretty opsz-deck mt-6 max-w-[46ch] font-news text-[1.3rem] leading-snug text-agreed">
+              <p className="rag-pretty mt-6 max-w-lede font-sans text-copy-19 text-ink-muted">
                 {demo
                   ? "The engine did not answer, so this is the long way in. The demo account is filled in below."
                   : "Your firm’s workspace, and the client books inside it."}
@@ -129,7 +116,6 @@ export default async function SignInPage({
 
         {/* The same rule the landing page ends on, in the colour the two inks
             make together. */}
-        <Misregister slip={0} />
       </main>
     </>
   );

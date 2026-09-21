@@ -30,12 +30,12 @@ export function ValueDiff({ risk }: { risk: Risk }) {
 
   return (
     <section>
-      <h3 className="mb-2 text-ident font-semibold text-graphite">Where they differ</h3>
+      <h3 className="mb-2 text-caption-13 font-semibold text-ink-muted">Where they differ</h3>
       <dl className="space-y-1">
         <Line label={pair.leftLabel} runs={runs.left} />
         <Line label={pair.rightLabel} runs={runs.right} />
       </dl>
-      <p className="mt-2 max-w-[56ch] text-ident leading-relaxed text-graphite-soft">
+      <p className="mt-2 max-w-[56ch] text-caption-13 leading-relaxed text-ink-subtle">
         {changed} character{changed === 1 ? "" : "s"} differ, marked above. The comparison
         is of the two figures as they are stored; nothing here was recomputed.
       </p>
@@ -45,12 +45,12 @@ export function ValueDiff({ risk }: { risk: Risk }) {
 
 function Line({ label, runs }: { label: string; runs: Run[] }) {
   return (
-    <div className="flex items-baseline gap-4 text-ident">
-      <dt className="w-[44%] shrink-0 text-graphite">{label}</dt>
-      <dd className="tabular font-mono">
+    <div className="flex items-baseline gap-4 text-caption-13">
+      <dt className="w-[44%] shrink-0 text-ink-muted">{label}</dt>
+      <dd className="fig font-mono">
         {runs.map((run, index) =>
           run.changed ? (
-            <mark key={index} className="bg-agreed-wash px-px font-semibold text-agreed">
+            <mark key={index} className="bg-sunken px-px font-semibold text-ink">
               {run.text}
             </mark>
           ) : (

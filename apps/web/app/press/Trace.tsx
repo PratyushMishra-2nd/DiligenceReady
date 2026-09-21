@@ -64,45 +64,45 @@ export function Trace() {
               <Fragmentish key={column} column={column} value={value} />
             ))}
           </dl>
-          <p className="mt-2 text-ident leading-relaxed text-graphite-soft">
+          <p className="mt-2 text-caption-13 leading-relaxed text-ink-subtle">
             A line of a Tally export, as exported. Nothing is written back to it.
           </p>
         </Step>
 
         <Step step={STEPS[1]}>
-          <p className="font-mono text-ident text-agreed">
-            {columns["Voucher No"]} <span className="text-graphite-soft">reduces to</span>{" "}
+          <p className="font-mono text-caption-13 text-ink">
+            {columns["Voucher No"]} <span className="text-ink-subtle">reduces to</span>{" "}
             {example.normalised_number}
           </p>
-          <p className="mt-2 text-ident leading-relaxed text-graphite-soft">
+          <p className="mt-2 text-caption-13 leading-relaxed text-ink-subtle">
             The voucher series is written by hand and the portal is not. The document
             number both systems would agree on is what the match is attempted against.
           </p>
         </Step>
 
         <Step step={STEPS[2]}>
-          <p className="text-ident leading-relaxed text-agreed">{example.note}</p>
-          <p className="mt-2 text-ident leading-relaxed text-graphite-soft">
+          <p className="text-caption-13 leading-relaxed text-ink">{example.note}</p>
+          <p className="mt-2 text-caption-13 leading-relaxed text-ink-subtle">
             Searched across every period, not only {example.period}, because a supplier who
             files late files into a different month.
           </p>
         </Step>
 
         <Step step={STEPS[3]} last>
-          <pre className="whitespace-pre-wrap break-words border border-hairline bg-sunk p-3 font-mono text-ident leading-relaxed text-graphite">
+          <pre className="whitespace-pre-wrap break-words border border-hairline bg-sunken p-3 font-mono text-caption-13 leading-relaxed text-ink-muted">
 {`sum(headline_amount) filter (
   where rule_code = 'R1' and status = 'open'
 )`}
           </pre>
           <div className="mt-3 flex items-baseline justify-between gap-6 border-t border-hairline pt-2">
-            <p className="text-stub uppercase tracking-[0.08em] text-graphite">
+            <p className="text-label-12 uppercase tracking-[0.08em] text-ink-muted">
               Credit at risk, this invoice
             </p>
-            <p className="tabular font-mono text-ident font-medium text-statute-deep">
+            <p className="fig font-mono text-caption-13 font-medium text-exposure-deep">
               ₹{formatInr(example.amount)}
             </p>
           </div>
-          <p className="mt-2 text-ident leading-relaxed text-graphite-soft">
+          <p className="mt-2 text-caption-13 leading-relaxed text-ink-subtle">
             The tax, not the invoice value: ₹{formatInr(columns["Invoice Value"])} was
             paid, of which ₹{formatInr(example.amount)} is credit that cannot be claimed
             while the supplier has not filed. One of the {ruleOneFindings} findings rule{" "}
@@ -144,17 +144,17 @@ function Step({
     // same standard the tick marks are held to — decoration for anyone who
     // cannot use a pointer, and nothing lost by missing it.
     <li
-      className={`group relative border-l pl-5 [transition:border-color_160ms_cubic-bezier(0.2,0.7,0.3,1)] hover:border-statute focus-within:border-statute ${
-        last ? "border-transparent" : "border-statute/40 pb-7"
+      className={`group relative border-l pl-5 [transition:border-color_160ms_cubic-bezier(0.2,0.7,0.3,1)] hover:border-exposure focus-within:border-exposure ${
+        last ? "border-transparent" : "border-exposure/40 pb-7"
       }`}
     >
       {/* The mark sits on the rule rather than beside it, so the line reads as
           passing through each stage instead of running past them. */}
       <span
         aria-hidden
-        className="absolute -left-[3.5px] top-[6px] h-1.5 w-1.5 bg-statute outline outline-2 outline-offset-[3px] outline-transparent [transition:outline-color_160ms_cubic-bezier(0.2,0.7,0.3,1)] group-hover:outline-statute/40 group-focus-within:outline-statute/40"
+        className="absolute -left-[3.5px] top-[6px] h-1.5 w-1.5 bg-exposure outline outline-2 outline-offset-[3px] outline-transparent [transition:outline-color_160ms_cubic-bezier(0.2,0.7,0.3,1)] group-hover:outline-exposure/40 group-focus-within:outline-exposure/40"
       />
-      <h3 className="font-mono text-stub uppercase tracking-[0.08em] text-agreed">
+      <h3 className="font-mono text-label-12 uppercase tracking-[0.08em] text-ink">
         {step.stage}
       </h3>
       <div className="mt-2">{children}</div>
@@ -165,8 +165,8 @@ function Step({
 function Fragmentish({ column, value }: { column: string; value: string }) {
   return (
     <>
-      <dt className="font-mono text-ident text-graphite-soft">{column}</dt>
-      <dd className="font-mono text-ident text-agreed">{value}</dd>
+      <dt className="font-mono text-caption-13 text-ink-subtle">{column}</dt>
+      <dd className="font-mono text-caption-13 text-ink">{value}</dd>
     </>
   );
 }

@@ -2,169 +2,254 @@
 @tailwind components;
 @tailwind utilities;
 
-/* The three press faces, declared by hand rather than through `next/font`.
-   The reason is `unicode-range`: Google cuts these families into a Latin file
-   and a Latin-Extended file, and U+20B9 lives only in the second one. The
-   rupee sign is the most important glyph on this site, so which file it comes
-   from is not a detail. `next/font/local` has no way to express a range, so
-   these are served from /public and preloaded from the document head.
+/* ── The two faces ───────────────────────────────────────────────────
+   IBM Plex Sans and IBM Plex Mono, self-hosted from IBM's own build, loaded
+   through `next/font/local` in app/layout.tsx.
 
-   All three keep their variable axes. Anek carries wght and wdth, and the
-   width axis is the entire reason it is here: it is what lets a fourteen
-   character rupee figure set at 268px inside a 1280px viewport, which IBM
-   Plex Sans cannot do at any weight because it has no width axis at all.
-   Newsreader carries wght and opsz, so the 12px legend and the 40px deck are
-   two different drawings of the face rather than one scaled twice. */
+   This used to be four families across five files — Anek Latin, Anek
+   Devanagari, Newsreader and both Plex cuts — and the argument for that stack
+   was provenance by letterform: a figure that came out of SQL was set in the
+   display face, prose in the serif, an identifier in the mono.
 
-@font-face {
-  font-family: "Anek Latin";
-  src: url("/fonts/AnekLatin-latin.woff2") format("woff2");
-  font-weight: 100 800;
-  font-stretch: 75% 125%;
-  font-display: swap;
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
-    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+2074, U+2122, U+2191, U+2193,
-    U+2212, U+2215, U+FEFF, U+FFFD;
-}
+   Two things were wrong with it. A reader cannot tell what produced a glyph
+   and has no reason to care; what they notice is that the page has four
+   faces. And the rule defeated the one technical claim underneath it. Anek
+   Latin's GSUB is `ccmp dnom frac liga locl numr rvrn tnum` — there is no
+   `zero` in it — so the slashed zero this product's legibility argument rests
+   on was a no-op on precisely the figures it was chosen for. Both Plex cuts
+   carry `zero`, and both set their digits at a uniform 600/1000 advance, so
+   figures are tabular without asking.
 
-@font-face {
-  font-family: "Anek Latin";
-  src: url("/fonts/AnekLatin-latin-ext.woff2") format("woff2");
-  font-weight: 100 800;
-  font-stretch: 75% 125%;
-  font-display: swap;
-  /* U+20B9 is in here, and nowhere else. */
-  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
-    U+20A0-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
-}
-
-@font-face {
-  font-family: "Anek Devanagari";
-  src: url("/fonts/AnekDevanagari-devanagari.woff2") format("woff2");
-  font-weight: 100 800;
-  font-stretch: 75% 125%;
-  font-display: swap;
-  unicode-range: U+0900-097F, U+1CD0-1CF9, U+200C-200D, U+20A8, U+20B9, U+25CC,
-    U+A830-A839, U+A8E0-A8FF;
-}
-
-@font-face {
-  font-family: "Newsreader";
-  src: url("/fonts/Newsreader-latin.woff2") format("woff2");
-  font-weight: 200 800;
-  font-display: swap;
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
-    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+2074, U+2122, U+2191, U+2193,
-    U+2212, U+2215, U+FEFF, U+FFFD;
-}
-
-@font-face {
-  font-family: "Newsreader";
-  src: url("/fonts/Newsreader-latin-ext.woff2") format("woff2");
-  font-weight: 200 800;
-  font-display: swap;
-  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
-    U+20A0-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
-}
-
-/* ── Rags ────────────────────────────────────────────────────────────
-   A deck three to six lines long will, left to itself, end a line on "and"
-   or "the" and leave a one-word last line. `text-wrap: pretty` asks the
-   browser to look ahead across the whole paragraph rather than breaking
-   greedily line by line, which fixes both without anybody hand-setting a
-   break that a different viewport width would then get wrong.
-   Headings get `balance` instead, which evens the line lengths - the right
-   behaviour for two or three lines and the wrong one for a paragraph, which
-   is why they are separate rules. */
-
-.rag-pretty {
-  text-wrap: pretty;
-}
-
-.rag-balance {
-  text-wrap: balance;
-}
-
-/* ── Optical alignment at display scale ───────────────────────────────
-   Type is set to a metric box and read by an eye, and at 100px the two stop
-   agreeing. A capital T hangs its crossbar over its own sidebearing; a round
-   letter has to overshoot a flat one to look the same height; the rupee sign
-   carries two horizontal bars that read as an indent against a mono label
-   sitting above it. Left alone, every display string on this page starts a
-   pixel or two inside the column it is supposed to align with, and the page
-   looks very slightly loose without a reader being able to say why.
-   These pull each case back to where the eye expects the column to be. They
-   are wrong to measure and right to look at, which is the whole of optical
-   alignment. */
-
-.optical-figure {
-  /* The rupee sign's bars read as white space at the start of the line. */
-  margin-left: -0.045em;
-}
-
-.optical-cap {
-  /* A flat-sided capital - T, E, F, W - against a column edge. */
-  margin-left: -0.028em;
-}
-
-.optical-round {
-  /* A round capital overshoots, so it needs less correction than a flat one. */
-  margin-left: -0.018em;
-}
-
-/* Anek's width axis, named. Tailwind has no width utility and these are set
-   often enough that an arbitrary value at every call site would rot. */
-/* The `:where()` is load-bearing. `.tabular:not(.font-mono)` further down
-   sets `font-stretch: 88%` at specificity (0,2,0) and these are (0,1,0), so
-   every figure that is both tabular and condensed — which is every large
-   rupee amount on the page, the three biggest included — was being set 13%
-   wider than it is authored. The width axis is the stated reason Anek is
-   here at all, and it was silently defeated on exactly the figures it was
-   chosen to carry. `:where(:not(.font-mono))` adds the same exemption at
-   zero specificity, so an explicit width class wins and a GSTIN in the mono
-   is still left alone. */
-.wdth-condensed:where(:not(.font-mono)) {
-  font-stretch: 75%;
-}
-
-.wdth-tight:where(:not(.font-mono)) {
-  font-stretch: 82%;
-}
-
-.wdth-set:where(:not(.font-mono)) {
-  font-stretch: 88%;
-}
-
-/* Newsreader's optical size, set to match the size it is drawn at. Left to
-   itself the axis sits at its default and the whole argument for choosing an
-   optical-size face is lost. */
-.opsz-prose {
-  font-variation-settings: "opsz" 17;
-}
-
-.opsz-intro {
-  font-variation-settings: "opsz" 24;
-}
-
-.opsz-deck {
-  font-variation-settings: "opsz" 40;
-}
-
-/* The typefaces load through `next/font` in app/layout.tsx, not an @import
-   here. The reason is in that file: an import inside a stylesheet is a
-   third-wave request, and a fallback with different digit metrics reflows a
-   column of rupee figures on every cold load. */
+   `font-anekdev` had zero call sites. `font-sans` had zero call sites, which
+   meant the one face carrying the feature was the one face never used.
+   Removing Newsreader, both Anek files and the Plex Sans 700 weight takes
+   ~270KB off every route. */
 
 :root {
-  color-scheme: light;
+  color-scheme: light dark;
+
+  /* ── Type scale ────────────────────────────────────────────────────
+     Fluid steps, generated linearly between 390px and 1440px. Every one has a
+     preferred value that governs across the whole range it is read at — unlike
+     the clamp this replaces, whose 46px floor bound on every phone and so was
+     not a clamp at all. */
+  /* Capped at 88, not 140. A 140px cap set this page's headline in three
+     lines 380px tall and put the primary call to action below the fold of a
+     1366x768 laptop — which is the exact defect the old hero was measured for
+     and fixed once already. A hero headline nobody finishes reading before
+     they have to scroll is a document, not a landing page. */
+  --display-1: clamp(40px, 12px + 5.3vw, 88px);
+  --display-2: clamp(36px, 15.2px + 5.333vw, 92px);
+  --display-3: clamp(32px, 18.63px + 3.429vw, 68px);
+  --head-1: clamp(28px, 19.09px + 2.286vw, 52px);
+  --head-2: clamp(24px, 18.06px + 1.524vw, 40px);
+  --head-3: clamp(21px, 16.91px + 1.048vw, 32px);
+  --head-4: clamp(19px, 16.4px + 0.667vw, 26px);
+  /* 64, not 96. A fourteen-character rupee amount at 96px is about 700px
+     wide and overran its own grid column into the one beside it. Stripe's
+     largest figure is ~64px and Ramp's ~56px; nobody credible sets a number
+     larger than this, and the old page set this one at 268. */
+  --figure-1: clamp(34px, 21.6px + 3.05vw, 64px);
+
+  /* Both Plex cuts share these, which is why one token set trims both. */
+  --face-ascent: 1025;
+  --face-descent: -275;
+  --face-upem: 1000;
+
+  /* ── Motion ────────────────────────────────────────────────────────
+     Two curves. `seat` is something arriving and coming to rest; `press` is
+     something answering a hand. Both were already in this file, used at
+     thirteen call sites between them and named at none. Scroll-linked work is
+     `linear`, always.
+
+     The duration ladder has six steps and each has one job. Nothing exists
+     between `set` and `impression`: if something needs 700ms, it is wrong. */
+  --ease-seat: cubic-bezier(0.16, 0.84, 0.34, 1);
+  --ease-press: cubic-bezier(0.2, 0.7, 0.3, 1);
+
+  --dur-press: 120ms;
+  --dur-mark: 160ms;
+  --dur-panel: 220ms;
+  --dur-seat: 320ms;
+  --dur-set: 480ms;
+  --stagger: 70ms;
+
+  /* Critically damped spring, sampled. Monotonic, no overshoot — the height
+     of a disclosure must not bounce past its content and come back. */
+  --spring-disclosure: linear(
+    0, 0.1061, 0.3018, 0.4922, 0.6466, 0.7613, 0.8422, 0.8975, 0.9342, 0.9582, 0.9737, 0.9836,
+    0.9898, 0.9937, 0.9961, 0.9976, 0.9985, 0.9991, 1, 1
+  );
+
+  /* ── Light ─────────────────────────────────────────────────────────
+     A warm neutral, three units off white. The old ground was a cream at
+     #F4F1E8, and the instinct behind it was right — fintech neutrals run warm,
+     and every ramp worth copying does the same — but eight units of warmth
+     plus a serif plus hairline rules is the house style of every model asked
+     for "editorial", which is the thing this page was being mistaken for.
+
+     Secondary text is an alpha of the ink rather than its own grey, so it
+     stays harmonised over canvas, sunken, a wash, or a screenshot. 64% is the
+     floor: 56% computes to 4.03 and fails AA. */
+  --canvas-rgb: 251 250 249;
+  --canvas-a: 1;
+  --raised-rgb: 255 255 255;
+  --raised-a: 1;
+  --sunken-rgb: 242 241 238;
+  --sunken-a: 1;
+  --hairline-rgb: 230 228 223;
+  --hairline-a: 1;
+  --rule-rgb: 210 207 200;
+  --rule-a: 1;
+
+  --ink-rgb: 23 24 26;
+  --ink-a: 1;
+  --ink-muted-rgb: 23 24 26;
+  --ink-muted-a: 0.722;
+  --ink-subtle-rgb: 23 24 26;
+  --ink-subtle-a: 0.639;
+
+  --exposure-rgb: 200 54 42;
+  --exposure-a: 1;
+  --exposure-deep-rgb: 158 42 28;
+  --exposure-deep-a: 1;
+  --exposure-wash-rgb: 251 237 234;
+  --exposure-wash-a: 1;
+
+  --books-rgb: 31 61 122;
+  --books-a: 1;
+  --books-wash-rgb: 237 240 247;
+  --books-wash-a: 1;
+  --positive-rgb: 28 107 76;
+  --positive-a: 1;
+
+  --plate-rgb: 17 17 16;
+  --plate-a: 1;
+  --plate-ink-rgb: 251 250 249;
+  --plate-ink-a: 1;
+  --plate-muted-rgb: 251 250 249;
+  --plate-muted-a: 0.722;
+  --plate-hairline-rgb: 42 42 40;
+  --plate-hairline-a: 1;
+
+  /* The plain names, for direct use in color-mix, gradients and the shader's
+     token reads. Tailwind is given the channel form instead, so that its
+     `/40` opacity modifier composes — through a plain `var()` colour that
+     modifier silently compiles to nothing, which is how sixteen call sites
+     across this app came to be rendering no colour at all. */
+  --canvas: rgb(var(--canvas-rgb) / var(--canvas-a));
+  --raised: rgb(var(--raised-rgb) / var(--raised-a));
+  --sunken: rgb(var(--sunken-rgb) / var(--sunken-a));
+  --hairline: rgb(var(--hairline-rgb) / var(--hairline-a));
+  --rule: rgb(var(--rule-rgb) / var(--rule-a));
+  --ink: rgb(var(--ink-rgb) / var(--ink-a));
+  --ink-muted: rgb(var(--ink-muted-rgb) / var(--ink-muted-a));
+  --ink-subtle: rgb(var(--ink-subtle-rgb) / var(--ink-subtle-a));
+  --exposure: rgb(var(--exposure-rgb) / var(--exposure-a));
+  --exposure-deep: rgb(var(--exposure-deep-rgb) / var(--exposure-deep-a));
+  --exposure-wash: rgb(var(--exposure-wash-rgb) / var(--exposure-wash-a));
+  --books: rgb(var(--books-rgb) / var(--books-a));
+  --books-wash: rgb(var(--books-wash-rgb) / var(--books-wash-a));
+  --positive: rgb(var(--positive-rgb) / var(--positive-a));
+  --plate: rgb(var(--plate-rgb) / var(--plate-a));
+  --plate-ink: rgb(var(--plate-ink-rgb) / var(--plate-ink-a));
+  --plate-muted: rgb(var(--plate-muted-rgb) / var(--plate-muted-a));
+  --plate-hairline: rgb(var(--plate-hairline-rgb) / var(--plate-hairline-a));
+}
+
+/* Dark, which this site did not have at all: zero `dark:` utilities, zero
+   `prefers-color-scheme`, and `color-scheme: light` pinned in the root. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --canvas-rgb: 13 14 16;
+    --canvas-a: 1;
+    --raised-rgb: 22 24 27;
+    --raised-a: 1;
+    --sunken-rgb: 8 9 10;
+    --sunken-a: 1;
+    --hairline-rgb: 36 38 42;
+    --hairline-a: 1;
+    --rule-rgb: 58 62 68;
+    --rule-a: 1;
+
+    --ink-rgb: 244 243 240;
+    --ink-a: 1;
+    --ink-muted-rgb: 244 243 240;
+    --ink-muted-a: 0.722;
+    --ink-subtle-rgb: 244 243 240;
+    --ink-subtle-a: 0.561;
+
+    --exposure-rgb: 255 122 99;
+    --exposure-a: 1;
+    --exposure-deep-rgb: 255 154 135;
+    --exposure-deep-a: 1;
+    --exposure-wash-rgb: 42 21 18;
+    --exposure-wash-a: 1;
+
+    --books-rgb: 143 170 238;
+    --books-a: 1;
+    --books-wash-rgb: 20 26 39;
+    --books-wash-a: 1;
+    --positive-rgb: 79 190 140;
+    --positive-a: 1;
+
+    --plate-rgb: 8 9 10;
+    --plate-a: 1;
+    --plate-ink-rgb: 244 243 240;
+    --plate-ink-a: 1;
+    --plate-muted-rgb: 244 243 240;
+    --plate-muted-a: 0.722;
+    --plate-hairline-rgb: 36 38 42;
+    --plate-hairline-a: 1;
+  }
+}
+
+:root[data-theme="dark"] {
+  --canvas-rgb: 13 14 16;
+  --canvas-a: 1;
+  --raised-rgb: 22 24 27;
+  --raised-a: 1;
+  --sunken-rgb: 8 9 10;
+  --sunken-a: 1;
+  --hairline-rgb: 36 38 42;
+  --hairline-a: 1;
+  --rule-rgb: 58 62 68;
+  --rule-a: 1;
+
+  --ink-rgb: 244 243 240;
+  --ink-a: 1;
+  --ink-muted-rgb: 244 243 240;
+  --ink-muted-a: 0.722;
+  --ink-subtle-rgb: 244 243 240;
+  --ink-subtle-a: 0.561;
+
+  --exposure-rgb: 255 122 99;
+  --exposure-a: 1;
+  --exposure-deep-rgb: 255 154 135;
+  --exposure-deep-a: 1;
+  --exposure-wash-rgb: 42 21 18;
+  --exposure-wash-a: 1;
+
+  --books-rgb: 143 170 238;
+  --books-a: 1;
+  --books-wash-rgb: 20 26 39;
+  --books-wash-a: 1;
+  --positive-rgb: 79 190 140;
+  --positive-a: 1;
+
+  --plate-rgb: 8 9 10;
+  --plate-a: 1;
+  --plate-ink-rgb: 244 243 240;
+  --plate-ink-a: 1;
+  --plate-muted-rgb: 244 243 240;
+  --plate-muted-a: 0.722;
+  --plate-hairline-rgb: 36 38 42;
+  --plate-hairline-a: 1;
 }
 
 /* Tailwind's preflight sets `font-feature-settings: normal` on `code`, `kbd`,
    `pre` and `samp`, which would cancel the inherited slashed zero on exactly
-   the three elements in this app that are set in the mono — the shell command
-   on the engine-offline screen, the tool names in the ledger answer, and the
-   key legend. Those would have kept Plex Mono's default dotted zero while the
-   rest of the document had a slashed one, which is two marks for one job. */
+   the elements set in the mono. */
 html,
 body,
 code,
@@ -174,429 +259,185 @@ samp {
   font-feature-settings: "zero" 1;
 }
 
-html,
+/* The ground is painted by `html` ALONE, and that is load-bearing.
+   When `html` has no background of its own, `body`'s propagates up to the
+   root canvas; the moment `html` is given one, `body` stops propagating and
+   paints an opaque box of its own in the root stacking context — directly
+   over anything at a negative z-index. That is what hid the weather layer
+   completely: it was rendering every frame, correctly sized, at full
+   opacity, behind an opaque body. */
+html {
+  background: var(--canvas);
+}
+
 body {
-  background: theme("colors.stock");
-  color: theme("colors.agreed");
+  background: transparent;
+  color: var(--ink);
   -webkit-font-smoothing: antialiased;
 }
 
-/* A document does not teleport.
- *
- * Measured before this line existed: pressing "FAQ" in the masthead put the
- * reader at 9,330px on the very first frame — ten and a half viewports
- * crossed instantly, in a document thirteen thousand pixels long, with no
- * indication of which direction they had travelled or how far. The mobile
- * Contents nav made that the primary way of moving around the page, so the
- * defect got worse the moment wayfinding got better.
- *
- * Chrome caps a long smooth scroll near 700ms regardless of distance, which
- * is the right behaviour here: the reader keeps their place without waiting
- * for nine thousand pixels to roll past. `scroll-mt-24` on the sections
- * already clears the sticky masthead. Reverted under reduced motion below —
- * a long smooth scroll is a documented vestibular trigger, and the `*` rule
- * that collapses animations does not touch this property. */
+/* A document does not teleport. Measured before this existed: pressing a
+   masthead link crossed ten viewports on a single frame. Chrome caps a long
+   smooth scroll near 700ms regardless of distance, which is the right
+   behaviour — the reader keeps their place without waiting for the page to
+   roll past. Reverted under reduced motion below; the `*` rule that collapses
+   animations does not reach this property. */
 html {
   scroll-behavior: smooth;
 }
 
-/* A magnitude, and therefore Anek.
-   The type system's rule is that a figure which came out of SQL is set in the
-   display face, prose is set in Newsreader, and anything that points at a row
-   rather than measuring one stays in the mono. `.tabular` already marks every
-   magnitude in the interface, so the rule is written once here rather than as
-   a `font-anek` on forty call sites that would drift apart.
-   The `:not(.font-mono)` is the exemption: a GSTIN and a sha256 are tabular
-   because their characters have to line up in a column, and they are still
-   identifiers. Two classes beat one, so this loses to nothing.
-   Width 88 is the set width for figures: condensed enough to hold a
-   fourteen-character rupee amount inside a table cell, open enough to read at
-   14px. The digits are already uniform in both faces, so `tabular-nums` is
-   declaring the requirement rather than fixing anything. */
-.tabular {
-  font-variant-numeric: tabular-nums;
+/* ── Figures ─────────────────────────────────────────────────────────
+   Both Plex cuts set every digit at 600/1000, so figures are tabular by
+   default and `tnum` is absent from the GSUB because it has nothing to do.
+   What the feature settings buy is the slashed zero, which is the whole
+   reason these files come from IBM's build rather than Google's.
+
+   `onum` is deliberately not used anywhere. Plex has it, but it has no
+   `pnum` to go with it, so oldstyle figures would still set on tabular
+   advances — old-style shapes in monospaced slots, which is neither thing. */
+.fig {
+  font-variant-numeric: tabular-nums lining-nums slashed-zero;
+  font-feature-settings: "zero" 1;
 }
 
-.tabular:not(.font-mono) {
-  font-family: "Anek Latin", var(--font-plex-sans), system-ui, sans-serif;
-  font-stretch: 88%;
-  font-feature-settings: "zero" 1;
+/* ── Optical leading trim ────────────────────────────────────────────
+   Display type is set to a metric box and read by an eye, and above about
+   60px the two stop agreeing: the box carries the face's full ascent and
+   descent, so a heading sits visibly low inside its own line and a figure
+   never quite aligns with the rule above it.
+
+   This replaces three hand-guessed margin hacks (`.optical-cap` at -0.028em,
+   `.optical-round` at -0.018em, `.optical-figure` at -0.045em) with the same
+   correction derived from the face's real metrics, pulled with fontTools:
+   Plex Sans and Plex Mono both report ascent 1025, descent -275, upem 1000.
+   Apply to display steps and the one large figure. Nothing smaller needs it. */
+.leading-trim {
+  --trim-text-height: calc(
+    ((var(--face-ascent) + var(--face-descent)) / var(--face-upem)) * 1em
+  );
+  --trim-space: calc((1lh - var(--trim-text-height)) / 2);
+}
+
+.leading-trim::before,
+.leading-trim::after {
+  content: "";
+  display: table;
+}
+
+.leading-trim::before {
+  margin-bottom: calc(-1 * var(--trim-space));
+}
+
+.leading-trim::after {
+  margin-top: calc(-1 * var(--trim-space));
+}
+
+/* ── Rags ────────────────────────────────────────────────────────────
+   Headings get `balance`, which evens line lengths — right for two or three
+   lines and wrong for a paragraph. Paragraphs get `pretty`, which looks ahead
+   across the whole block instead of breaking greedily, so a deck stops ending
+   on "and" with one word on the last line. */
+.rag-balance {
+  text-wrap: balance;
+}
+
+.rag-pretty {
+  text-wrap: pretty;
+}
+
+/* The mark in the margin, linked to the claim it belongs to.
+   Resting anywhere in a section's measure grows its mark slightly — enough to
+   connect the two without announcing itself. An outline rather than a scale,
+   because one multiplier cannot serve two geometries: the same factor grows a
+   12px square and a 14x2 rule by visibly different weights, and an outline
+   adds the same halo to whatever shape it is drawn around. */
+.tick-mark {
+  outline: 2px solid transparent;
+  outline-offset: 3px;
+  transition:
+    outline-color var(--dur-mark) var(--ease-press),
+    outline-offset var(--dur-mark) var(--ease-press);
+}
+
+.sheet:hover .tick-mark,
+.sheet:focus-within .tick-mark {
+  outline-color: var(--exposure);
 }
 
 /* A hairline, not a shadow. Working papers are ruled, not floated. */
 .ruled {
-  border-bottom: 1px solid theme("colors.hairline");
+  border-bottom: 1px solid var(--hairline);
 }
 
 :focus-visible {
-  outline: 2px solid theme("colors.agreed");
+  outline: 2px solid var(--ink);
   outline-offset: 2px;
 }
 
-/* The ruled field, and what Chrome does to it when it fills one in.
+/* ── The ruled field, and Chrome's blue ──────────────────────────────
    The inputs are a line on paper rather than a box, which leaves the browser
    nothing to tint except the thing it tints anyway: an autofilled field is
-   painted #E8F0FE, a pale blue, over a sheet that is bone. That is the normal
-   state for a returning reader — autofill is how most people sign in — so the
-   page designed to feel like the same sheet of paper as the one before it was
-   showing most of its visitors a blue rectangle.
-   `-webkit-autofill` cannot be overridden by `background-color`; the tint is
-   painted by the engine and an inset shadow the height of the field is the
-   documented way to cover it. `-webkit-text-fill-color` is the matching
-   override for the text, which `color` likewise does not reach.
-   `transition: background-color` with an absurd delay is the other half of
-   the trick — without it the blue flashes for a frame before the shadow
-   lands. */
+   painted #E8F0FE over a ground that is not. That is the normal state for a
+   returning reader, so the page was showing most of its visitors a blue
+   rectangle. `-webkit-autofill` cannot be overridden by `background-color`;
+   an inset shadow the height of the field is the documented way to cover it,
+   and the absurd transition delay is what stops the blue flashing for a frame
+   before the shadow lands. It is a way of saying "never", not an animation. */
 .field-rule {
-  transition: border-color 160ms cubic-bezier(0.2, 0.7, 0.3, 1);
+  transition: border-color var(--dur-mark) var(--ease-press);
 }
 
 .field-rule:-webkit-autofill,
 .field-rule:-webkit-autofill:hover,
 .field-rule:-webkit-autofill:focus,
 .field-rule:-webkit-autofill:active {
-  -webkit-text-fill-color: theme("colors.agreed");
-  -webkit-box-shadow: inset 0 0 0 100px theme("colors.stock");
-  box-shadow: inset 0 0 0 100px theme("colors.stock");
-  caret-color: theme("colors.agreed");
+  -webkit-text-fill-color: var(--ink);
+  -webkit-box-shadow: inset 0 0 0 100px var(--canvas);
+  box-shadow: inset 0 0 0 100px var(--canvas);
+  caret-color: var(--ink);
   font-family: var(--font-plex-mono), ui-monospace, monospace;
   transition: background-color 100000s ease-in-out 0s;
 }
 
-/* ── Windows High Contrast, where the whole argument disappears ──────
-   In `forced-colors: active` the OS replaces every background and every
-   border with a two-colour system palette — and `mix-blend-mode` is not a
-   property it can force, so a blended plate simply stops meaning anything.
-   That is survivable for decoration and fatal here: the answer key's three
-   states are carried ENTIRELY by blend arithmetic. Found is both plates
-   multiplying to `agreed`, a miss is the indigo plate alone, a false positive
-   is the vermillion alone. Forced into one system colour they become
-   eighty-two identical squares — the graphic that exists so a reader can
-   verify the result becomes the one thing on the page they have to take on
-   trust.
+/* ── What hover means ────────────────────────────────────────────────
+   Two verbs, and one rule over both: HOVER NEVER INTRODUCES A HUE. It changes
+   how much ink is on the paper. No control gains a colour that was not
+   already in the palette.
 
-   The fix is the rule this codebase already states in `Sheet.tsx`: three
-   shapes, not three colours. It was applied to the tick marks and never to
-   the plates. Found is filled with an outline inside it; a miss is filled
-   and bare; a false positive is an outline around nothing. No colour, no
-   blend, and the same three states remain distinguishable — including the
-   two that never occur, which is the point of drawing them. */
-@media (forced-colors: active) {
-  .plate-books {
-    forced-color-adjust: none;
-    background: CanvasText;
-  }
+     MARK  — things you inspect. Soft, 160ms.
+     PRESS — things you actuate. Fast, 120ms, an ink/paper inversion.
 
-  .plate-statute {
-    forced-color-adjust: none;
-    mix-blend-mode: normal;
-    background: transparent;
-    outline: 2px solid CanvasText;
-    outline-offset: -2px;
-  }
-
-  /* The dividers are the same problem one step down: two rules that overlap
-     into a third colour, in a mode with no third colour. Keeping them out of
-     register is what is left, and it is most of the signal anyway. */
-  .misregister-plate {
-    forced-color-adjust: none;
-    background: CanvasText;
-    mix-blend-mode: normal;
-  }
-}
-
-/* The disclosure sections are ruled rows, not widgets. The marker is drawn as
-   a chevron in the summary itself so it can sit where the eye already is. */
-summary {
-  list-style: none;
-}
-
-summary::-webkit-details-marker {
-  display: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
-
-    /* And it has to stop, not merely get short. Collapsing the duration of an
-       INFINITE animation does not end it — it loops forever at ten
-       microseconds an iteration, which is a main-thread tick for the life of
-       the element. `foot-rule-running` on the sign-in button is declared
-       `infinite`, so a reader who asked for no motion and pressed Sign in got
-       an invisible animation churning for the whole request. */
-    animation-iteration-count: 1 !important;
-
-    /* Collapsing the duration does nothing to a scroll-driven animation.
-       A progress-based timeline is driven by scroll position, not by a
-       clock, so `animation-duration: 0.01ms` leaves it tracking the
-       scrollbar exactly as before — measured, at three depths, with the
-       guard applying and the transform still interpolating. Any element
-       that opts into a scroll timeline has to have the timeline itself
-       removed, and then it rests on whichever keyframe is its base state.
-       That is why the closing keyframes on this page are authored with the
-       SETTLED, in-register state as the element's own CSS and the slip
-       added by the animation: pulling the timeline lands a reduced-motion
-       reader on the resolved document, which is both the intended resting
-       state and the more legible one. */
-    animation-timeline: none !important;
-  }
-
-  /* The `*` selector above does not match view-transition pseudo-elements —
-     they are generated on the pseudo-element tree, not in the document — so
-     the sheet turn between routes would have played at full duration for a
-     reader who asked for no motion. */
-  ::view-transition-group(*),
-  ::view-transition-old(*),
-  ::view-transition-new(*) {
-    animation: none !important;
-  }
-
-  /* And the smooth scroll declared above. */
-  html {
-    scroll-behavior: auto !important;
-  }
-
-  /* One exemption, and it is not motion. The autofill override above uses a
-     100000-second `background-color` transition, which is the documented way
-     to stop Chrome repainting its blue tint over the field; it is a way of
-     saying "never", not an animation, and nothing about it moves. Collapsing
-     it to 0.01ms with the blanket rule hands a reader who asked for reduced
-     motion the pale blue rectangle the override exists to remove. */
-  .field-rule:-webkit-autofill,
-  .field-rule:-webkit-autofill:hover,
-  .field-rule:-webkit-autofill:focus,
-  .field-rule:-webkit-autofill:active {
-    transition-duration: 100000s !important;
-  }
-}
-
-/* The one piece of motion in the interface: the evidence panel arriving in
-   answer to a click. Nothing animates on its own. */
-@keyframes panel-in {
-  from {
-    transform: translateX(12px);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
-
-.panel-in {
-  animation: panel-in 140ms ease-out;
-}
-
-/* The second piece of motion, and the last: on the landing page, the two
-   closing rules under the ledger column draw themselves left to right, once,
-   on load. That is footing a column — the act the product performs — and it is
-   the only thing on that page that moves. Not a reveal, not a scroll effect:
-   it happens once, in 240ms, and then the page is a document at rest. */
-@keyframes foot-rule {
-  from {
-    transform: scaleX(0);
-  }
-  to {
-    transform: scaleX(1);
-  }
-}
-
-/* The keyframe has exactly one user, below.
- *
- * `.foot-rule` and `.foot-rule-final` were classes used by zero components:
- * the ledger column they were written for was deleted and they outlived it.
- * Half-fixing that — shipping the keyframe and leaving the orphans — is the
- * same comment-ahead-of-build drift this page keeps being caught by, so the
- * two dead classes are gone and the keyframe stays because it earns its
- * place as a pending indicator.
- *
- * Footing a column is the act this product performs, which makes it the
- * honest animation for a wait: the motion while you wait is the thing being
- * waited for, rather than a spinner borrowed from a different kind of
- * software. There is no spinner, skeleton or progress bar anywhere in this
- * application and there does not need to be one. */
-.foot-rule-running {
-  transform-origin: left;
-  animation: foot-rule 900ms cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-/* The error arriving, rather than simply existing on the next paint. */
-@keyframes alert-in {
-  from {
-    opacity: 0;
-    transform: translateY(-4px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-.alert-in {
-  animation: alert-in 120ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
-}
-
-/* ── The impression landing ──────────────────────────────────────────
-   The third and last piece of motion, and the only one on the landing page
-   that a reader meets before they have scrolled.
-
-   It is the page's own thesis, performed once. Two records that did not land
-   on top of each other is what this product is about; the hero's figure is
-   printed three times in two inks to say so, and on load the two coloured
-   impressions arrive wide of the black one and pull into register. What a
-   reader sees is a press taking an impression, about six hundred milliseconds
-   of it, and then a document at rest.
-
-   The offsets live in custom properties rather than in the keyframes because
-   only the call site knows them: `Overprint` computes the slip per instance
-   and the animation has to end exactly where the static layout would have put
-   it, or the figure jumps at the last frame. `both` holds that final state.
-
-   Nothing loops, nothing plays on scroll, and the global
-   `prefers-reduced-motion` rule above collapses the whole thing to its
-   finished frame. */
-@keyframes ink-settle {
-  from {
-    transform: translate(
-      calc(var(--ink-x) * var(--ink-throw, 6)),
-      calc(var(--ink-y) * var(--ink-throw, 6))
-    );
-    opacity: 0.5;
-  }
-  to {
-    transform: translate(var(--ink-x), var(--ink-y));
-    opacity: 1;
-  }
-}
-
-.ink-settle {
-  animation: ink-settle var(--ink-ms, 620ms) cubic-bezier(0.16, 0.84, 0.34, 1) both;
-}
-
-/* The throw is a parameter because the hero needs a different one from
-   everything else, and for a reason worth writing down.
- *
- * At the default 6x the hero's figure starts about 11px out of register,
- * which reads as a slightly soft impression — a reader who blinks misses it
- * entirely, and the effect the whole document is named after is spent on
- * something sub-perceptual. The hero is the one place a reader meets this
- * system before they have been told anything about it, so it is the one place
- * the system has to teach itself. At 16x the figure opens as three visibly
- * separate impressions of the same number in two inks and a near-black, and
- * closes into one over 900ms.
- *
- * A slip that large is only legible because it RESOLVES. Held static it would
- * be three overlapping numbers and unreadable; as a moment that lands it is
- * the entire argument of the page, made once, with no copy. Those are one
- * decision, not two: the magnitude is affordable only because of the motion,
- * and the motion is only worth having at that magnitude. */
-
-/* Type setting after the rule is drawn. Four steps, 70ms apart, and the whole
-   sequence is over before a reader who scrolled immediately would have missed
-   anything. It is only ever applied above the fold: animating a section into
-   view as it is scrolled to is the effect this page has refused from the
-   beginning, and this is a load, not a reveal. */
-@keyframes set-type {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-.sets {
-  animation: set-type 480ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
-}
-
-/* A heading's own lines, seating in order. `Setting` splits the heading and
-   hands each line its delay as `--set-delay`; the keyframe is the same one
-   the hero's four blocks use, because it is the same act at a smaller scale.
-   The global reduced-motion rule collapses it, and an unsplit heading never
-   carries this class at all. */
-.sets-line {
-  animation: set-type 480ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
-  animation-delay: var(--set-delay, 0ms);
-}
-
-.sets-1 {
-  animation-delay: 60ms;
-}
-.sets-2 {
-  animation-delay: 130ms;
-}
-.sets-3 {
-  animation-delay: 200ms;
-}
-.sets-4 {
-  animation-delay: 270ms;
-}
-
-/* ── What hover means on a working paper ─────────────────────────────
-   The page had two hover idioms and no rule governing them: an underline
-   shifting colour on text links, and an ink/paper inversion on buttons. Both
-   are drawn from print and both are right. What was missing was a statement
-   of what hover MEANS, and the consequence was that six buttons carried
-   `transition-colors` and about twenty-five other controls performing the
-   identical visual move had no transition at all — so the same gesture
-   behaved two ways depending on which file it lived in. Worse, the six that
-   did transition inherited Tailwind's default 150ms `cubic-bezier(.4,0,.2,1)`,
-   a symmetric ease-in-out sitting inside a document whose every authored
-   curve is a decelerating settle. The page was running two easing systems,
-   one designed and one arrived at by default.
-
-   A working paper affords exactly two things to a hand, so there are two
-   verbs:
-
-     MARK — things you are inspecting. An annotator runs a finger down a
-     column and what they touch gets ticked, tinted, ruled. Soft, 160ms, the
-     same duration the tick marks already use.
-
-     PRESS — things you actuate. Ink lands or it does not. Fast, 120ms, and
-     the move is the ink/paper inversion a plate performs.
-
-   One rule governs both: HOVER NEVER INTRODUCES A HUE. It changes how much
-   ink is on the paper. No control on this site gains a colour that was not
-   already in the palette's two inks and their product. */
+   Both enumerate the properties they animate rather than using `all`, which
+   is the difference between the sites that get this right and the ones that
+   ship `transition: all .3s ease-in-out`. */
 .press-verb {
   transition:
-    background-color 120ms cubic-bezier(0.2, 0.7, 0.3, 1),
-    color 120ms cubic-bezier(0.2, 0.7, 0.3, 1),
-    border-color 120ms cubic-bezier(0.2, 0.7, 0.3, 1);
+    background-color var(--dur-press) var(--ease-press),
+    color var(--dur-press) var(--ease-press),
+    border-color var(--dur-press) var(--ease-press);
 }
 
 .mark-verb {
   transition:
-    background-color 160ms cubic-bezier(0.2, 0.7, 0.3, 1),
-    color 160ms cubic-bezier(0.2, 0.7, 0.3, 1),
-    text-decoration-color 160ms cubic-bezier(0.2, 0.7, 0.3, 1);
+    background-color var(--dur-mark) var(--ease-press),
+    color var(--dur-mark) var(--ease-press),
+    text-decoration-color var(--dur-mark) var(--ease-press);
 }
 
-/* The wordmark, which demonstrates the system it is the wordmark for.
- *
- * The logo mark is already the page's argument standing still: two plates,
- * one per ink, the lower one offset down and right — the same figure every
- * divider draws and the same figure that closes to nothing at the sign-off.
- * It was also the only link on the site with no hover state of any kind.
- *
- * On hover the two plates separate by about a pixel each and come back. It
- * is the cheapest possible statement of what this company is called and what
- * it does, it lasts 160ms, and it is the one micro-interaction on this site
- * that could not be lifted onto any other product.
- *
- * The offsets are in SVG user units against a 40x24 viewBox rendered at
- * roughly 28px wide, so 1.5 units is about a pixel on screen — which is the
- * magnitude the rest of the document uses for a slip, not a number picked to
- * be noticed. */
+/* A press has no easing. It is instantaneous or it is not a press. */
+.press-verb:active {
+  transform: translateY(1px);
+  transition: none;
+}
+
+/* The wordmark, which demonstrates the system it is the wordmark for: two
+   plates, one per ink, that separate about a pixel on hover and come back.
+   The cheapest possible statement of what this company is called and what it
+   does, and the one micro-interaction here that could not be lifted onto
+   another product. */
 .logo-lockup .ink-books,
 .logo-lockup .ink-statute {
-  transition: transform 160ms cubic-bezier(0.2, 0.7, 0.3, 1);
+  transition: transform var(--dur-mark) var(--ease-press);
 }
 
 .logo-lockup:hover .ink-books,
@@ -609,178 +450,271 @@ summary::-webkit-details-marker {
   transform: translate(1.5px, 1.5px);
 }
 
-/* ── The apparatus, linked ───────────────────────────────────────────
-   The tick mark in the margin is the only part of the working-paper
-   apparatus left on screen, and a mark nobody notices is a mark that is not
-   doing its job. Hovering or focusing anywhere in a section's measure grows
-   it slightly, which is enough to connect the mark to the claim it belongs
-   to without announcing itself.
-
-   It is a hover, so it is decoration for anyone who cannot use one — which is
-   why it carries no information that is not already printed. */
-.sheet:hover .tick-mark,
-.sheet:focus-within .tick-mark,
-/* The legend's own specimens, which were the three marks on this page that
-   did not respond to anything. Five of the eight tick marks on the document
-   grew on hover and the three in the legend sat inert — so the one place a
-   reader goes to learn what a mark is was the one place it refused to
-   behave like one. */
-.legend:hover .tick-mark,
-.legend:focus-within .tick-mark {
-  outline: 2px solid theme("colors.statute");
-  outline-offset: 3px;
+/* ── The masthead, hardening ─────────────────────────────────────────
+   Transparent over the hero, gaining a blurred ground and a hairline once the
+   reader leaves it. Six lines of CSS, and the single most reliable "built
+   this decade" cue there is. Driven by the scroll timeline rather than by a
+   scroll listener, so it costs no main thread at all. */
+.masthead {
+  background: color-mix(in srgb, var(--canvas) 82%, transparent);
+  border-bottom: 1px solid transparent;
 }
 
-.tick-mark {
-  /* An outline, not `scale(1.35)`.
-     One multiplier cannot serve two geometries: the same 1.35 grew the 12x12
-     square by 4.2px in both directions and the 14x2 rule by 4.9px wide and
-     0.7px tall, so the two marks responded to the same gesture with visibly
-     different weight. An outline adds the same halo to both, whatever shape
-     it is drawn around. */
-  outline: 2px solid transparent;
-  outline-offset: 3px;
+@supports (animation-timeline: scroll()) {
+  @media (prefers-reduced-motion: no-preference) {
+    @keyframes masthead-harden {
+      to {
+        border-bottom-color: var(--hairline);
+        backdrop-filter: blur(12px) saturate(1.4);
+      }
+    }
+
+    .masthead {
+      animation: masthead-harden linear both;
+      animation-duration: auto;
+      animation-timeline: scroll(root block);
+      animation-range: 0 120px;
+    }
+  }
+}
+
+/* Where the scroll timeline is unavailable the masthead simply carries its
+   hairline from the start, which is what shipped before any of this existed. */
+@supports not (animation-timeline: scroll()) {
+  .masthead {
+    background: var(--canvas);
+    border-bottom-color: var(--hairline);
+  }
+}
+
+/* ── Disclosures ─────────────────────────────────────────────────────
+   `grid-template-rows: 0fr → 1fr` plus a sampled critically-damped spring
+   gives a real height animation in every browser with no JavaScript and no
+   animation library. The opacity trails the geometry by 120ms, so the content
+   reads as present slightly before it has finished arriving. */
+summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+summary::-webkit-details-marker {
+  display: none;
+}
+
+.disclosure-body {
+  display: grid;
+  grid-template-rows: 0fr;
   transition:
-    outline-color 160ms cubic-bezier(0.2, 0.7, 0.3, 1),
-    outline-offset 160ms cubic-bezier(0.2, 0.7, 0.3, 1);
+    grid-template-rows 600ms var(--spring-disclosure),
+    opacity 300ms linear 120ms;
+  opacity: 0;
 }
 
-/* Same document, different sheet. Three lines, no JavaScript, and nothing at
-   all in a browser that does not implement it.
+.disclosure-body > * {
+  overflow: hidden;
+}
 
-   The opt-in is gated here rather than left to the `::view-transition-*`
-   reduced-motion rule alone. That rule disables the animation; this declines
-   the transition, which is the cheaper and more honest of the two — there is
-   nothing to suppress if it never starts.
+details[open] .disclosure-body {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
 
-   And every link in the masthead is a plain `<a>` rather than a `next/link`.
-   That is the whole reason any of this runs: `navigation: auto` fires on
-   cross-document navigations only, and the App Router's soft navigation is
-   same-document, so this block and the sixty lines under it were dead on the
-   one path between the two sheets of this document. The pages are
-   `force-dynamic` in any case, so client-side routing was buying nothing. */
+details summary .disclosure-chevron {
+  transition: transform 600ms var(--spring-disclosure);
+}
+
+details[open] summary .disclosure-chevron {
+  transform: rotate(90deg);
+}
+
+/* ── Type seating, above the fold only ───────────────────────────────
+   A load, not a reveal. Nothing on this page animates into view as it is
+   scrolled to.
+
+   The `<h1>` is deliberately not in this set. It is the LCP candidate, and a
+   browser does not record an element as painted while its opacity is zero —
+   so seating the headline was buying an imperceptible fade at the cost of up
+   to 610ms of Largest Contentful Paint. The headline is there when the paper
+   arrives. */
+@keyframes seat {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.seats {
+  animation: seat var(--dur-set) var(--ease-press) both;
+}
+
+.seats-1 {
+  animation-delay: 0ms;
+}
+.seats-2 {
+  animation-delay: var(--stagger);
+}
+.seats-3 {
+  animation-delay: calc(var(--stagger) * 2);
+}
+
+/* The evidence panel arriving in answer to a click. Opacity and displacement
+   run at different durations on the same element, so the panel reads as
+   present before it has finished moving. */
+.panel-in {
+  animation: seat var(--dur-panel) var(--ease-press) both;
+}
+
+
+/* Footing a column is the act this product performs, which makes it the
+   honest indicator for a wait: the motion while you wait is the thing being
+   waited for. There is no spinner anywhere in this application and there does
+   not need to be one. */
+@keyframes foot-rule {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.foot-rule-running {
+  transform-origin: left;
+  animation: foot-rule 900ms cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes alert-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.alert-in {
+  animation: alert-in var(--dur-press) var(--ease-press) both;
+}
+
+/* ── Windows High Contrast ───────────────────────────────────────────
+   In `forced-colors: active` the OS replaces every background and border with
+   a two-colour system palette. The answer key's three states cannot be
+   carried by colour there, so they are carried by shape — which is the rule
+   this codebase already stated for the tick marks and never applied here.
+   Found is filled with an outline inside it; a miss is filled and bare; a
+   false positive is an outline around nothing. The two states that never
+   occur are still drawn, because being able to see that they are empty is the
+   entire point of the graphic. */
+@media (forced-colors: active) {
+  .plate-books {
+    forced-color-adjust: none;
+    background: CanvasText;
+    mix-blend-mode: normal;
+  }
+
+  .plate-statute {
+    forced-color-adjust: none;
+    background: transparent;
+    mix-blend-mode: normal;
+    outline: 2px solid CanvasText;
+    outline-offset: -2px;
+  }
+}
+
+/* ── Reduced motion ──────────────────────────────────────────────────
+   Three cases that a blanket duration collapse does not handle, all of which
+   are live on this page. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+
+    /* Collapsing the duration of an INFINITE animation does not end it — it
+       loops forever at ten microseconds an iteration, which is a main-thread
+       tick for the life of the element. `foot-rule-running` is declared
+       infinite, so a reader who asked for no motion and pressed a button got
+       an invisible animation churning for the whole request. */
+    animation-iteration-count: 1 !important;
+
+    /* And collapsing the duration does nothing at all to a scroll-driven
+       animation, because it is driven by scroll position rather than by a
+       clock: the timeline itself has to be removed. Every animation here is
+       authored with its settled state as the element's own CSS and the offset
+       added by the keyframe, so pulling the timeline lands a reduced-motion
+       reader on the resolved document — which is both the intended resting
+       state and the more legible one. */
+    animation-timeline: none !important;
+  }
+
+  /* The `*` selector does not match view-transition pseudo-elements. They are
+     generated on the pseudo-element tree, not in the document. */
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+
+  html {
+    scroll-behavior: auto !important;
+  }
+
+
+
+  /* One exemption, and it is not motion: the autofill override above uses a
+     100000-second transition to stop Chrome repainting its tint. Collapsing
+     it hands a reader who asked for reduced motion the blue rectangle the
+     override exists to remove. */
+  .field-rule:-webkit-autofill,
+  .field-rule:-webkit-autofill:hover,
+  .field-rule:-webkit-autofill:focus,
+  .field-rule:-webkit-autofill:active {
+    transition-duration: 100000s !important;
+  }
+}
+
+/* ── The sheet turn ──────────────────────────────────────────────────
+   Same document, different sheet. Three lines of opt-in, no JavaScript, and
+   nothing at all in a browser that does not implement it.
+
+   The masthead is the same header on both sheets, so it should not fade: it
+   holds still while the sheet changes underneath it, which is what happens
+   when you turn a page inside a bound document.
+
+   The asymmetry is deliberate. The outgoing sheet only lifts — no
+   displacement, because paper does not slide out from under you. The incoming
+   one lands slightly out of register and pulls in.
+
+   Every link in the masthead is a plain `<a>` rather than a `next/link`:
+   `navigation: auto` fires on cross-document navigations only, and the App
+   Router's soft navigation is same-document, so this block would otherwise be
+   dead on the one path it was written for. */
 @media (prefers-reduced-motion: no-preference) {
   @view-transition {
     navigation: auto;
   }
 }
 
-/* The snapshot overlay sits above the document while the transition runs, so
-   a click landing during the turn is swallowed by it rather than reaching the
-   page underneath. */
 ::view-transition {
   pointer-events: none;
 }
 
-/* ── The register closing, under the reader ──────────────────────────
-   The dividers down this page step from fully out of register at the hero to
-   dead-on at the sign-off, and that progression has always been static: nine
-   fixed positions a reader might notice if they scrolled back up and
-   compared. The page's own copy claims something stronger — that the
-   document "has been closing since the hero and this is where it arrives" —
-   and this is that claim, honoured.
-
-   It is not a scroll reveal, which this document refuses and should keep
-   refusing. Nothing appears, nothing is gated, nothing is withheld until you
-   reach it: every word and every rule is present at every scroll position.
-   What changes is one continuous state — how far out of register the ink
-   sits — mapped to how far through the document you are. That is the
-   difference between an availability change and a state mapping, and only
-   the first is a reveal.
-
-   SCOPED TO THE DIVIDERS ONLY, deliberately. The section openers carry the
-   same slip, but their ghost plates are `mix-blend-multiply` over live type:
-   a blended element cannot take the cheap compositor path, so animating six
-   openers' worth of them would force a repaint of each blended region on
-   every frame of a thirteen-thousand-pixel scroll. The dividers travel 14px
-   against the openers' 6px and they are where the progression is legible
-   anyway. Most of the effect, a fraction of the cost.
-
-   The sentence that used to sit here said the dividers have "no blend on the
-   layer being moved". They do: `Misregister.tsx` puts `mix-blend-multiply`
-   on `.misregister-plate` itself, which is the element this animates, and
-   the blend and the timeline arrived in the same commit. So the rule written
-   to avoid the blended-repaint path was applying it — every frame, the
-   blended tiles and everything under them re-rastered together.
-
-   `will-change: translate` is the fix, and it is the opposite of the usual
-   advice. It promotes the plate to its own composited layer with a real
-   backdrop texture instead of letting it decomposite into the layer beneath
-   and blend at raster time. It is safe HERE and nowhere else on this page:
-   promotion unconditionally disables subpixel antialiasing, which would be
-   ruinous on the openers and on the hero figure — live type, at 88px, with
-   the blend that is the whole argument — and costs nothing on a 2px rule
-   that contains no glyphs.
-
-   `animation-range` hands the first viewport to `ink-settle`, which is
-   already animating the hero's plates on load. Both drive the same kind of
-   offset on the same kind of element, and composing them would have the two
-   fighting over the hero figure for 900ms. The close starts below the fold
-   and finishes a viewport before the foot.
-
-   Chrome and Edge 115+, Safari 26.0+ (threaded since 26.4), Firefox behind a
-   flag until 159 — and where it is absent the `@supports` block never
-   applies, leaving the static staircase that shipped before this existed.
-   MDN still lists this as Limited availability; it is not Baseline, whatever
-   the search results say. */
-@supports (animation-timeline: scroll()) {
-  @media (prefers-reduced-motion: no-preference) {
-    @keyframes close-register {
-      from {
-        translate: var(--slip-x) var(--slip-y);
-      }
-      to {
-        translate: 0 0;
-      }
-    }
-
-    .misregister-plate {
-      animation: close-register linear both;
-      animation-timeline: scroll(root block);
-      animation-range: 100vh calc(100% - 100vh);
-      /* See the note above: this is a 2px rule with no type in it, which is
-         the one case where promoting a blended layer is cheaper than letting
-         it decomposite. */
-      will-change: translate;
-    }
-  }
-}
-
-/* ── The sheet turn ──────────────────────────────────────────────────
-   `@view-transition` was live for several passes and undesigned: with only
-   the default `root` snapshot and no element-level names, turning from the
-   landing page to the sign-in sheet cross-faded the entire viewport,
-   including a masthead that is identical on both.
-
-   Three names fix that, and the middle one is the point.
-
-   `masthead` is the same header on both sheets, so it should not fade at
-   all — it holds still while the sheet changes underneath it, which is what
-   happens when you turn a page inside a bound document.
-
-   `index-block` is the payoff. The landing page's colophon carries INDEX
-   W-1 and the sign-in sheet carries INDEX W-2; giving both the same name
-   makes the browser morph one into the other, so a reader watches the sheet
-   number advance in place. The document's own foliation, animated, for
-   nothing.
-
-   The asymmetry in the two keyframes is deliberate. The outgoing sheet only
-   lifts — no displacement, because paper does not slide out from under you.
-   The incoming one lands slightly out of register and pulls in, which is the
-   press action this entire document is about, performed once at the moment a
-   reader turns a page. Both are under 350ms together, below where a
-   navigation begins to feel slow.
-
-   Chrome and Edge from 126; Safari from 26.0 and threaded since 26.4;
-   Firefox gets an ordinary instant navigation and loses nothing. Disabled
-   entirely under reduced motion, above — the `*` rule cannot reach these
-   pseudo-elements. */
 .vt-masthead {
   view-transition-name: masthead;
 }
 
-.vt-index {
-  view-transition-name: index-block;
+/* The same number, on a different sheet. The hero's figure and the Section
+   16(4) tool's answer carry one name, so the browser morphs one into the
+   other — the document's own argument, animated, for three lines of CSS. */
+.vt-figure {
+  view-transition-name: headline-figure;
 }
 
 @keyframes sheet-in {
@@ -804,19 +738,55 @@ summary::-webkit-details-marker {
 }
 
 ::view-transition-new(root) {
-  animation: sheet-in 320ms cubic-bezier(0.16, 0.84, 0.34, 1) both;
+  animation: sheet-in var(--dur-seat) var(--ease-seat) both;
 }
 
 ::view-transition-old(root) {
-  animation: sheet-out 200ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
+  animation: sheet-out 200ms var(--ease-press) both;
 }
 
-/* What this product is for is a document someone files. The screen is where
+/* ── Paper ───────────────────────────────────────────────────────────
+   What this product is for is a document someone files. The screen is where
    it is worked on; paper is where it is defended. Every collapsed section is
    forced open by the beforeprint handler in components/PrintExpander.tsx —
-   the attribute, not a display rule, because reverting `display` on a
-   `summary` reprints its disclosure triangle. */
+   by attribute rather than by a display rule, because reverting `display` on
+   a `summary` reprints its disclosure triangle.
+
+   The print ramp is in points, because a sheet is measured in points. Nobody
+   else in this market ships one. */
 @media print {
+  :root {
+    --canvas-rgb: 255 255 255;
+    --canvas-a: 1;
+    --raised-rgb: 255 255 255;
+    --raised-a: 1;
+    --sunken-rgb: 255 255 255;
+    --sunken-a: 1;
+    --ink-rgb: 0 0 0;
+    --ink-a: 1;
+    --ink-muted-rgb: 51 51 51;
+    --ink-muted-a: 1;
+    --ink-subtle-rgb: 85 85 85;
+    --ink-subtle-a: 1;
+    --hairline-rgb: 153 153 153;
+    --hairline-a: 1;
+    --rule-rgb: 102 102 102;
+    --rule-a: 1;
+
+    --display-1: 24pt;
+    --display-2: 20pt;
+    --display-3: 17pt;
+    --head-1: 14pt;
+    --head-2: 12pt;
+    --head-3: 11pt;
+    --head-4: 10pt;
+    --figure-1: 20pt;
+  }
+
+  @page {
+    margin: 18mm 16mm;
+  }
+
   .no-print {
     display: none !important;
   }
@@ -836,12 +806,23 @@ summary::-webkit-details-marker {
     position: static !important;
   }
 
+  /* A dark section is a press bed on screen and a page of toner on a laser. */
+  .plate-section {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  .plate-section * {
+    color: #000 !important;
+    border-color: #000 !important;
+  }
+
   aside[aria-label^="Evidence"] {
     position: static;
     max-height: none;
     overflow: visible;
     border-left: 0;
-    border-top: 1px solid theme("colors.graphite-soft");
+    border-top: 1px solid #999;
   }
 
   thead {
@@ -852,45 +833,6 @@ summary::-webkit-details-marker {
     break-inside: avoid;
   }
 
-  /* A link is a destination in a filed document, not a click target. */
-  a[href^="/"]::after {
-    content: " (" attr(href) ")";
-    font-size: 9pt;
-    color: theme("colors.graphite-soft");
-  }
-
-  /* ── The landing page, printed ──────────────────────────────────────
-     The terminal form of a working paper is paper. This product's whole
-     argument is that what it produces is a document somebody files, and the
-     page has carried a real print stylesheet from the beginning without ever
-     telling a reader it existed. These rules are what make the sheet that
-     comes out of the printer worth filing rather than a screenshot of a
-     website. */
-
-  /* A page of a filed document is numbered and carries its index. */
-  @page {
-    margin: 18mm 16mm;
-  }
-
-  /* The population figure is a static SVG and prints as it renders. It used
-     to be a canvas with a hidden SVG behind it, which needed four rules here
-     to survive a printer; the canvas is gone and so are they. */
-
-  /* Ink on paper is not the screen's ink. Vermillion at 5.05:1 on bone goes
-     muddy on a laser printer and indigo prints as a grey, so type set in
-     either goes to black and the distinction is carried by the shapes that
-     were always carrying it too - the filled square, the open square, the
-     rule, the weight of a figure against its label.
-     The tick marks themselves keep their ink. They are marks rather than
-     type, they are the one place on the sheet where a colour is the whole
-     signal, and a red square survives a laser printer perfectly well. */
-  .text-statute,
-  .text-statute-deep,
-  .text-books {
-    color: #000 !important;
-  }
-
-  /* Sections should not straddle a fold. */
   section {
     break-inside: avoid;
   }
@@ -901,24 +843,588 @@ summary::-webkit-details-marker {
     break-after: avoid;
   }
 
-  /* The sign-off. A working paper carries a blank rule where a reviewer
-     signs, and it stays blank until somebody reviews it — which is the same
-     thing the `C` mark's absence says on screen.
-     It used to be print-only, on the argument that nobody can sign a
-     screen. True, and beside the point: the block is not there to be
-     signed, it is there to show that it has not been. It is on screen now,
-     and on paper it drops the plate — ink on black is a press bed, and a
-     press bed printed on a laser is a page of toner. */
-  .sign-off {
-    background: #fff !important;
-    color: theme("colors.agreed") !important;
-    margin-top: 14mm;
-    padding: 0 !important;
-    break-inside: avoid;
+  /* A link is a destination in a filed document, not a click target. */
+  a[href^="/"]::after {
+    content: " (" attr(href) ")";
+    font-size: 8pt;
+    color: #555;
   }
 
-  .sign-off * {
-    color: theme("colors.agreed") !important;
-    border-color: theme("colors.agreed") !important;
+  /* Vermillion at 5:1 goes muddy on a laser and indigo prints as a grey, so
+     type set in either goes to black. The distinction was always carried by
+     the shapes underneath it anyway — the filled square, the open square, the
+     weight of a figure against its label. */
+  .text-exposure,
+  .text-exposure-deep,
+  .text-books {
+    color: #000 !important;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   THE VISUAL LAYER
+   Everything below is atmosphere. None of it carries information, all of
+   it is removed under reduced motion, and every section reads identically
+   with the whole block deleted. That is the condition on which a page
+   about statutory deadlines is allowed to have any atmosphere at all.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ── Selection ───────────────────────────────────────────────────────
+   The one place the accent is allowed to be a background. */
+::selection {
+  background: var(--exposure);
+  color: #fff;
+}
+
+/* ── Grain ───────────────────────────────────────────────────────────
+   A single tiled SVG turbulence at very low opacity, over the whole
+   document. It is what stops a flat near-white ground reading as a blank
+   browser window — the same trick a printed sheet gets for free from its
+   own fibre. No image request: the filter is the texture. */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+@media print {
+  body::after {
+    display: none;
+  }
+}
+
+/* ── The plate's weather ─────────────────────────────────────────────
+   Two ambient layers on the one inverted section. The aurora is three
+   radial pools on a very slow drift; the spot is a pool of light that
+   follows the cursor, written to two custom properties from a rAF so
+   nothing in React re-renders. */
+.clock-aurora {
+  background:
+    radial-gradient(60rem 30rem at 12% 18%, color-mix(in srgb, var(--books) 42%, transparent), transparent 70%),
+    radial-gradient(48rem 28rem at 82% 12%, color-mix(in srgb, var(--exposure) 26%, transparent), transparent 70%),
+    radial-gradient(52rem 34rem at 62% 96%, color-mix(in srgb, var(--books) 30%, transparent), transparent 70%);
+  filter: blur(18px) saturate(1.25);
+  opacity: 0.55;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes aurora-drift {
+    0% {
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+    50% {
+      transform: translate3d(-3%, 2%, 0) scale(1.08);
+    }
+    100% {
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+  }
+
+  .clock-aurora {
+    animation: aurora-drift 26s ease-in-out infinite;
+    will-change: transform;
+  }
+}
+
+.clock-spot {
+  background: radial-gradient(
+    26rem 26rem at var(--px, 50%) var(--py, 30%),
+    color-mix(in srgb, var(--exposure) 20%, transparent),
+    transparent 68%
+  );
+  transition: opacity var(--dur-seat) var(--ease-press);
+}
+
+/* The bars grow out of the axis as the chart arrives, once, from a view
+   timeline — so it happens when the chart is read rather than when the
+   page loads and the reader is nine screens above it. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    @keyframes bar-grow {
+      from {
+        transform: scaleY(0);
+      }
+      to {
+        transform: scaleY(1);
+      }
+    }
+
+    .clock-bar {
+      transform-origin: bottom;
+      animation: bar-grow var(--ease-seat) both;
+      animation-duration: auto;
+      animation-timeline: view();
+      animation-range: cover 4% cover 30%;
+    }
+  }
+}
+
+/* ── Reveal ──────────────────────────────────────────────────────────
+   The page refused scroll reveals for good reasons and mostly still does:
+   nothing is withheld, every word is present at every scroll position, and
+   what moves is a few degrees of opacity on a block that is already there.
+   Driven by a view timeline, so it is compositor work with no observer and
+   no listener, and it is simply absent where the timeline is. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    @keyframes rise {
+      from {
+        opacity: 0;
+        transform: translateY(18px);
+      }
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+    .reveal {
+      animation: rise linear both;
+      animation-duration: auto;
+      animation-timeline: view();
+      animation-range: entry 0% entry 62%;
+    }
+  }
+}
+
+/* ── Rules that draw themselves ──────────────────────────────────────
+   A section divider is the one piece of furniture this page kept, so it
+   may as well arrive rather than simply be there. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    @keyframes rule-draw {
+      from {
+        transform: scaleX(0);
+      }
+      to {
+        transform: scaleX(1);
+      }
+    }
+
+    .sheet {
+      border-top-color: transparent;
+      position: relative;
+    }
+
+    .sheet::before {
+      content: "";
+      position: absolute;
+      inset-inline: 0;
+      top: -1px;
+      height: 1px;
+      background: var(--hairline);
+      transform-origin: left;
+      animation: rule-draw var(--ease-seat) both;
+      animation-duration: auto;
+      animation-timeline: view();
+      animation-range: cover 2% cover 22%;
+    }
+  }
+}
+
+/* ── The demo button, magnetised ─────────────────────────────────────
+   The control is nudged a couple of pixels toward the cursor while the
+   pointer is inside it. Two pixels is the whole effect: enough that a hand
+   feels the control reach back, small enough that nobody can say what
+   happened. Offsets come from a pointer handler as custom properties. */
+.magnetic {
+  transition:
+    transform var(--dur-panel) var(--ease-seat),
+    background-color var(--dur-press) var(--ease-press),
+    color var(--dur-press) var(--ease-press);
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .magnetic:hover {
+    transform: translate(var(--mx, 0px), var(--my, 0px));
+  }
+}
+
+/* ── A link that underlines from the left ────────────────────────────
+   Not a colour change on an existing underline — a rule that is drawn
+   under the word while the hand is on it, and withdrawn the same way. */
+.wipe-link {
+  position: relative;
+  text-decoration: none;
+}
+
+.wipe-link::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: -3px;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform var(--dur-panel) var(--ease-press);
+}
+
+.wipe-link:hover::after,
+.wipe-link:focus-visible::after {
+  transform: scaleX(1);
+  transform-origin: left;
+}
+
+/* ── The running head over the plate ─────────────────────────────────
+   The header is a pale scrim and the Section 16(4) band is near-black, so
+   for one section the chrome was the brightest thing on the screen. It
+   inverts instead: the ground becomes the plate, the ink becomes bone, and
+   the wordmark's two plates go to inks that survive a dark ground. Driven
+   by an observer that only ever sets one attribute. */
+.masthead[data-over-dark] {
+  background: color-mix(in srgb, #0b0c0d 72%, transparent);
+  border-bottom-color: #ffffff1f;
+  backdrop-filter: blur(14px) saturate(1.3);
+}
+
+.masthead[data-over-dark],
+.masthead[data-over-dark] a,
+.masthead[data-over-dark] p,
+.masthead[data-over-dark] span {
+  color: #f4f3f0;
+}
+
+.masthead[data-over-dark] .fill-books {
+  fill: #8faaee;
+}
+
+.masthead[data-over-dark] .fill-exposure {
+  fill: #ff7a63;
+}
+
+.masthead[data-over-dark] .text-books {
+  color: #8faaee;
+}
+
+.masthead[data-over-dark] .text-exposure {
+  color: #ff7a63;
+}
+
+/* The demo button keeps being the one solid object in the row. */
+.masthead[data-over-dark] button[type="submit"] {
+  background: #f4f3f0;
+  border-color: #f4f3f0;
+  color: #0b0c0d;
+}
+
+.masthead[data-over-dark] button[type="submit"]:hover {
+  background: transparent;
+  color: #f4f3f0;
+}
+
+.masthead {
+  transition:
+    background-color var(--dur-seat) var(--ease-press),
+    border-color var(--dur-seat) var(--ease-press),
+    color var(--dur-seat) var(--ease-press);
+}
+
+/* ── The clock's bars ────────────────────────────────────────────────
+   These are `color-mix` rather than Tailwind's `/25` opacity modifier,
+   because that modifier cannot reach a colour delivered through `var()` —
+   it compiles to nothing at all, which is how five months of real findings
+   came to be drawn as empty axis. Every token on this site is a custom
+   property, so no colour here may use that syntax. */
+.clock-bar--closing {
+  background: var(--exposure);
+}
+
+.clock-bar--quiet {
+  background: color-mix(in srgb, var(--plate-ink) 26%, transparent);
+}
+
+.group:hover .clock-bar--closing {
+  background: var(--exposure-deep);
+}
+
+.group:hover .clock-bar--quiet {
+  background: color-mix(in srgb, var(--plate-ink) 55%, transparent);
+}
+
+.clock-bar--hot,
+.group:hover .clock-bar--hot {
+  background: var(--plate-ink);
+}
+
+
+/* ════════════════════════════════════════════════════════════════════
+   THE POINTER
+   Two objects: a dot that tracks the hand exactly and a ring that trails
+   it. `mix-blend-mode: difference` means neither needs a colour — they
+   invert whatever they are over, so one cursor is legible on paper, on the
+   dark band, over vermillion and inside a screenshot.
+   ════════════════════════════════════════════════════════════════════ */
+.cursor-dot,
+.cursor-ring {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 10000;
+  pointer-events: none;
+  border-radius: 999px;
+  mix-blend-mode: difference;
+  will-change: transform;
+}
+
+.cursor-dot {
+  width: 6px;
+  height: 6px;
+  background: #fff;
+}
+
+.cursor-ring {
+  width: 34px;
+  height: 34px;
+  border: 1px solid #fff;
+  transition:
+    width var(--dur-panel) var(--ease-seat),
+    height var(--dur-panel) var(--ease-seat),
+    background-color var(--dur-panel) var(--ease-press),
+    border-radius var(--dur-panel) var(--ease-seat),
+    opacity var(--dur-press) linear;
+}
+
+/* Over something you actuate: the ring swells and fills. */
+.cursor-ring[data-state="press"] {
+  width: 54px;
+  height: 54px;
+  background: #fff;
+}
+
+/* Over something you inspect: a reticle, not a ring. */
+.cursor-ring[data-state="inspect"] {
+  width: 26px;
+  height: 26px;
+  border-radius: 2px;
+}
+
+/* Over something you read: narrow to a caret, so it is obvious the text is
+   selectable — the one thing a custom cursor most often takes away. */
+.cursor-ring[data-state="read"] {
+  width: 2px;
+  height: 26px;
+  border-radius: 0;
+  background: #fff;
+}
+
+.cursor-ring[data-down] {
+  width: 22px;
+  height: 22px;
+}
+
+.cursor-ring[data-out],
+.cursor-dot[data-out] {
+  opacity: 0;
+}
+
+/* The system pointer is hidden only once ours is actually running. A page
+   that hides the pointer and then fails to draw its own has taken the
+   pointer away from somebody. */
+.has-cursor,
+.has-cursor * {
+  cursor: none !important;
+}
+
+/* Except where something is typed. A caret is not decoration — it is the only
+   thing that says "this field takes text and here is where it will go" — and
+   the ring cannot stand in for one. `not-allowed` and the resize hints are
+   kept for the same reason: they are information, not styling. */
+.has-cursor :is(input, textarea, select, [contenteditable="true"]) {
+  cursor: auto !important;
+}
+
+.has-cursor :is([disabled], [aria-disabled="true"]) {
+  cursor: not-allowed !important;
+}
+
+@media (prefers-reduced-motion: reduce), (hover: none), (pointer: coarse) {
+  .cursor-dot,
+  .cursor-ring {
+    display: none;
+  }
+}
+
+@media print {
+  .cursor-dot,
+  .cursor-ring {
+    display: none;
+  }
+}
+
+/* ── The weather behind the hero ─────────────────────────────────────
+   Fades in only once the first frame has landed, so a device that never
+   gets it never sees an empty box where it would have been. */
+
+/* ── A heading, seated a line at a time ──────────────────────────────
+   Each line sits inside an `overflow: hidden` box and rises out of it, so
+   it arrives from behind its own baseline rather than fading in place.
+   The delay comes from the call site, one line at a time. */
+@keyframes line-rise {
+  from {
+    transform: translateY(105%);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+.split-line {
+  animation: line-rise 760ms var(--ease-seat) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .split-line {
+    animation: none;
+  }
+}
+
+/* The fixed weather layer sits behind the document. `main` carries no ground
+   of its own so this shows through it; the body still paints the canvas
+   colour, so the page is unchanged if the layer never arrives. The opaque
+   sections — the 16(4) band, the call to action — scroll over it and hide it,
+   which is right: those have a ground of their own to be. */
+.aurora-fixed {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 900ms var(--ease-seat);
+}
+
+.aurora-fixed.aurora--on {
+  opacity: 1;
+}
+
+/* ── A heading seated as it is reached ───────────────────────────────
+   The hero's heading runs on a clock, because it is on screen when the page
+   arrives. Every other heading on this page is screens away, so animating it
+   on load finishes it long before anybody could watch — a measured
+   line-breaking pass buying a flourish nobody sees.
+
+   These run on a view timeline. There is no `animation-delay` on a
+   scroll-driven animation (a delay is a duration, and there is no clock), so
+   the stagger is expressed as a per-line offset in the RANGE instead: each
+   line starts and finishes a little later through the heading's entry. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .split-line-scroll {
+      animation: line-rise linear both;
+      animation-duration: auto;
+      animation-timeline: view();
+      animation-range: cover calc(3% + var(--i, 0) * 3%) cover calc(26% + var(--i, 0) * 3%);
+    }
+  }
+}
+
+/* Where the timeline is unavailable the heading is simply there, which is
+   what shipped before any of this existed. */
+@supports not (animation-timeline: view()) {
+  .split-line-scroll {
+    animation: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .split-line-scroll {
+    animation: none;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   THE SAME MOTION, WITHOUT SCROLL TIMELINES
+   Scroll-driven animation is Chrome and Edge only today (Safari from 26,
+   Firefox behind a flag), and every `@supports (animation-timeline: view())`
+   block above simply does not apply anywhere else — so on Firefox this page
+   was not degraded, it was inert. `MotionFallback` adds `.no-timeline` to the
+   root and `.is-in` as each element arrives, and these rules run the same
+   moves off transitions instead.
+   ════════════════════════════════════════════════════════════════════ */
+.no-timeline .reveal,
+.no-timeline .split-line-scroll,
+.no-timeline .clock-bar {
+  will-change: transform, opacity;
+}
+
+/* Section content, and heading lines: rise into place. */
+.no-timeline .reveal,
+.no-timeline .split-line-scroll {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity 620ms var(--ease-seat),
+    transform 760ms var(--ease-seat);
+}
+
+/* A heading line comes from behind its own baseline rather than from below
+   the block, which is the same move the timeline version makes. */
+.no-timeline .split-line-scroll {
+  transform: translateY(105%);
+  /* The stagger the timeline expressed as a range offset, expressed here as
+     the delay it has to be instead. */
+  transition-delay: calc(var(--i, 0) * 90ms);
+}
+
+.no-timeline .reveal.is-in,
+.no-timeline .split-line-scroll.is-in {
+  opacity: 1;
+  transform: none;
+}
+
+/* The chart bars grow out of the axis. */
+.no-timeline .clock-bar {
+  transform: scaleY(0);
+  transform-origin: bottom;
+  transition: transform 700ms var(--ease-seat);
+}
+
+.no-timeline .clock-bar.is-in {
+  transform: scaleY(1);
+}
+
+/* And the rule at the head of each section draws itself. */
+.no-timeline .sheet::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  top: -1px;
+  height: 1px;
+  background: var(--hairline);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 900ms var(--ease-seat);
+}
+
+.no-timeline .sheet {
+  position: relative;
+  border-top-color: transparent;
+}
+
+.no-timeline .sheet.is-in::before {
+  transform: scaleX(1);
+}
+
+/* The masthead has no element to observe, so it hardens on a plain rule
+   rather than staying transparent forever. */
+.no-timeline .masthead {
+  background: var(--canvas);
+  border-bottom-color: var(--hairline);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .no-timeline .reveal,
+  .no-timeline .split-line-scroll,
+  .no-timeline .clock-bar,
+  .no-timeline .sheet::before {
+    opacity: 1;
+    transform: none;
+    transition: none;
   }
 }

@@ -51,7 +51,14 @@ export async function serverGet<T>(path: string): Promise<T> {
     throw new Unauthorized(path);
   }
   if (!response.ok) {
-    throw new Error(`${path} returned ${response.status}`);
+    // The status travels on the error rather than only inside its message, so
+    // a caller can tell "the engine said this does not exist" from "the engine
+    // did not answer" without matching on prose. A company page that cannot
+    // make that distinction has to guess, and it was guessing `notFound()` —
+    // telling a CA their client does not exist whenever the API was down.
+    throw Object.assign(new Error(`${path} returned ${response.status}`), {
+      status: response.status,
+    });
   }
   return response.json() as Promise<T>;
 }

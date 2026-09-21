@@ -1,8 +1,8 @@
 import Link from "next/link";
 
 import { DemoButton } from "../../press/DemoButton";
+import { Aurora } from "../../press/Aurora";
 import { Masthead } from "../../press/Masthead";
-import { Overprint } from "../../press/Overprint";
 
 export const metadata = {
   title: "When does Section 16(4) close on this invoice?",
@@ -86,17 +86,18 @@ export default function Section164Tool({
   const passed = days !== null && days < 0;
 
   return (
-    <main className="min-h-screen overflow-x-clip bg-stock text-agreed">
+    <main className="min-h-screen overflow-x-clip text-ink">
+      <Aurora />
       <Masthead />
 
       <div className="mx-auto max-w-[1280px] px-6 sm:px-10">
         <section className="grid gap-x-14 gap-y-12 py-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           <div className="min-w-0">
-            <p className="font-mono text-stub uppercase text-statute-deep">Section 16(4)</p>
-            <h1 className="rag-balance optical-cap wdth-tight mt-4 max-w-[16ch] font-anek text-headline font-bold text-agreed">
+            <p className="font-mono text-label-12 uppercase text-exposure-deep">Section 16(4)</p>
+            <h1 className="rag-balance leading-trim mt-4 max-w-[16ch] font-sans text-display-1 font-semibold text-ink">
               When does the window close?
             </h1>
-            <p className="rag-pretty opsz-intro mt-5 max-w-[46ch] font-news text-[1.25rem] leading-snug text-agreed sm:text-[1.6rem]">
+            <p className="rag-pretty mt-5 max-w-[46ch] font-sans text-copy-19 leading-snug text-ink sm:text-head-3">
               Input tax credit on an invoice can be claimed until 30 November following the
               end of the financial year that invoice falls in. Put a date in and get the
               cut-off out.
@@ -107,24 +108,24 @@ export default function Section164Tool({
               className="mt-8 flex flex-wrap items-end gap-x-4 gap-y-3 border-t border-hairline pt-6"
             >
               <label className="block">
-                <span className="font-mono text-stub uppercase text-graphite">Invoice date</span>
+                <span className="font-mono text-label-12 uppercase text-ink-muted">Invoice date</span>
                 <input
                   type="date"
                   name="date"
                   defaultValue={typeof searchParams.date === "string" ? searchParams.date : ""}
                   required
-                  className="tabular mt-2 block border-2 border-hairline bg-stock px-4 py-2.5 font-mono text-ident text-agreed focus:border-agreed"
+                  className="fig mt-2 block border-2 border-hairline bg-canvas px-4 py-2.5 font-mono text-caption-13 text-ink focus:border-ink"
                 />
               </label>
               <button
                 type="submit"
-                className="border-2 border-books bg-books px-6 py-3 font-mono text-ident uppercase tracking-[0.08em] text-stock press-verb hover:bg-stock hover:text-books"
+                className="border-2 border-books bg-books px-6 py-3 font-mono text-caption-13 uppercase tracking-[0.08em] text-plate-ink press-verb hover:bg-canvas hover:text-books"
               >
                 Work it out
               </button>
             </form>
 
-            <p className="rag-pretty opsz-prose mt-5 max-w-[52ch] font-news text-ident leading-relaxed text-graphite-soft">
+            <p className="rag-pretty mt-5 max-w-[52ch] font-sans text-caption-13 leading-relaxed text-ink-subtle">
               Nothing is stored and nothing is sent anywhere: the answer is in the address
               bar, so the result is a link you can forward.
             </p>
@@ -132,7 +133,7 @@ export default function Section164Tool({
 
           <div className="min-w-0 border-t border-hairline pt-6 lg:border-l lg:border-t-0 lg:pl-14 lg:pt-0">
             {!deadline || !invoice ? (
-              <p className="rag-pretty opsz-prose max-w-[40ch] font-news text-prose leading-relaxed text-graphite">
+              <p className="rag-pretty max-w-[40ch] font-sans text-copy-17 leading-relaxed text-ink-muted">
                 The cut-off appears here. It runs against the invoice date rather than the
                 month the invoice was noticed, which is the part that catches people out:
                 credit that went unmatched in March is still governed by March&rsquo;s
@@ -140,23 +141,20 @@ export default function Section164Tool({
               </p>
             ) : (
               <>
-                <p className="font-mono text-stub uppercase text-graphite">
+                <p className="font-mono text-label-12 uppercase text-ink-muted">
                   Credit on an invoice dated {LONG.format(invoice)} (FY{" "}
                   {financialYear(invoice)}) must be claimed by
                 </p>
-                <p className="optical-figure mt-4">
-                  <Overprint
-                    settle
-                    className="wdth-condensed tabular font-anek text-[clamp(40px,5.4vw,72px)] font-bold leading-[0.9] tracking-[-0.03em]"
-                  >
+                <p className="leading-trim mt-4">
+                  <span className=" fig font-sans text-display-2 font-semibold leading-[0.9] tracking-[-0.03em]">
                     {LONG.format(deadline)}
-                  </Overprint>
+                  </span>
                 </p>
                 <p
-                  className={`tabular mt-4 font-mono text-ident uppercase tracking-[0.08em] ${
+                  className={`fig mt-4 font-mono text-caption-13 uppercase tracking-[0.08em] ${
                     passed || (days !== null && days <= 60)
-                      ? "text-statute-deep"
-                      : "text-graphite"
+                      ? "text-exposure-deep"
+                      : "text-ink-muted"
                   }`}
                 >
                   {passed
@@ -183,8 +181,8 @@ export default function Section164Tool({
                 rather than under it. A tool that answers more confidently than
                 the product it came from is a tool that will be quoted back at
                 somebody in an assessment. */}
-            <div className="mt-10 border-t-2 border-agreed pt-5">
-              <p className="rag-pretty opsz-prose max-w-[48ch] font-news text-ident leading-relaxed text-graphite">
+            <div className="mt-10 border-t-2 border-ink pt-5">
+              <p className="rag-pretty max-w-[48ch] font-sans text-caption-13 leading-relaxed text-ink-muted">
                 The statutory limit is the <em>earlier</em> of 30 November and the date the
                 annual return for that year is actually filed. Only the November limit is
                 worked out here, because the filing date is per taxpayer. GST rules change
@@ -195,12 +193,12 @@ export default function Section164Tool({
         </section>
 
         <section className="border-t border-hairline py-12">
-          <div className="rag-pretty opsz-prose max-w-[64ch] font-news text-prose leading-relaxed text-graphite">
+          <div className="rag-pretty max-w-[64ch] font-sans text-copy-17 leading-relaxed text-ink-muted">
             This is one rule out of the engine. The same clock runs against every unmatched
             invoice in a client&rsquo;s books at once, and{" "}
             <Link
               href="/"
-              className="text-agreed mark-verb underline decoration-graphite-soft underline-offset-4 hover:decoration-agreed"
+              className="text-ink mark-verb underline decoration-hairline underline-offset-4 hover:decoration-ink"
             >
               the rest of DiligenceReady
             </Link>{" "}
@@ -217,8 +215,8 @@ export default function Section164Tool({
 function Row({ term, value }: { term: string; value: string }) {
   return (
     <div className="flex items-baseline justify-between gap-6 border-b border-hairline py-2">
-      <dt className="font-mono text-stub uppercase text-graphite">{term}</dt>
-      <dd className="tabular font-mono text-ident text-agreed">{value}</dd>
+      <dt className="font-mono text-label-12 uppercase text-ink-muted">{term}</dt>
+      <dd className="fig font-mono text-caption-13 text-ink">{value}</dd>
     </div>
   );
 }

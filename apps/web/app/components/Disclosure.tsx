@@ -23,13 +23,13 @@ export function Disclosure({
   defaultOpen?: boolean;
 }) {
   return (
-    <details open={defaultOpen} className="group border-b border-graphite-soft">
+    <details open={defaultOpen} className="group border-b border-ink-subtle">
       <summary className="flex cursor-pointer flex-wrap items-baseline justify-between gap-x-8 gap-y-1 py-4">
-        <h2 className="flex items-baseline gap-2 text-ident font-semibold">
+        <h2 className="flex items-baseline gap-2 text-caption-13 font-semibold">
           <svg
             viewBox="0 0 8 10"
             aria-hidden
-            className="h-2.5 w-2 shrink-0 text-graphite-soft [transition:transform_160ms_cubic-bezier(0.2,0.7,0.3,1)] group-open:rotate-90"
+            className="disclosure-chevron h-2.5 w-2 shrink-0 text-ink-subtle"
           >
             <path d="M1 1l5 4-5 4" fill="none" stroke="currentColor" strokeWidth="1.5" />
           </svg>
@@ -37,7 +37,11 @@ export function Disclosure({
         </h2>
         {headline}
       </summary>
-      <div className="pb-8">{children}</div>
+      <div className="disclosure-body">
+        <div>
+          <div className="pb-8">{children}</div>
+        </div>
+      </div>
     </details>
   );
 }
