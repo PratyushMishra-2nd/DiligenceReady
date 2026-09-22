@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 
 import { PrintExpander } from "./components/PrintExpander";
+import { THEME_BOOT, ThemeToggle } from "./components/ThemeToggle";
 import { Cursor } from "./press/Cursor";
 import { MotionFallback } from "./press/MotionFallback";
 import { SITE_URL } from "./lib/site";
@@ -124,7 +125,23 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en-IN" className={`${plexSans.variable} ${plexMono.variable}`}>
+    // `suppressHydrationWarning` is for one attribute and one only: the boot
+    // script below writes `data-theme` onto this element before React
+    // hydrates, so the server's markup and the browser's disagree by
+    // construction. Without it React reports that disagreement on every load
+    // where a reader has chosen a theme, which trains people to ignore the
+    // warning that would tell them about a real one.
+    <html
+      lang="en-IN"
+      suppressHydrationWarning
+      className={`${plexSans.variable} ${plexMono.variable}`}
+    >
+      <head>
+        {/* Before the first paint, not after. A theme applied from an effect
+            shows the reader the other theme for a frame or two first, and on
+            a page of figures that flash reads as the page reloading. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT }} />
+      </head>
       {/* Nothing is preloaded by hand any more. The three `<link rel=preload>`
           tags that used to sit here served Anek and Newsreader, which were
           declared by hand in globals.css because they needed a `unicode-range`
@@ -142,6 +159,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Cursor />
         <MotionFallback />
         {children}
+        {/* Last in the document and fixed to the corner: it is furniture, not
+            content, and it should be the last thing a screen reader reaches
+            rather than something between the reader and the findings. */}
+        <ThemeToggle />
       </body>
     </html>
   );

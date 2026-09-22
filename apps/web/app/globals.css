@@ -204,7 +204,17 @@
   }
 }
 
+/* The parts of the page this stylesheet does not paint: form controls, the
+   scrollbar, the caret. `color-scheme: light dark` on the root hands those to
+   the operating system, which is right on `Auto` and wrong the moment a
+   reader overrides it — a forced-light page with a dark native `<select>` in
+   the period picker is the tell that the override is only skin deep. */
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
 :root[data-theme="dark"] {
+  color-scheme: dark;
   --canvas-rgb: 13 14 16;
   --canvas-a: 1;
   --raised-rgb: 22 24 27;
