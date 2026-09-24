@@ -311,17 +311,36 @@ Resources:
       ImageScanningConfiguration:
         ScanOnPush: true
       ImageTagMutability: MUTABLE
+      # Expiry by age of push, never by tag state alone. The rule this
+      # replaced selected "tagStatus": "any" and kept ten images, which
+      # collected the digest the Lambda function had already resolved and
+      # pinned: the function reported ImageDeleted and every pipeline run
+      # failed to initialise the container. Untagged manifests are the
+      # layer-index leftovers of a rebuild and go quickly; tagged ones are
+      # what something may still be pinned to, so twenty deploys of them
+      # are kept.
       LifecyclePolicy:
         LifecyclePolicyText: |
           {
             "rules": [
               {
                 "rulePriority": 1,
-                "description": "Keep the ten most recent images; this repository rebuilds often.",
+                "description": "Untagged manifests are rebuild leftovers; nothing is deployed from them.",
                 "selection": {
-                  "tagStatus": "any",
+                  "tagStatus": "untagged",
                   "countType": "imageCountMoreThan",
-                  "countNumber": 10
+                  "countNumber": 3
+                },
+                "action": { "type": "expire" }
+              },
+              {
+                "rulePriority": 2,
+                "description": "Keep twenty tagged deploys; a running function may still be pinned to one.",
+                "selection": {
+                  "tagStatus": "tagged",
+                  "tagPatternList": ["*"],
+                  "countType": "imageCountMoreThan",
+                  "countNumber": 20
                 },
                 "action": { "type": "expire" }
               }

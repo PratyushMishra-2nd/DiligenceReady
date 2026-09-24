@@ -17,6 +17,14 @@
 *.yml       text eol=lf
 Dockerfile  text eol=lf
 
+# The migration runner records the sha256 of each applied .sql file, so the
+# bytes of these are part of the deployed state and not only of the build.
+# Checked out with CRLF on one machine and LF on the next, the same SQL
+# hashes two ways and the runner reports drift on a file nobody edited. The
+# digest is normalised on read as well; this keeps the two from diverging in
+# the first place.
+*.sql       text eol=lf
+
 # The web fonts are IBM's build of Plex, checked in because Google's is
 # stripped of the OpenType features this interface depends on. They are binary
 # and must be stored byte for byte. Git usually infers that, but this

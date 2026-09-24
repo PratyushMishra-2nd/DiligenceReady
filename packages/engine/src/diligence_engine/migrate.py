@@ -5,6 +5,15 @@ recorded with the sha256 of the text that was applied. Two consequences worth
 having: re-running is a no-op, and editing a migration after it has been
 applied is detected rather than silently ignored.
 
+The recorded digest is of the file with its line endings normalised to LF.
+Hashing the raw bytes made the guard machine-dependent rather than
+content-dependent: this repository is developed on Windows and deployed on
+Linux, `.gitattributes` normalises `.sh`, `.yaml`, `.yml` and the Dockerfile
+but not `.sql`, and so an image built from a CRLF working tree recorded one
+digest for `001_schema.sql` while the next image, built from an LF one,
+hashed the identical SQL differently and refused to run. Statements are what
+Postgres executes; a carriage return is not one.
+
 Raw SQL rather than a migration DSL because the schema in Blueprint §07 is the
 specification. Round-tripping it through Python model classes would introduce a
 second source of truth and, eventually, a disagreement between them.
@@ -30,14 +39,28 @@ create table if not exists schema_migrations (
 """
 
 
+def _normalise(raw: bytes) -> bytes:
+    """The file's bytes, with CRLF and lone CR line endings reduced to LF."""
+    return raw.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+
+
+def _digest(raw: bytes) -> str:
+    return hashlib.sha256(raw).hexdigest()
+
+
 @dataclass(frozen=True)
 class Migration:
     path: Path
     sha256: str
+    legacy_sha256: frozenset[str] = frozenset()
 
     @property
     def filename(self) -> str:
         return self.path.name
+
+    def matches(self, recorded: str) -> bool:
+        """Is `recorded` a digest this same file could have produced before?"""
+        return recorded == self.sha256 or recorded in self.legacy_sha256
 
 
 class MigrationDrift(RuntimeError):
@@ -48,8 +71,20 @@ def discover(migrations_dir: Path | None = None) -> list[Migration]:
     directory = migrations_dir or settings().migrations_dir
     found = []
     for path in sorted(directory.glob("*.sql")):
-        digest = hashlib.sha256(path.read_bytes()).hexdigest()
-        found.append(Migration(path=path, sha256=digest))
+        raw = path.read_bytes()
+        normalised = _normalise(raw)
+        digest = _digest(normalised)
+        # What a row written before normalisation could hold for this same
+        # content: the raw bytes as checked out here, and their CRLF
+        # rendering, which is what a Windows working tree produced.
+        legacy = {_digest(raw), _digest(normalised.replace(b"\n", b"\r\n"))}
+        found.append(
+            Migration(
+                path=path,
+                sha256=digest,
+                legacy_sha256=frozenset(legacy - {digest}),
+            )
+        )
     return found
 
 
@@ -68,6 +103,19 @@ def run(migrations_dir: Path | None = None) -> list[str]:
     for migration in discover(migrations_dir):
         previous = already.get(migration.filename)
         if previous == migration.sha256:
+            continue
+        if previous is not None and migration.matches(previous):
+            # The same SQL, recorded under a pre-normalisation digest.
+            # Re-applying it would be wrong and refusing to start would be
+            # worse, so restate what is already true of this database.
+            with connect() as conn:
+                conn.execute(
+                    text(
+                        "update schema_migrations set sha256 = :sha256 "
+                        "where filename = :filename"
+                    ),
+                    {"filename": migration.filename, "sha256": migration.sha256},
+                )
             continue
         if previous is not None:
             raise MigrationDrift(

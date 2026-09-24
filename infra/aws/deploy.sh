@@ -30,11 +30,35 @@ set -euo pipefail
 
 PROJECT="${PROJECT:-diligenceready}"
 REGION="${AWS_REGION:-${AWS_DEFAULT_REGION:-ap-south-1}}"
-IMAGE_TAG="${IMAGE_TAG:-latest}"
 FOUNDATION_STACK="${PROJECT}-foundation"
 APP_STACK="${PROJECT}-app"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "${HERE}/../.." && pwd)"
+
+# A distinct tag per deploy, not `latest`. Two things broke while this was a
+# mutable tag, and both were silent:
+#
+#   * CloudFormation compares parameters, not registry contents. With
+#     ImageTag=latest the `ImageUri` on the Lambda and the pull line in the
+#     EC2 UserData were byte-identical between runs, so `aws cloudformation
+#     deploy` found an empty changeset and updated neither. The image was
+#     pushed; nothing adopted it.
+#   * Lambda resolves the tag to a digest once, at update time, and pins it.
+#     The push moved `latest` onto a new manifest and left the pinned one
+#     untagged, where the repository's expiry rule collected it. The function
+#     went to State=Inactive / ImageDeleted, and every Step Functions run
+#     failed with `Lambda cannot initialize the provided container image`.
+#
+# The commit is the tag, so a code change is a parameter change and the
+# rollout follows. A dirty tree gets a timestamp suffix, because two
+# different working trees on the same commit are two different images.
+if [[ -z "${IMAGE_TAG:-}" ]]; then
+  IMAGE_TAG="$(git -C "${ROOT}" rev-parse --short HEAD 2>/dev/null || true)"
+  [[ -n "${IMAGE_TAG}" ]] || IMAGE_TAG="$(date -u +%Y%m%d%H%M%S)"
+  if [[ -n "$(git -C "${ROOT}" status --porcelain 2>/dev/null)" ]]; then
+    IMAGE_TAG="${IMAGE_TAG}-$(date -u +%Y%m%d%H%M%S)"
+  fi
+fi
 
 say()  { printf '\n\033[1m==> %s\033[0m\n' "$*"; }
 note() { printf '    %s\n' "$*"; }
@@ -89,9 +113,13 @@ note "authenticated to ECR"
 # ("image manifest, config or layer media type ... is not supported").
 # App Runner tolerates it; Lambda does not, and this image runs as both.
 docker build --platform linux/amd64 --provenance=false --sbom=false \
-  -t "${REPO_URI}:${IMAGE_TAG}" "${ROOT}"
+  -t "${REPO_URI}:${IMAGE_TAG}" -t "${REPO_URI}:latest" "${ROOT}"
 docker push "${REPO_URI}:${IMAGE_TAG}"
 note "pushed ${REPO_URI}:${IMAGE_TAG}"
+
+# `latest` still moves, for anyone reading the repository by hand.
+# Nothing deployed refers to it: the stack gets the immutable tag above.
+docker push "${REPO_URI}:latest" >/dev/null
 
 # ── 3. which model this account can actually call ───────────────────────────
 #
