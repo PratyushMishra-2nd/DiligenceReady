@@ -12,12 +12,22 @@
 
 ### → **[main.d2iuitbi6z0hry.amplifyapp.com](https://main.d2iuitbi6z0hry.amplifyapp.com)**
 
+[![The firm dashboard: ₹16,25,635.64 of input tax credit with no GSTR-2B counterpart, across two client companies](docs/dashboard.png)](https://main.d2iuitbi6z0hry.amplifyapp.com)
+
+<sub>The firm's screen, not a company's. Soonest Section 16(4) cut-off first, the
+money at stake in the last column, and every figure on it a SQL aggregate you can
+click down to the file line that produced it.</sub>
+
+The **See the demo** button signs you in on its own — it posts to `/demo`, which
+opens a session against the sample firm and lands on the dashboard. The form is
+still there if you would rather type:
+
 | | |
 | --- | --- |
 | **Email** | `ca@mehta.example` |
 | **Password** | `b5Lsnz0Hcj2hXKtq3UX3c1GF` |
 
-That signs you into **Mehta & Associates**, a sample firm carrying two client
+Either route signs you into **Mehta & Associates**, a sample firm carrying two client
 companies — Acme Industries and Vertex Components — with twelve months of books,
 GST returns and bank statements behind each. The records are generated rather than
 real, and [that is deliberate](#why-generated-books-are-the-point-not-a-shortcut):
@@ -37,6 +47,46 @@ claimed, because the supplier's filing and the client's books disagree.
 
 DiligenceReady keeps the three sources agreeing, keeps the evidence, and puts a
 deadline on the money.
+
+## Run it locally
+
+Docker for Postgres, [uv](https://docs.astral.sh/uv/) for Python, Node 20 for the
+dashboard. Nothing else, and no AWS account.
+
+```bash
+cp .env.example .env                              # defaults are the local ones
+docker compose -f infra/docker-compose.yml up -d  # Postgres 17 on 5544
+uv sync
+uv run diligence pipeline                         # migrate → seed → ingest →
+                                                  # reconcile → IMS → rules → evaluate
+uv run uvicorn diligence_api.main:app --host :: --port 8077
+cd apps/web && npm install && npm run dev         # http://localhost:3000
+```
+
+`uv run diligence pipeline` is the whole engine end to end: it creates the schema,
+generates the two sample companies and their twelve months of feeds, ingests them,
+matches, runs the rules and scores itself against the planted answer key. It is
+seeded, so it reproduces the same figures every time — including the ones in this
+README. Expect two to three minutes.
+
+**`--host ::` is not optional.** Node resolves `localhost` to `::1` first and does
+not fall back to IPv4, so an API bound only to `127.0.0.1` is reachable from the
+browser and not from Next's server components — you get a sign-in that works and
+every page after it saying the engine is not answering.
+
+| | |
+| --- | --- |
+| **Dashboard** | `http://localhost:3000` — the demo button signs you in |
+| **API** | `http://localhost:8077` · `/api/health` names the database and the model |
+| **A single rule, no signup** | `/tools/section-16-4` — invoice date in, statutory cut-off out |
+| **No model configured?** | Everything works. Explanations use the deterministic template and say so; no figure on any screen comes from a model |
+
+Useful on their own: `uv run diligence doctor` (what is reachable), `uv run
+diligence rule list` (the registry, R1–R13, with what is switched off), `uv run
+diligence evaluate` (the score in the next section), `uv run pytest`.
+
+Once it is up, [`docs/demo-script.md`](docs/demo-script.md) walks every screen in
+order, with the figure each one should be showing.
 
 ## The one architectural rule
 
@@ -80,6 +130,8 @@ firm owner creates each account, and every account belongs to exactly one firm.
 | **Ask the ledger** | A question in English, answered from the engine's own aggregates, with the queries it ran shown beside the answer |
 | **Upload** | Drop a Tally, GSTR-2B or bank export in and the same pipeline reads it |
 | **Lender package** | The whole month as one printable document |
+| **A span of months** | Readiness summed across a range, because "is this client getting better" is not a question one month answers |
+| **⌘K / Ctrl-K** | Any finding, period or client company by typing three characters — a firm carries thirty to eighty of them |
 
 ## Where AWS fits
 
@@ -280,27 +332,40 @@ not to lower the rule's threshold to make a test pass.
 ## Layout
 
 ```
-packages/engine/     the reconciliation engine. Imports no model client, by design
-  normalise/         GSTIN, invoice number and party-name normalisation
-  ingest/            typed loaders with row-level provenance; S3 or local disk
-  matching/          GST, bank and IMS matchers; the scoring function
-  rules/             the rule registry — R1..R13, each toggleable
-  authz/             Cedar policy. The tenant boundary, as policy
-  eval/              scores the engine against the planted answer key
-  seedgen/           the generated firm, and the ground truth
-  aws_lambda.py      the pipeline as Step Functions stages
-apps/api/            FastAPI. The only place a model is called
-  explain.py         one finding, through whichever model answers
-  agent.py           "Ask the ledger", on Strands
-  llm.py             which provider answers: Bedrock, then the local model
-  bedrock.py         which Bedrock model id to call, resolved at run time
-  numeric_guard.py   the rule all of them obey
-apps/web/            Next.js 14 dashboard, server components
-migrations/sql/      hash-tracked schema migrations
-infra/aws/           CloudFormation, deploy and teardown
+packages/engine/src/diligence_engine/    the engine. Imports no model client, by design
+  normalise/       GSTIN, invoice number and party-name normalisation
+  ingest/          typed loaders with row-level provenance; S3 or local disk
+  matching/        GST, bank and IMS matchers; the scoring function
+  rules/           the rule registry — R1..R13, each toggleable
+  authz/           Cedar policy. The tenant boundary, as policy
+  eval/            scores the engine against the planted answer key
+  seedgen/         the generated firm, and the ground truth
+  integrations/    the Tally XML gateway, read-only
+  reporting.py     the period aggregates every screen is drawn from
+  cli.py           `diligence` — migrate, seed, pipeline, rule, evaluate, doctor
+  aws_lambda.py    the pipeline as Step Functions stages
+apps/api/src/diligence_api/              FastAPI. The only place a model is called
+  explain.py       one finding, through whichever model answers
+  agent.py         "Ask the ledger", on Strands
+  llm.py           which provider answers: Bedrock, then the local model
+  bedrock.py       which Bedrock model id to call, resolved at run time
+  numeric_guard.py the rule all of them obey
+  jobs.py          uploads, ingested off the request thread
+apps/web/app/       Next.js 14 dashboard, server components
+  app/              the product: firm dashboard, company, findings, evidence
+  components/       readiness card, findings, evidence panel, Ask the ledger
+  press/            the landing page, drawn from `aggregates.json`
+  tools/            `/tools/section-16-4`, the one rule with no signup in front of it
+migrations/sql/     hash-tracked schema migrations
+infra/aws/          CloudFormation, deploy and teardown
+infra/docker-compose.yml   Postgres 17, for a local run
+scripts/            regenerates the figures the landing page states
+docs/demo-script.md the full walkthrough, screen by screen
+seed/               generated feeds and answer keys — not in git; `diligence seed` writes it
 ```
 
-~12,400 lines of Python, ~2,400 of TypeScript, ~730 of SQL, **262 tests**.
+~14,700 lines of Python and ~3,500 more of tests, ~10,600 of TypeScript, 727 of
+SQL, **300 tests**.
 
 CI runs ruff, the full test suite against a real Postgres, the whole pipeline, and a
 TypeScript build, and fails if the evaluation's recall drops below 1.00. Tests that
